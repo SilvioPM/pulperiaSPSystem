@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export default function Productos() {
   const [tab, setTab]               = useState('productos') // 'productos' o 'categorias'
@@ -12,7 +12,12 @@ export default function Productos() {
     nombre: '', codigo: '', precio: '', costo: '',
     stock: '', stockMinimo: '5', unidad: 'unidad', categoriaId: ''
   })
+  const [productoEditar, setProductoEditar] = useState(null)
   const [formCat, setFormCat]       = useState({ nombre: '' })
+  const [mostrarImport, setMostrarImport] = useState(false)
+  const [importando, setImportando]       = useState(false)
+  const [resultImport, setResultImport]   = useState(null)
+  const inputExcel                        = useRef(null) 
 
   useEffect(() => {
     cargarProductos()
@@ -81,6 +86,105 @@ async function eliminarCategoria(id) {
   }
 }
 
+async function guardarEdicion(e) {
+  e.preventDefault()
+  const res = await fetch(`/api/productos/${productoEditar.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(productoEditar)
+  })
+  if (res.ok) {
+    setProductoEditar(null)
+    cargarProductos()
+  } else {
+    alert('Error al editar producto')
+  }
+}
+async function eliminarProducto(id) {
+  if (!confirm('¿Seguro que querés eliminar este producto?')) return
+  try {
+    const res  = await fetch(`/api/productos/${id}`, { method: 'DELETE' })
+    const text = await res.text()
+    const data = text ? JSON.parse(text) : {}
+    if (!res.ok) {
+      alert(data.error || 'Error al eliminar')
+    } else {
+      cargarProductos()
+    }
+  } catch (error) {
+    alert('Error al eliminar producto')
+  }
+}
+// Descargar plantilla Excel de ejemplo
+function descargarPlantilla() {
+  const XLSX = require('xlsx')
+  const datos = [
+    {
+      Nombre: 'Arroz Diana 1lb',
+      Codigo: '001',
+      Precio: 28,
+      Costo: 22,
+      Stock: 50,
+      StockMinimo: 10,
+      Unidad: 'libra',
+      Categoria: 'Granos básicos'
+    },
+    {
+      Nombre: 'Coca Cola 500ml',
+      Codigo: '002',
+      Precio: 25,
+      Costo: 18,
+      Stock: 24,
+      StockMinimo: 6,
+      Unidad: 'unidad',
+      Categoria: 'Bebidas'
+    },
+    {
+      Nombre: 'Chiverías surtidas',
+      Codigo: '003',
+      Precio: 5,
+      Costo: 3,
+      Stock: 100,
+      StockMinimo: 20,
+      Unidad: 'unidad',
+      Categoria: 'Chivería'
+    }
+  ]
+  const ws = XLSX.utils.json_to_sheet(datos)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Productos')
+  XLSX.writeFile(wb, 'plantilla_productos.xlsx')
+}
+
+// Importar el Excel
+async function importarExcel(e) {
+  const archivo = e.target.files[0]
+  if (!archivo) return
+
+  setImportando(true)
+  setResultImport(null)
+
+  const formData = new FormData()
+  formData.append('archivo', archivo)
+
+  try {
+    const res  = await fetch('/api/productos/importar', {
+      method: 'POST',
+      body: formData
+    })
+    const data = await res.json()
+    setResultImport(data)
+    cargarProductos()
+    cargarCategorias()
+  } catch (error) {
+    alert('Error al importar archivo')
+  }
+
+  setImportando(false)
+  // Limpiamos el input para permitir subir el mismo archivo de nuevo
+  e.target.value = ''
+}
+
   const productosFiltrados = productos.filter(p =>
     p.nombre.toLowerCase().includes(buscando.toLowerCase())
   )
@@ -109,11 +213,43 @@ async function eliminarCategoria(id) {
               : `${categorias.length} categorías registradas`}
           </p>
         </div>
-        <button
-          className="btn-verde"
-          onClick={() => tab === 'productos' ? setMostrarFormProd(true) : setMostrarFormCat(true)}>
-          {tab === 'productos' ? '+ Nuevo Producto' : '+ Nueva Categoría'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+                {tab === 'productos' && (
+                <>
+            <input
+                ref={inputExcel}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={importarExcel}
+                style={{ display: 'none' }}
+            />
+            <button
+                onClick={descargarPlantilla}
+                style={{
+                    padding: '10px 16px', borderRadius: '8px',
+                    border: '1px solid #e2e8f0', background: 'white',
+                    cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#475569'
+                }}>
+                📥 Plantilla Excel
+            </button>
+            <button
+                onClick={() => inputExcel.current.click()}
+                disabled={importando}
+                style={{
+                    padding: '10px 16px', borderRadius: '8px',
+                    border: '1px solid #2563eb', background: '#dbeafe',
+                    cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#2563eb'
+                }}>
+                {importando ? '⏳ Importando...' : '📤 Importar Excel'}
+            </button>
+        </>
+    )}
+  <button
+    className="btn-verde"
+    onClick={() => tab === 'productos' ? setMostrarFormProd(true) : setMostrarFormCat(true)}>
+    {tab === 'productos' ? '+ Nuevo Producto' : '+ Nueva Categoría'}
+  </button>
+</div>
       </div>
 
       {/* Tabs */}
@@ -139,6 +275,47 @@ async function eliminarCategoria(id) {
       {/* ── TAB PRODUCTOS ────────────────────────────────────── */}
       {tab === 'productos' && (
         <>
+            {/* Resultado de importación */}
+            {resultImport && (
+                <div style={{
+                        marginBottom: '20px', padding: '16px', borderRadius: '12px',
+                        background: resultImport.fallidos > 0 ? '#fef9c3' : '#dcfce7',
+                        border: `1px solid ${resultImport.fallidos > 0 ? '#fde047' : '#16a34a'}`
+                }}>
+                <div style={{ fontWeight: 700, marginBottom: '8px', fontSize: '15px' }}>
+                    {resultImport.fallidos === 0 ? '✅' : '⚠️'} Importación completada
+                </div>
+                <div style={{ fontSize: '14px', display: 'flex', gap: '20px' }}>
+                    <span style={{ color: '#16a34a', fontWeight: 600 }}>
+                         ✓ {resultImport.exitosos} productos importados
+                    </span>
+                    {resultImport.fallidos > 0 && (
+                    <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                         ✗ {resultImport.fallidos} fallidos
+                    </span>
+                    )}
+                </div>
+                {resultImport.errores?.length > 0 && (
+                <div style={{ marginTop: '10px' }}>
+                    {resultImport.errores.map((err, i) => (
+                    <div key={i} style={{ fontSize: '12px', color: '#92400e', marginTop: '4px' }}>
+                        ⚠ {err}
+          </div>
+        ))}
+      </div>
+    )}
+    <button
+      onClick={() => setResultImport(null)}
+      style={{
+        marginTop: '10px', padding: '4px 12px', borderRadius: '6px',
+        border: '1px solid #e2e8f0', background: 'white',
+        cursor: 'pointer', fontSize: '12px'
+      }}>
+      Cerrar
+    </button>
+  </div>
+)}
+
           <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
             <input type="text"
               placeholder="🔍 Buscar producto..."
@@ -155,7 +332,7 @@ async function eliminarCategoria(id) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  {['Producto', 'Categoría', 'Precio', 'Costo', 'Stock', 'Mín.', 'Estado'].map(h => (
+                  {['Producto', 'Categoría', 'Precio', 'Costo', 'Stock', 'Mín.', 'Estado', 'Acciones'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
                       {h}
                     </th>
@@ -165,7 +342,7 @@ async function eliminarCategoria(id) {
               <tbody>
                 {productosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                       No hay productos aún
                     </td>
                   </tr>
@@ -202,6 +379,35 @@ async function eliminarCategoria(id) {
                         ) : (
                           <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>✓ OK</span>
                         )}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            onClick={() => setProductoEditar({
+                              ...p,
+                              categoriaId: p.categoriaId,
+                              precio: p.precio,
+                              costo: p.costo,
+                              stock: p.stock,
+                              stockMinimo: p.stockMinimo
+                            })}
+                            style={{
+                              padding: '6px 10px', borderRadius: '6px',
+                              border: '1px solid #dbeafe', background: '#dbeafe',
+                              cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: 600
+                            }}>
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => eliminarProducto(p.id)}
+                            style={{
+                              padding: '6px 10px', borderRadius: '6px',
+                              border: '1px solid #fee2e2', background: '#fee2e2',
+                              cursor: 'pointer', fontSize: '13px', color: '#dc2626', fontWeight: 600
+                            }}>
+                            🗑️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -380,6 +586,96 @@ async function eliminarCategoria(id) {
           </div>
         </div>
       )}
+      {/* Modal editar producto */}
+{productoEditar && (
+  <div style={{
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+  }}>
+    <div className="card" style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700 }}>✏️ Editar Producto</h2>
+        <button onClick={() => setProductoEditar(null)}
+          style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+      </div>
+
+      <form onSubmit={guardarEdicion}>
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+            Nombre *
+          </label>
+          <input required value={productoEditar.nombre}
+            onChange={e => setProductoEditar({...productoEditar, nombre: e.target.value})}
+            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+            Código
+          </label>
+          <input value={productoEditar.codigo || ''}
+            onChange={e => setProductoEditar({...productoEditar, codigo: e.target.value})}
+            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          {[
+            { key: 'precio', label: 'Precio venta (C$)' },
+            { key: 'costo',  label: 'Costo (C$)'        },
+            { key: 'stock',  label: 'Stock actual'       },
+            { key: 'stockMinimo', label: 'Stock mínimo'  },
+          ].map(campo => (
+            <div key={campo.key}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                {campo.label}
+              </label>
+              <input type="number" step="0.01"
+                value={productoEditar[campo.key]}
+                onChange={e => setProductoEditar({...productoEditar, [campo.key]: e.target.value})}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Unidad</label>
+            <select value={productoEditar.unidad}
+              onChange={e => setProductoEditar({...productoEditar, unidad: e.target.value})}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}>
+              <option value="unidad">Unidad</option>
+              <option value="libra">Libra</option>
+              <option value="kilo">Kilo</option>
+              <option value="litro">Litro</option>
+              <option value="docena">Docena</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Categoría</label>
+            <select value={productoEditar.categoriaId}
+              onChange={e => setProductoEditar({...productoEditar, categoriaId: e.target.value})}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}>
+              {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button type="button" onClick={() => setProductoEditar(null)}
+            style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
+            💾 Guardar cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  )}
     </div>
   )
 }

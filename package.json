@@ -3,26 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
-    "lucide-react": "^1.14.0",
-    "next": "16.2.5",
-    "prisma": "^5.22.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-to-print": "^3.3.0",
-    "recharts": "^3.8.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.5",
-    "tailwindcss": "^4"
-  }
+  "next": "^15.3.1",
+  "react": "^19.0.0",
+  "react-dom": "^19.0.0",
+  "@prisma/client": "^5.0.0",
+  "lucide-react": "^0.511.0",
+  "recharts": "^2.15.3",
+  "react-to-print": "^3.1.0",
+  "xlsx": "^0.18.5"
+ },
+ "devDependencies": {
+  "prisma": "^5.0.0",
+  "eslint": "^9",
+  "eslint-config-next": "^15.3.1",
+  "tailwindcss": "^4",
+  "@tailwindcss/postcss": "^4"
+ }
 }

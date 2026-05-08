@@ -12,11 +12,16 @@ export default function POS() {
   const [metodoPago, setMetodoPago]   = useState('efectivo')
   const [cargando, setCargando]       = useState(false)
   const [facturaExitosa, setFacturaExitosa] = useState(null)
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
+  const [clientes, setClientes]                       = useState([])
+  const [buscarCliente, setBuscarCliente]             = useState('')
+  const [mostrarClientes, setMostrarClientes]         = useState(false)
 
   // Al cargar la página, traemos productos y categorías
   useEffect(() => {
     cargarProductos()
     cargarCategorias()
+    cargarClientes()  
   }, [])
 
   // Cada vez que cambia la búsqueda o categoría, filtramos
@@ -37,6 +42,11 @@ export default function POS() {
     const res = await fetch('/api/categorias')
     const data = await res.json()
     setCategorias(data)
+  }
+  async function cargarClientes() {
+  const res  = await fetch('/api/clientes')
+  const data = await res.json()
+  setClientes(data)
   }
 
   // ── Agregar producto al carrito ──────────────────────────────
@@ -71,6 +81,8 @@ export default function POS() {
     setCarrito([])
     setPagoCon('')
     setFacturaExitosa(null)
+    setClienteSeleccionado(null)
+    setBuscarCliente('')
   }
 
   // ── Cálculos del carrito ─────────────────────────────────────
@@ -97,6 +109,7 @@ export default function POS() {
           total,
           pagoCon: parseFloat(pagoCon || total),
           cambio: Math.max(0, cambio),
+          clienteId: clienteSeleccionado?.id || null,
           metodoPago,
           detalles: carrito.map(item => ({
             productoId: item.id,
@@ -265,6 +278,82 @@ export default function POS() {
             ))
           )}
         </div>
+        {/* Selector de cliente */}
+        <div style={{ position: 'relative' }}>
+           <div
+              onClick={() => setMostrarClientes(!mostrarClientes)}
+              style={{
+                    padding: '10px 14px', borderRadius: '8px',
+                     border: '1px solid #e2e8f0', cursor: 'pointer',
+                    background: clienteSeleccionado ? '#dbeafe' : '#f8fafc',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+              <span style={{ fontSize: '14px', color: clienteSeleccionado ? '#2563eb' : '#94a3b8', fontWeight: clienteSeleccionado ? 600 : 400 }}>
+                  {clienteSeleccionado ? `👤 ${clienteSeleccionado.nombre}` : '👤 Cliente general (opcional)'}
+             </span>
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>▼</span>
+            </div>
+
+          {/* Dropdown de clientes */}
+        {mostrarClientes && (
+           <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0,
+               background: 'white', border: '1px solid #e2e8f0',
+                borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                zIndex: 10, maxHeight: '200px', overflowY: 'auto'
+            }}>
+          {/* Buscador de cliente */}
+            <div style={{ padding: '8px' }}>
+              <input
+               autoFocus
+               type="text"
+                placeholder="Buscar cliente..."
+               value={buscarCliente}
+               onChange={e => setBuscarCliente(e.target.value)}
+               style={{
+                   width: '100%', padding: '8px', borderRadius: '6px',
+                    border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none'
+                }}
+             />
+            </div>
+
+      {/* Opción general */}
+      <div
+        onClick={() => { setClienteSeleccionado(null); setMostrarClientes(false); setBuscarCliente('') }}
+        style={{
+          padding: '10px 14px', cursor: 'pointer', fontSize: '13px',
+          color: '#64748b', borderBottom: '1px solid #f1f5f9',
+          background: !clienteSeleccionado ? '#f8fafc' : 'white'
+        }}>
+        👤 Cliente general
+      </div>
+
+      {/* Lista de clientes */}
+      {clientes
+        .filter(c => c.nombre.toLowerCase().includes(buscarCliente.toLowerCase()))
+        .map(c => (
+          <div key={c.id}
+            onClick={() => { setClienteSeleccionado(c); setMostrarClientes(false); setBuscarCliente('') }}
+            style={{
+              padding: '10px 14px', cursor: 'pointer', fontSize: '13px',
+              borderBottom: '1px solid #f1f5f9',
+              background: clienteSeleccionado?.id === c.id ? '#dbeafe' : 'white',
+              color: clienteSeleccionado?.id === c.id ? '#2563eb' : '#1e293b',
+            }}>
+            <div style={{ fontWeight: 600 }}>{c.nombre}</div>
+            {c.telefono && <div style={{ fontSize: '11px', color: '#94a3b8' }}>{c.telefono}</div>}
+          </div>
+        ))
+      }
+
+      {clientes.filter(c => c.nombre.toLowerCase().includes(buscarCliente.toLowerCase())).length === 0 && (
+        <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+          No se encontró el cliente
+        </div>
+      )}
+    </div>
+  )}
+</div>
 
         {/* Totales */}
         <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '12px' }}>
@@ -361,6 +450,7 @@ export default function POS() {
             </div>
           </div>
         )}
+        
       </div>
     </div>
   )
