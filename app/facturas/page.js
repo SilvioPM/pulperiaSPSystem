@@ -1,17 +1,68 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useReactToPrint } from 'react-to-print'
+import FacturaRecibo from '../components/FacturaRecibo'
 
 export default function Facturas() {
-  const [facturas, setFacturas]       = useState([])
-  const [facturaVer, setFacturaVer]   = useState(null)
-  const [buscando, setBuscando]       = useState('')
+  const [facturas, setFacturas]     = useState([])
+  const [facturaVer, setFacturaVer] = useState(null)
+  const [buscando, setBuscando]     = useState('')
+  const [config, setConfig]         = useState({})
+  const reciboRef                   = useRef(null)
 
-  useEffect(() => { cargarFacturas() }, [])
+  useEffect(() => {
+    cargarFacturas()
+    cargarConfig()
+  }, [])
 
   async function cargarFacturas() {
     const res  = await fetch('/api/facturas')
     const data = await res.json()
     setFacturas(data)
+  }
+
+  async function cargarConfig() {
+    const res  = await fetch('/api/config')
+    const data = await res.json()
+    setConfig(data)
+  }
+
+  // ── Imprimir ticket ──────────────────────────────────────────
+  const imprimirTicket = useReactToPrint({
+    contentRef: reciboRef,
+    documentTitle: facturaVer?.numero || 'Factura',
+  })
+
+  // ── Compartir por WhatsApp ───────────────────────────────────
+  function compartirWhatsApp(factura) {
+    const negocio  = config?.nombre || 'Mi Pulpería'
+    const productos = factura.detalles?.map(d =>
+      `  • ${d.producto?.nombre} x${d.cantidad} = C$ ${d.subtotal.toFixed(2)}`
+    ).join('\n')
+
+    const mensaje = `
+🛒 *${negocio}*
+📄 Factura: *${factura.numero}*
+📅 ${new Date(factura.creadoEn).toLocaleString('es-NI')}
+👤 Cliente: ${factura.cliente?.nombre || 'General'}
+
+*Detalle:*
+${productos}
+
+─────────────────
+Subtotal: C$ ${factura.subtotal.toFixed(2)}
+IVA (15%): C$ ${factura.iva.toFixed(2)}
+*TOTAL: C$ ${factura.total.toFixed(2)}*
+─────────────────
+Pagó con: C$ ${factura.pagoCon.toFixed(2)}
+Cambio: C$ ${factura.cambio.toFixed(2)}
+Método: ${factura.metodoPago}
+
+${config?.mensajePie || '¡Gracias por su compra! 🙏'}
+    `.trim()
+
+    const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`
+    window.open(url, '_blank')
   }
 
   function formatearFecha(fecha) {
@@ -26,10 +77,9 @@ export default function Facturas() {
     f.cliente?.nombre?.toLowerCase().includes(buscando.toLowerCase())
   )
 
-  // Totales del día
-  const hoy        = new Date().toDateString()
-  const ventasHoy  = facturas.filter(f => new Date(f.creadoEn).toDateString() === hoy)
-  const totalHoy   = ventasHoy.reduce((sum, f) => sum + f.total, 0)
+  const hoy       = new Date().toDateString()
+  const ventasHoy = facturas.filter(f => new Date(f.creadoEn).toDateString() === hoy)
+  const totalHoy  = ventasHoy.reduce((sum, f) => sum + f.total, 0)
 
   return (
     <div>
@@ -60,8 +110,7 @@ export default function Facturas() {
 
       {/* Buscador */}
       <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
-        <input
-          type="text"
+        <input type="text"
           placeholder="🔍 Buscar por número de factura o cliente..."
           value={buscando}
           onChange={e => setBuscando(e.target.value)}
@@ -72,12 +121,12 @@ export default function Facturas() {
         />
       </div>
 
-      {/* Tabla de facturas */}
+      {/* Tabla */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['# Factura', 'Fecha', 'Cliente', 'Método pago', 'Total', 'Estado', 'Ver'].map(h => (
+              {['# Factura', 'Fecha', 'Cliente', 'Método', 'Total', 'Acciones'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
                   {h}
                 </th>
@@ -87,21 +136,19 @@ export default function Facturas() {
           <tbody>
             {facturasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  No hay facturas aún. ¡Realizá tu primera venta desde el POS!
+                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                  No hay facturas aún
                 </td>
               </tr>
             ) : (
               facturasFiltradas.map((f, i) => (
                 <tr key={f.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span style={{ fontWeight: 700, color: '#2563eb', fontSize: '14px' }}>{f.numero}</span>
-                  </td>
+                  <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563eb' }}>{f.numero}</td>
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                     {formatearFecha(f.creadoEn)}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                    {f.cliente?.nombre || <span style={{ color: '#94a3b8' }}>Cliente general</span>}
+                    {f.cliente?.nombre || <span style={{ color: '#94a3b8' }}>General</span>}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
@@ -112,25 +159,33 @@ export default function Facturas() {
                       {f.metodoPago === 'efectivo' ? '💵' : f.metodoPago === 'tarjeta' ? '💳' : '📱'} {f.metodoPago}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '15px', color: '#16a34a' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 700, color: '#16a34a' }}>
                     C$ {f.total.toFixed(2)}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <span style={{
-                      padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                      background: '#dcfce7', color: '#16a34a'
-                    }}>
-                      ✓ Pagada
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <button onClick={() => setFacturaVer(f)}
-                      style={{
-                        padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0',
-                        background: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600
-                      }}>
-                      👁️ Ver
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => setFacturaVer(f)}
+                        style={{
+                          padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0',
+                          background: 'white', cursor: 'pointer', fontSize: '13px'
+                        }}>
+                        👁️
+                      </button>
+                      <button onClick={() => { setFacturaVer(f); setTimeout(imprimirTicket, 300) }}
+                        style={{
+                          padding: '6px 10px', borderRadius: '6px', border: '1px solid #dbeafe',
+                          background: '#dbeafe', cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: 600
+                        }}>
+                        🖨️
+                      </button>
+                      <button onClick={() => compartirWhatsApp(f)}
+                        style={{
+                          padding: '6px 10px', borderRadius: '6px', border: '1px solid #dcfce7',
+                          background: '#dcfce7', cursor: 'pointer', fontSize: '13px', color: '#16a34a', fontWeight: 600
+                        }}>
+                        📱
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -145,89 +200,43 @@ export default function Facturas() {
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
         }}>
-          <div className="card" style={{ width: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            {/* Cabecera de la factura */}
-            <div style={{ textAlign: 'center', marginBottom: '20px', paddingBottom: '20px', borderBottom: '2px dashed #e2e8f0' }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>🛒</div>
-              <div style={{ fontSize: '20px', fontWeight: 700 }}>Pulpería</div>
-              <div style={{ fontSize: '13px', color: '#64748b' }}>Managua, Nicaragua</div>
-              <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
-                {formatearFecha(facturaVer.creadoEn)}
-              </div>
-              <div style={{
-                marginTop: '12px', fontSize: '18px', fontWeight: 700,
-                color: '#2563eb', background: '#dbeafe',
-                padding: '8px 20px', borderRadius: '8px', display: 'inline-block'
-              }}>
-                {facturaVer.numero}
+            {/* Botones de acción */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Vista previa del ticket</h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={imprimirTicket}
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px', border: 'none',
+                    background: '#2563eb', color: 'white', cursor: 'pointer', fontWeight: 600
+                  }}>
+                  🖨️ Imprimir / PDF
+                </button>
+                <button onClick={() => compartirWhatsApp(facturaVer)}
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px', border: 'none',
+                    background: '#16a34a', color: 'white', cursor: 'pointer', fontWeight: 600
+                  }}>
+                  📱 WhatsApp
+                </button>
+                <button onClick={() => setFacturaVer(null)}
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                    background: 'white', cursor: 'pointer', fontWeight: 600
+                  }}>
+                  ✕ Cerrar
+                </button>
               </div>
             </div>
 
-            {/* Cliente */}
-            <div style={{ marginBottom: '16px', fontSize: '14px' }}>
-              <strong>Cliente:</strong> {facturaVer.cliente?.nombre || 'Cliente general'}
+            {/* Ticket preview */}
+            <div style={{
+              border: '2px dashed #e2e8f0', borderRadius: '8px',
+              padding: '16px', background: '#f8fafc', display: 'inline-block'
+            }}>
+              <FacturaRecibo ref={reciboRef} factura={facturaVer} config={config} />
             </div>
-
-            {/* Detalle de productos */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '16px' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', color: '#64748b' }}>Producto</th>
-                  <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>Cant.</th>
-                  <th style={{ padding: '8px', textAlign: 'right', fontSize: '12px', color: '#64748b' }}>Precio</th>
-                  <th style={{ padding: '8px', textAlign: 'right', fontSize: '12px', color: '#64748b' }}>Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {facturaVer.detalles?.map(d => (
-                  <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px', fontSize: '13px' }}>{d.producto?.nombre}</td>
-                    <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px' }}>{d.cantidad}</td>
-                    <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px' }}>C$ {d.precio.toFixed(2)}</td>
-                    <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', fontWeight: 600 }}>C$ {d.subtotal.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Totales */}
-            <div style={{ borderTop: '2px dashed #e2e8f0', paddingTop: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '14px' }}>
-                <span style={{ color: '#64748b' }}>Subtotal</span>
-                <span>C$ {facturaVer.subtotal.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '14px' }}>
-                <span style={{ color: '#64748b' }}>IVA (15%)</span>
-                <span>C$ {facturaVer.iva.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 700, color: '#16a34a', marginBottom: '8px' }}>
-                <span>TOTAL</span>
-                <span>C$ {facturaVer.total.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
-                <span>Pago con</span>
-                <span>C$ {facturaVer.pagoCon.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
-                <span>Cambio</span>
-                <span>C$ {facturaVer.cambio.toFixed(2)}</span>
-              </div>
-            </div>
-
-            {/* Pie de factura */}
-            <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '2px dashed #e2e8f0', fontSize: '13px', color: '#94a3b8' }}>
-              ¡Gracias por su compra! 🙏
-            </div>
-
-            <button onClick={() => setFacturaVer(null)}
-              style={{
-                width: '100%', marginTop: '20px', padding: '12px', borderRadius: '8px',
-                border: 'none', background: '#1e293b', color: 'white',
-                cursor: 'pointer', fontWeight: 600, fontSize: '14px'
-              }}>
-              Cerrar
-            </button>
           </div>
         </div>
       )}

@@ -10,6 +10,7 @@ const menu = [
   { href: '/facturas',   icono: '🧾', label: 'Facturas'        },
   { href: '/clientes',   icono: '👥', label: 'Clientes'        },
   { href: '/reportes',   icono: '📊', label: 'Reportes'        },
+  { href: '/configuracion', icono: '⚙️', label: 'Configuración' },
 ]
 
 export default function Sidebar() {
