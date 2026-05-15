@@ -15,47 +15,53 @@ model Categoria {
 }
 
 model Producto {
-  id          Int        @id @default(autoincrement())
-  nombre      String
-  codigo      String?    @unique
-  precio      Float
-  costo       Float      @default(0)
-  stock       Int        @default(0)
-  stockMinimo Int        @default(5)
-  unidad      String     @default("unidad")
-  categoriaId Int
-  categoria   Categoria  @relation(fields: [categoriaId], references: [id])
-  activo      Boolean    @default(true)
-  creadoEn    DateTime   @default(now())
-  detalles    DetalleFac[]
-  movimientos MovInventario[]
+  id              Int              @id @default(autoincrement())
+  nombre          String
+  codigo          String?          @unique
+  precio          Float
+  costo           Float            @default(0)
+  stock           Int              @default(0)
+  stockMinimo     Int              @default(5)
+  unidad          String           @default("unidad")
+  categoriaId     Int
+  categoria       Categoria        @relation(fields: [categoriaId], references: [id])
+  activo          Boolean          @default(true)
+  creadoEn        DateTime         @default(now())
+  detalles        DetalleFac[]
+  movimientos     MovInventario[]
+  detallesCompra  DetalleCompra[]
+  detallesProforma DetalleProforma[]
 }
 
 model Cliente {
-  id        Int       @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   nombre    String
   telefono  String?
   cedula    String?
   direccion String?
   facturas  Factura[]
-  creadoEn  DateTime  @default(now())
+  proformas Proforma[]
+  creadoEn  DateTime   @default(now())
 }
 
 model Factura {
-  id         Int        @id @default(autoincrement())
-  numero     String     @unique
-  clienteId  Int?
-  cliente    Cliente?   @relation(fields: [clienteId], references: [id])
-  subtotal   Float
-  descuento  Float      @default(0)
-  iva        Float      @default(0)
-  total      Float
-  pagoCon    Float      @default(0)
-  cambio     Float      @default(0)
-  metodoPago String     @default("efectivo")
-  estado     String     @default("pagada")
-  detalles   DetalleFac[]
-  creadoEn   DateTime   @default(now())
+  id               Int        @id @default(autoincrement())
+  numero           String     @unique
+  clienteId        Int?
+  cliente          Cliente?   @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  subtotal         Float
+  descuento        Float      @default(0)
+  iva              Float      @default(0)
+  total            Float
+  pagoCon          Float      @default(0)
+  cambio           Float      @default(0)
+  metodoPago       String     @default("efectivo")
+  esCredito        Boolean    @default(false)
+  saldoPendiente   Float      @default(0)
+  estado           String     @default("pagada")
+  detalles         DetalleFac[]
+  abonos           Abono[]
+  creadoEn         DateTime   @default(now())
 }
 
 model DetalleFac {
@@ -78,8 +84,94 @@ model MovInventario {
   motivo     String?
   creadoEn   DateTime @default(now())
 }
+
+model Abono {
+  id        Int      @id @default(autoincrement())
+  facturaId Int
+  factura   Factura  @relation(fields: [facturaId], references: [id], onDelete: Restrict)
+  monto     Float
+  nota      String?
+  creadoEn  DateTime @default(now())
+}
+
+model Proveedor {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  telefono  String?
+  contacto  String?
+  direccion String?
+  email     String?
+  activo    Boolean  @default(true)
+  compras   Compra[]
+  creadoEn  DateTime @default(now())
+}
+
+model Compra {
+  id               Int            @id @default(autoincrement())
+  numero           String         @unique
+  proveedorId      Int
+  proveedor        Proveedor      @relation(fields: [proveedorId], references: [id], onDelete: Restrict)
+  subtotal         Float
+  iva              Float          @default(0)
+  total            Float
+  esCredito        Boolean        @default(false)
+  saldoPendiente   Float          @default(0)
+  estado           String         @default("pagada")
+  nota             String?
+  detalles         DetalleCompra[]
+  abonos           AbonoCompra[]
+  creadoEn         DateTime       @default(now())
+}
+
+model DetalleCompra {
+  id        Int      @id @default(autoincrement())
+  compraId  Int
+  compra    Compra   @relation(fields: [compraId], references: [id], onDelete: Restrict)
+  productoId Int
+  producto  Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  cantidad  Float
+  unidad    String   @default("unidad")
+  costo     Float
+  subtotal  Float
+}
+
+model AbonoCompra {
+  id        Int      @id @default(autoincrement())
+  compraId  Int
+  compra    Compra   @relation(fields: [compraId], references: [id], onDelete: Restrict)
+  monto     Float
+  nota      String?
+  creadoEn  DateTime @default(now())
+}
+
+model Proforma {
+  id                Int               @id @default(autoincrement())
+  numero            String            @unique
+  clienteId         Int?
+  cliente           Cliente?          @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  subtotal          Float
+  iva               Float             @default(0)
+  total             Float
+  estado            String            @default("pendiente")
+  nota              String?
+  validoHasta       DateTime?
+  detalles          DetalleProforma[]
+  creadoEn          DateTime          @default(now())
+}
+
+model DetalleProforma {
+  id         Int       @id @default(autoincrement())
+  proformaId Int
+  proforma   Proforma  @relation(fields: [proformaId], references: [id], onDelete: Restrict)
+  productoId Int
+  producto   Producto  @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  cantidad   Float
+  precio     Float
+  subtotal   Float
+}
+
 model Config {
-  id        Int    @id @default(autoincrement())
-  clave     String @unique
-  valor     String
+  id    Int    @id @default(autoincrement())
+  clave String @unique
+  valor String
 }
