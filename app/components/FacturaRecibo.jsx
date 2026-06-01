@@ -69,7 +69,6 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
             <div style={{ fontSize: '11px' }}>RUC: {config.ruc}</div>
           )}
         </div>
-
         {/* Datos de la factura */}
         <div style={{ marginBottom: '8px', borderBottom: '1px dashed #000', paddingBottom: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -92,15 +91,15 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
 
         {/* Productos */}
         <div style={{ marginBottom: '8px', borderBottom: '1px dashed #000', paddingBottom: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginBottom: '4px', fontSize: '10px' }}>
             <span style={{ flex: 2 }}>Producto</span>
             <span style={{ flex: 1, textAlign: 'center' }}>Cant</span>
             <span style={{ flex: 1, textAlign: 'right' }}>Precio</span>
             <span style={{ flex: 1, textAlign: 'right' }}>Sub</span>
           </div>
           {factura?.detalles?.map(d => (
-            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontSize: '11px' }}>
-              <span style={{ flex: 2 }}>{d.producto?.nombre}</span>
+            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontSize: '10px' }}>
+              <span style={{ flex: 2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{d.producto?.nombre}</span>
               <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad}</span>
               <span style={{ flex: 1, textAlign: 'right' }}>{d.precio.toFixed(2)}</span>
               <span style={{ flex: 1, textAlign: 'right' }}>{d.subtotal.toFixed(2)}</span>
@@ -114,18 +113,43 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
             <span>Subtotal:</span>
             <span>C$ {factura?.subtotal?.toFixed(2)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>IVA (15%):</span>
-            <span>C$ {factura?.iva?.toFixed(2)}</span>
-          </div>
+          {factura?.descuento > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
+              <span>Descuento:</span>
+              <span>- C$ {factura.descuento.toFixed(2)}</span>
+            </div>
+          )}
+          {factura?.iva > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#7c3aed' }}>
+              <span>IVA:</span>
+              <span>+ C$ {factura.iva.toFixed(2)}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px', marginTop: '4px' }}>
             <span>TOTAL:</span>
             <span>C$ {factura?.total?.toFixed(2)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-            <span>Pagó con:</span>
-            <span>C$ {factura?.pagoCon?.toFixed(2)}</span>
-          </div>
+          {factura?.metodoPago === 'dolares' ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span>Pagó con:</span>
+                <span>${((factura.pagoCon || 0) / parseFloat(config?.tasaCambio || 1)).toFixed(2)} USD</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                <span>Tasa cambio:</span>
+                <span>C$ {parseFloat(config?.tasaCambio || 0).toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Equivale a:</span>
+                <span>C$ {factura?.pagoCon?.toFixed(2)}</span>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+              <span>Pagó con:</span>
+              <span>C$ {factura?.pagoCon?.toFixed(2)}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
             <span>Cambio:</span>
             <span>C$ {factura?.cambio?.toFixed(2)}</span>
@@ -135,7 +159,9 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
         {/* Pie del ticket */}
         <div style={{ textAlign: 'center', fontSize: '11px' }}>
           {config?.mensajePie || '¡Gracias por su compra!'}
-          <div style={{ marginTop: '4px' }}>🇳🇮 Managua, Nicaragua</div>
+          {config?.ciudad && (
+            <div style={{ marginTop: '4px' }}>📍 {config.ciudad}</div>
+          )}
           <div style={{ marginTop: '8px', fontSize: '10px', color: '#666' }}>
             — Vuelva pronto —
           </div>

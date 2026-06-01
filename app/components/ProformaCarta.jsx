@@ -97,7 +97,6 @@ const ProformaCarta = forwardRef(({ proforma, config }, ref) => {
             </div>
           </div>
         </div>
-
         {/* ── DATOS DE LA PROFORMA ─────────────────────── */}
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr',

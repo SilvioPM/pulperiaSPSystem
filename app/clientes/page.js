@@ -6,6 +6,7 @@ export default function Clientes() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [clienteVer, setClienteVer]   = useState(null)
   const [buscando, setBuscando]       = useState('')
+  const [clienteEditando, setClienteEditando] = useState(null)
   const [form, setForm] = useState({
     nombre: '', telefono: '', cedula: '', direccion: ''
   })
@@ -128,13 +129,25 @@ export default function Clientes() {
                     {formatearFecha(c.creadoEn)}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <button onClick={() => verHistorial(c)}
-                      style={{
-                        padding: '6px 14px', borderRadius: '6px', border: '1px solid #e2e8f0',
-                        background: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600
-                      }}>
-                      🧾 Ver compras
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => verHistorial(c)}
+                        style={{
+                          padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0',
+                          background: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600
+                        }}>
+                        🧾
+                      </button>
+                      <button onClick={() => {
+                        setClienteEditando(c)
+                        setForm({ nombre: c.nombre, telefono: c.telefono || '', cedula: c.cedula || '', direccion: c.direccion || '' })
+                      }}
+                        style={{
+                          padding: '6px 10px', borderRadius: '6px', border: '1px solid #dbeafe',
+                          background: '#dbeafe', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#2563eb'
+                        }}>
+                        ✏️
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -209,6 +222,77 @@ export default function Clientes() {
                 </button>
                 <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
                   💾 Guardar Cliente
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal editar cliente */}
+      {clienteEditando && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+        }}>
+          <div className="card" style={{ width: '460px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>✏️ Editar Cliente</h2>
+              <button onClick={() => { setClienteEditando(null); setForm({ nombre: '', telefono: '', cedula: '', direccion: '' }) }}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              const res = await fetch(`/api/clientes/${clienteEditando.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(form)
+              })
+              if (res.ok) {
+                setClienteEditando(null)
+                setForm({ nombre: '', telefono: '', cedula: '', direccion: '' })
+                cargarClientes()
+              } else {
+                alert('Error al actualizar cliente')
+              }
+            }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Nombre completo *</label>
+                <input required value={form.nombre}
+                  onChange={e => setForm({...form, nombre: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Teléfono</label>
+                  <input value={form.telefono}
+                    onChange={e => setForm({...form, telefono: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Cédula</label>
+                  <input value={form.cedula}
+                    onChange={e => setForm({...form, cedula: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Dirección</label>
+                <input value={form.direccion}
+                  onChange={e => setForm({...form, direccion: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => { setClienteEditando(null); setForm({ nombre: '', telefono: '', cedula: '', direccion: '' }) }}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
+                  💾 Guardar cambios
                 </button>
               </div>
             </form>

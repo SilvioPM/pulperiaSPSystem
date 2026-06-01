@@ -1,21 +1,29 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-
-const menu = [
-  { href: '/',           icono: '🏪', label: 'POS - Vender'    },
-  { href: '/productos',  icono: '📦', label: 'Productos'       },
-  { href: '/inventario', icono: '🏬', label: 'Inventario'      },
-  { href: '/facturas',   icono: '🧾', label: 'Facturas'        },
-  { href: '/clientes',   icono: '👥', label: 'Clientes'        },
-  { href: '/reportes',   icono: '📊', label: 'Reportes'        },
-  { href: '/configuracion', icono: '⚙️', label: 'Configuración' },
-]
+import { useAuth } from '@/app/context/AuthContext'
 
 export default function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [dark, setDark] = useState(false)
+  const { modulosPermitidos, user, logout } = useAuth()
+
+  useEffect(() => {
+    const saved = localStorage.getItem('tema') === 'oscuro'
+    setDark(saved)
+    document.documentElement.setAttribute('data-theme', saved ? 'dark' : 'light')
+  }, [])
+
+  function toggleTema() {
+    const nuevo = !dark
+    setDark(nuevo)
+    localStorage.setItem('tema', nuevo ? 'oscuro' : 'claro')
+    document.documentElement.setAttribute('data-theme', nuevo ? 'dark' : 'light')
+  }
+
+  const menu = modulosPermitidos().map(m => ({ href: m.path, icono: m.label.split(' ')[0], label: m.label.replace(/^[^\s]+\s/, '') }))
 
   return (
     <aside style={{
@@ -29,7 +37,6 @@ export default function Sidebar() {
       position: 'sticky',
       top: 0,
     }}>
-      {/* Logo */}
       <div style={{
         padding: '20px 16px',
         borderBottom: '1px solid #334155',
@@ -57,7 +64,6 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Menú */}
       <nav style={{ flex: 1, padding: '12px 8px' }}>
         {menu.map(item => {
           const activo = pathname === item.href
@@ -83,17 +89,54 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      {!collapsed && (
-        <div style={{
-          padding: '16px',
-          borderTop: '1px solid #334155',
-          fontSize: '12px',
-          color: '#475569'
-        }}>
-          Sistema v1.0 🇳🇮
-        </div>
-      )}
+      <div style={{
+        padding: '12px 16px',
+        borderTop: '1px solid #334155',
+      }}>
+        {!collapsed && user && (
+          <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: 8, textAlign: 'center' }}>
+            {user.nombre} {user.esAdmin ? '(Admin)' : ''}
+          </div>
+        )}
+        {!collapsed ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', color: '#475569' }}>Sistema v1.0 🇳🇮</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={logout}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '14px', color: '#ef4444', padding: '4px'
+                }}>
+                ⏻
+              </button>
+              <button onClick={toggleTema}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '18px', color: '#94a3b8', padding: '4px'
+                }}>
+                {dark ? '☀️' : '🌙'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+            <button onClick={logout}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '14px', color: '#ef4444', padding: '4px'
+              }}>
+              ⏻
+            </button>
+            <button onClick={toggleTema}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '18px', color: '#94a3b8', padding: '4px'
+              }}>
+              {dark ? '☀️' : '🌙'}
+            </button>
+          </div>
+        )}
+      </div>
     </aside>
   )
 }

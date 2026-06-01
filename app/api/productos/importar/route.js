@@ -81,7 +81,6 @@ if (fila['Codigo'] && String(fila['Codigo']).trim()) {
     }
   })
 }
-resultados.exitosos++
         resultados.exitosos++
 
       } catch (err) {

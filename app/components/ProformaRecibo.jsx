@@ -42,7 +42,6 @@ const ProformaRecibo = forwardRef(({ proforma, config }, ref) => {
           {config?.telefono && <div style={{ fontSize: '11px' }}>📞 {config.telefono}</div>}
           {config?.ruc && <div style={{ fontSize: '11px' }}>RUC: {config.ruc}</div>}
         </div>
-
         {/* Título PROFORMA */}
         <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', padding: '4px', border: '1px dashed #000' }}>
           *** PROFORMA / COTIZACIÓN ***
@@ -75,15 +74,15 @@ const ProformaRecibo = forwardRef(({ proforma, config }, ref) => {
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginBottom: '4px' }}>
             <span style={{ flex: 2 }}>Producto</span>
             <span style={{ flex: 1, textAlign: 'center' }}>Cant</span>
-            <span style={{ flex: 1, textAlign: 'right' }}>Precio</span>
-            <span style={{ flex: 1, textAlign: 'right' }}>Sub</span>
+            <span style={{ flex: 1, textAlign: 'right' }}>Precio (C$)</span>
+            <span style={{ flex: 1, textAlign: 'right' }}>Sub (C$)</span>
           </div>
           {proforma?.detalles?.map((d, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontSize: '11px' }}>
               <span style={{ flex: 2 }}>{d.producto?.nombre}</span>
               <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad}</span>
-              <span style={{ flex: 1, textAlign: 'right' }}>{d.precio?.toFixed(2)}</span>
-              <span style={{ flex: 1, textAlign: 'right' }}>{d.subtotal?.toFixed(2)}</span>
+              <span style={{ flex: 1, textAlign: 'right' }}>C$ {d.precio?.toFixed(2)}</span>
+              <span style={{ flex: 1, textAlign: 'right' }}>C$ {d.subtotal?.toFixed(2)}</span>
             </div>
           ))}
         </div>

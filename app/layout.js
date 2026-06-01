@@ -1,5 +1,6 @@
 import './globals.css'
-import Sidebar from './components/Sidebar'
+import { AuthProvider } from './context/AuthContext'
+import AppShell from './components/AppShell'
 
 export const metadata = {
   title: 'Pulpería System',
@@ -10,12 +11,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body>
-        <div style={{ display: 'flex', minHeight: '100vh' }}>
-          <Sidebar />
-          <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+        <AuthProvider>
+          <AppShell>
             {children}
-          </main>
-        </div>
+          </AppShell>
+        </AuthProvider>
       </body>
     </html>
   )

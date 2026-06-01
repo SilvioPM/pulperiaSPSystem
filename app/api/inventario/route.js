@@ -2,12 +2,27 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
 // GET — Historial de movimientos
-export async function GET() {
+export async function GET(req) {
   try {
+    const { searchParams } = new URL(req.url)
+    const desde = searchParams.get('desde')
+    const hasta = searchParams.get('hasta')
+
+    const where = {}
+    if (desde || hasta) {
+      where.creadoEn = {}
+      if (desde) where.creadoEn.gte = new Date(desde)
+      if (hasta) {
+        const h = new Date(hasta)
+        h.setHours(23, 59, 59, 999)
+        where.creadoEn.lte = h
+      }
+    }
+
     const movimientos = await prisma.movInventario.findMany({
+      where,
       include: { producto: true },
-      orderBy: { creadoEn: 'desc' },
-      take: 100
+      orderBy: { creadoEn: 'desc' }
     })
     return NextResponse.json(movimientos)
   } catch (error) {

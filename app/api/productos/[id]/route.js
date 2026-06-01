@@ -17,6 +17,13 @@ export async function PUT(request, { params }) {
         stock:       parseInt(body.stock || 0),
         stockMinimo: parseInt(body.stockMinimo || 5),
         unidad:      body.unidad || 'unidad',
+        unidadBase:  body.unidadBase || body.unidad || 'unidad',
+        unidadCompra: body.unidadCompra || body.unidad || 'unidad',
+        factorConversion: parseFloat(body.factorConversion || 1),
+        precioMayor: parseFloat(body.precioMayor || 0),
+        unidadVenta2: body.unidadVenta2 || null,
+        precioVenta2: parseFloat(body.precioVenta2 || 0),
+        factorVenta2: parseFloat(body.factorVenta2 || 1),
         categoriaId: parseInt(body.categoriaId)
       }
     })

@@ -3,26 +3,31 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
-  "next": "^15.3.1",
-  "react": "^19.0.0",
-  "react-dom": "^19.0.0",
-  "@prisma/client": "^5.0.0",
-  "lucide-react": "^0.511.0",
-  "recharts": "^2.15.3",
-  "react-to-print": "^3.1.0",
-  "xlsx": "^0.18.5"
- },
- "devDependencies": {
-  "prisma": "^5.0.0",
-  "eslint": "^9",
-  "eslint-config-next": "^15.3.1",
-  "tailwindcss": "^4",
-  "@tailwindcss/postcss": "^4"
- }
+    "@prisma/client": "^5.0.0",
+    "bcryptjs": "^3.0.3",
+    "lucide-react": "^0.511.0",
+    "next": "^15.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-to-print": "^3.1.0",
+    "recharts": "^2.15.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "^15.3.1",
+    "prisma": "^5.0.0",
+    "tailwindcss": "^4"
+  }
 }

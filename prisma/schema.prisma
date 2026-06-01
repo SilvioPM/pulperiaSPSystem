@@ -15,22 +15,29 @@ model Categoria {
 }
 
 model Producto {
-  id              Int              @id @default(autoincrement())
-  nombre          String
-  codigo          String?          @unique
-  precio          Float
-  costo           Float            @default(0)
-  stock           Int              @default(0)
-  stockMinimo     Int              @default(5)
-  unidad          String           @default("unidad")
-  categoriaId     Int
-  categoria       Categoria        @relation(fields: [categoriaId], references: [id])
-  activo          Boolean          @default(true)
-  creadoEn        DateTime         @default(now())
-  detalles        DetalleFac[]
-  movimientos     MovInventario[]
-  detallesCompra  DetalleCompra[]
-  detallesProforma DetalleProforma[]
+  id                Int              @id @default(autoincrement())
+  nombre            String
+  codigo            String?          @unique
+  precio            Float
+  costo             Float            @default(0)
+  stock             Float            @default(0)
+  stockMinimo       Float            @default(5)
+  unidad            String           @default("unidad")
+  unidadBase        String           @default("unidad")
+  unidadCompra      String           @default("unidad")
+  factorConversion  Float            @default(1)
+  precioMayor       Float            @default(0)
+  unidadVenta2      String?
+  precioVenta2      Float            @default(0)
+  factorVenta2      Float            @default(1)
+  categoriaId       Int
+  categoria         Categoria        @relation(fields: [categoriaId], references: [id])
+  activo            Boolean          @default(true)
+  creadoEn          DateTime         @default(now())
+  detalles          DetalleFac[]
+  movimientos       MovInventario[]
+  detallesCompra    DetalleCompra[]
+  detallesProforma  DetalleProforma[]
 }
 
 model Cliente {
@@ -59,6 +66,8 @@ model Factura {
   esCredito        Boolean    @default(false)
   saldoPendiente   Float      @default(0)
   estado           String     @default("pagada")
+  anuladaEn        DateTime?
+  anuladaPor       String?
   detalles         DetalleFac[]
   abonos           Abono[]
   creadoEn         DateTime   @default(now())
@@ -70,19 +79,24 @@ model DetalleFac {
   factura    Factura  @relation(fields: [facturaId], references: [id])
   productoId Int
   producto   Producto @relation(fields: [productoId], references: [id])
-  cantidad   Int
+  cantidad   Float
+  unidadVenta String?
   precio     Float
+  costo      Float    @default(0)
   subtotal   Float
+  factorConversion Float @default(1)
 }
 
 model MovInventario {
-  id         Int      @id @default(autoincrement())
-  productoId Int
-  producto   Producto @relation(fields: [productoId], references: [id])
-  tipo       String   // "entrada" o "salida"
-  cantidad   Int
-  motivo     String?
-  creadoEn   DateTime @default(now())
+  id               Int      @id @default(autoincrement())
+  productoId       Int
+  producto         Producto @relation(fields: [productoId], references: [id])
+  tipo             String   // "entrada" o "salida"
+  cantidad         Float
+  cantidadOriginal Float?
+  unidadOriginal   String?
+  motivo           String?
+  creadoEn         DateTime @default(now())
 }
 
 model Abono {
@@ -170,8 +184,27 @@ model DetalleProforma {
   subtotal   Float
 }
 
+model CartSession {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  data      String
+  creadoEn  DateTime @default(now())
+}
+
 model Config {
   id    Int    @id @default(autoincrement())
   clave String @unique
   valor String
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  nombre    String
+  esAdmin   Boolean  @default(false)
+  rol       String   @default("cajero")
+  modulos   String   @default("[]")
+  activo    Boolean  @default(true)
+  creadoEn  DateTime @default(now())
 }

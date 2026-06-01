@@ -1,9 +1,25 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(req) {
   try {
+    const { searchParams } = new URL(req.url)
+    const desde = searchParams.get('desde')
+    const hasta = searchParams.get('hasta')
+
+    const where = {}
+    if (desde || hasta) {
+      where.creadoEn = {}
+      if (desde) where.creadoEn.gte = new Date(desde)
+      if (hasta) {
+        const h = new Date(hasta)
+        h.setHours(23, 59, 59, 999)
+        where.creadoEn.lte = h
+      }
+    }
+
     const proformas = await prisma.proforma.findMany({
+      where,
       include: {
         cliente:  true,
         detalles: { include: { producto: true } }

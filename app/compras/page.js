@@ -324,7 +324,7 @@ async function crearProductoRapido(e) {
             background: '#7c3aed', color: 'white', cursor: 'pointer',
             fontSize: '13px', fontWeight: 600
           }}>
-          ➕ Crear "{buscarProducto}"
+          ➕ Crear &ldquo;{buscarProducto}&rdquo;
         </button>
       </div>
     )}

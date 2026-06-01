@@ -1,7 +1,10 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@/app/context/AuthContext'
 
 export default function Productos() {
+  const { puedeEditar } = useAuth()
+  const editable = puedeEditar('productos')
   const [tab, setTab]               = useState('productos') // 'productos' o 'categorias'
   const [productos, setProductos]   = useState([])
   const [categorias, setCategorias] = useState([])
@@ -10,7 +13,9 @@ export default function Productos() {
   const [buscando, setBuscando]     = useState('')
   const [formProd, setFormProd]     = useState({
     nombre: '', codigo: '', precio: '', costo: '',
-    stock: '', stockMinimo: '5', unidad: 'unidad', categoriaId: ''
+    stock: '', stockMinimo: '5', unidad: 'unidad',
+    unidadVenta2: '', precioVenta2: '', factorVenta2: '',
+    categoriaId: ''
   })
   const [productoEditar, setProductoEditar] = useState(null)
   const [formCat, setFormCat]       = useState({ nombre: '' })
@@ -46,7 +51,9 @@ export default function Productos() {
     if (res.ok) {
       setMostrarFormProd(false)
       setFormProd({ nombre: '', codigo: '', precio: '', costo: '',
-                    stock: '', stockMinimo: '5', unidad: 'unidad', categoriaId: '' })
+                    stock: '', stockMinimo: '5', unidad: 'unidad',
+                    unidadVenta2: '', precioVenta2: '', factorVenta2: '',
+                    categoriaId: '' })
       cargarProductos()
     } else {
       alert('Error al guardar producto')
@@ -214,7 +221,7 @@ async function importarExcel(e) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-                {tab === 'productos' && (
+                {tab === 'productos' && editable && (
                 <>
             <input
                 ref={inputExcel}
@@ -244,11 +251,12 @@ async function importarExcel(e) {
             </button>
         </>
     )}
-  <button
-    className="btn-verde"
-    onClick={() => tab === 'productos' ? setMostrarFormProd(true) : setMostrarFormCat(true)}>
-    {tab === 'productos' ? '+ Nuevo Producto' : '+ Nueva Categoría'}
-  </button>
+          <button
+            className="btn-verde"
+            onClick={() => tab === 'productos' ? setMostrarFormProd(true) : setMostrarFormCat(true)}
+            style={{ display: editable ? undefined : 'none' }}>
+            {tab === 'productos' ? '+ Nuevo Producto' : '+ Nueva Categoría'}
+          </button>
 </div>
       </div>
 
@@ -332,7 +340,7 @@ async function importarExcel(e) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  {['Producto', 'Categoría', 'Precio', 'Costo', 'Stock', 'Mín.', 'Estado', 'Acciones'].map(h => (
+                  {['Producto', 'Categoría', 'Precio', 'Costo', 'Stock', 'Mín.', 'Estado', ...(editable ? ['Acciones'] : [])].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
                       {h}
                     </th>
@@ -342,7 +350,7 @@ async function importarExcel(e) {
               <tbody>
                 {productosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan={editable ? 8 : 7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                       No hay productos aún
                     </td>
                   </tr>
@@ -380,6 +388,7 @@ async function importarExcel(e) {
                           <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>✓ OK</span>
                         )}
                       </td>
+                      {editable && (
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
@@ -409,6 +418,7 @@ async function importarExcel(e) {
                           </button>
                         </div>
                       </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -425,7 +435,8 @@ async function importarExcel(e) {
             <div className="card" style={{ textAlign: 'center', padding: '60px' }}>
               <div style={{ fontSize: '48px', marginBottom: '12px' }}>🏷️</div>
               <p style={{ color: '#94a3b8', marginBottom: '16px' }}>No hay categorías aún</p>
-              <button className="btn-verde" onClick={() => setMostrarFormCat(true)}>
+              <button className="btn-verde" onClick={() => setMostrarFormCat(true)}
+                style={{ display: editable ? undefined : 'none' }}>
                 + Crear primera categoría
               </button>
             </div>
@@ -450,6 +461,7 @@ async function importarExcel(e) {
                     <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
                       {prodsCat} producto{prodsCat !== 1 ? 's' : ''}
                     </div>
+                    {editable && (
                     <button
                       onClick={() => eliminarCategoria(cat.id)}
                       style={{
@@ -459,6 +471,7 @@ async function importarExcel(e) {
                       }}>
                       🗑️ Eliminar
                     </button>
+                    )}
                   </div>
                 )
               })}
@@ -534,6 +547,44 @@ async function importarExcel(e) {
                     <option value="">Seleccioná...</option>
                     {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                   </select>
+                </div>
+              </div>
+              {/* Segunda presentación */}
+              <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>📦 Segunda presentación (opcional)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
+                    <select value={formProd.unidadVenta2 || ''} onChange={e => setFormProd({...formProd, unidadVenta2: e.target.value})}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
+                      <option value="">Ninguna</option>
+                      <option value="quintal">Quintal</option>
+                      <option value="kilo">Kilo</option>
+                      <option value="libra">Libra</option>
+                      <option value="docena">Docena</option>
+                      <option value="caja">Caja</option>
+                      <option value="paquete">Paquete</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
+                    <input type="number" step="0.01" value={formProd.precioVenta2 || ''}
+                      onChange={e => setFormProd({...formProd, precioVenta2: e.target.value})}
+                      placeholder="0"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
+                    <input type="number" step="1" value={formProd.factorVenta2 || ''}
+                      onChange={e => setFormProd({...formProd, factorVenta2: e.target.value})}
+                      placeholder="100"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+                  Ejemplo: si la unidad base es &quot;libra&quot; y vendés por &quot;quintal&quot;, el factor es 100
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
@@ -660,6 +711,45 @@ async function importarExcel(e) {
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}>
               {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
+          </div>
+        </div>
+
+        {/* Segunda presentación */}
+        <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>📦 Segunda presentación (opcional)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
+              <select value={productoEditar.unidadVenta2 || ''} onChange={e => setProductoEditar({...productoEditar, unidadVenta2: e.target.value})}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
+                <option value="">Ninguna</option>
+                <option value="quintal">Quintal</option>
+                <option value="kilo">Kilo</option>
+                <option value="libra">Libra</option>
+                <option value="docena">Docena</option>
+                <option value="caja">Caja</option>
+                <option value="paquete">Paquete</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
+              <input type="number" step="0.01" value={productoEditar.precioVenta2 || ''}
+                onChange={e => setProductoEditar({...productoEditar, precioVenta2: e.target.value})}
+                placeholder="0"
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
+              <input type="number" step="1" value={productoEditar.factorVenta2 || ''}
+                onChange={e => setProductoEditar({...productoEditar, factorVenta2: e.target.value})}
+                placeholder="100"
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+              />
+            </div>
+          </div>
+          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+            Ejemplo: si la unidad base es &quot;libra&quot; y vendés por &quot;quintal&quot;, el factor es 100
           </div>
         </div>
 

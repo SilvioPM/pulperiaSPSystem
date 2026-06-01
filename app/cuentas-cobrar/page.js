@@ -19,7 +19,7 @@ export default function CuentasCobrar() {
       const res  = await fetch('/api/facturas')
       const data = await res.json()
       const creditos = Array.isArray(data)
-        ? data.filter(f => f.esCredito)
+        ? data.filter(f => f.esCredito && f.estado !== 'anulada')
         : []
       setFacturas(creditos)
     } catch {

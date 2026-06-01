@@ -12,12 +12,53 @@
   --rojo: #dc2626;
   --azul: #2563eb;
   --gris: #f8fafc;
+  --gris-fondo: #f8fafc;
   --borde: #e2e8f0;
+  --texto: #1e293b;
+  --texto-secundario: #64748b;
+  --card-bg: white;
+  --hover: #f1f5f9;
+}
+
+[data-theme="dark"] {
+  --gris: #0f172a;
+  --gris-fondo: #0f172a;
+  --borde: #334155;
+  --texto: #f1f5f9;
+  --texto-secundario: #94a3b8;
+  --card-bg: #1e293b;
+  --hover: #334155;
+}
+
+[data-theme="dark"] body {
+  background-color: var(--gris-fondo) !important;
+}
+[data-theme="dark"] .card {
+  background: var(--card-bg) !important;
+  border-color: var(--borde) !important;
+}
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--card-bg) !important;
+  color: var(--texto) !important;
+  border-color: var(--borde) !important;
 }
 
 body {
   font-family: 'Segoe UI', sans-serif;
-  background-color: var(--gris);
+  background-color: var(--gris-fondo);
+  color: var(--texto);
+}
+
+input, select, textarea {
+  background-color: var(--card-bg);
+  color: var(--texto);
+  border-color: var(--borde) !important;
+}
+
+input::placeholder {
+  color: var(--texto-secundario);
 }
 
 .btn-verde {
@@ -46,8 +87,29 @@ body {
 }
 
 .card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   border: 1px solid var(--borde);
   padding: 20px;
+}
+
+table {
+  background: var(--card-bg);
+}
+
+th {
+  color: var(--texto-secundario) !important;
+}
+
+td {
+  color: var(--texto) !important;
+}
+
+@media print {
+  body { background: white !important; color: black !important; }
+  .card { border: 1px solid #ddd !important; box-shadow: none !important; break-inside: avoid; }
+  nav, aside, button, .mobile-nav { display: none !important; }
+  main { padding: 0 !important; }
+  input, select, textarea { border: none !important; background: transparent !important; }
+  @page { margin: 15mm; }
 }
