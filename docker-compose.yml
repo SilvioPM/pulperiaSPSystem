@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: spsystem
+      POSTGRES_USER: spsystem
+      POSTGRES_PASSWORD: spsystem123
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spsystem"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://spsystem:spsystem123@db:5432/spsystem
+      JWT_SECRET: ${JWT_SECRET:-spsystem-jwt-secret-change-in-production}
+      APP_LICENSE_SECRET: ${APP_LICENSE_SECRET:-spsystem-license-secret-change-in-production}
+      NODE_ENV: production
+      SPSYSTEM_DATA_DIR: /app/data
+    volumes:
+      - appdata:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  appdata:

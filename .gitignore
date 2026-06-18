@@ -60,3 +60,7 @@ public/sw.js
 licencia_*
 
 certificates
+
+# docker
+/app/data/
+/data/

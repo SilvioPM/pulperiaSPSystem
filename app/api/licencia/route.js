@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
 import os from 'os'
+import fs from 'fs'
+import path from 'path'
 
 const prisma = new PrismaClient()
 const LICENCIA_SECRET = process.env.APP_LICENSE_SECRET
@@ -10,6 +12,20 @@ let cachedMachineId = null
 let cacheTime = 0
 function generarMachineId() {
   if (cachedMachineId && Date.now() - cacheTime < 60000) return cachedMachineId
+
+  const dataDir = process.env.SPSYSTEM_DATA_DIR || path.join(process.cwd(), 'data')
+  const machineIdFile = path.join(dataDir, 'machine-id')
+
+  // Intentar leer ID persistido (Docker volume / instalación portable)
+  try {
+    if (fs.existsSync(machineIdFile)) {
+      cachedMachineId = fs.readFileSync(machineIdFile, 'utf8').trim()
+      cacheTime = Date.now()
+      return cachedMachineId
+    }
+  } catch {}
+
+  // Generar desde hardware del host
   const datos = [
     os.hostname(),
     os.platform(),
@@ -24,6 +40,13 @@ function generarMachineId() {
   ].join('|')
   cachedMachineId = crypto.createHash('sha256').update(datos).digest('hex').slice(0, 32)
   cacheTime = Date.now()
+
+  // Persistir para que sobreviva a reinicios del contenedor
+  try {
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
+    fs.writeFileSync(machineIdFile, cachedMachineId)
+  } catch {}
+
   return cachedMachineId
 }
 
