@@ -1,12 +1,6 @@
 #!/bin/sh
 set -e
 
-echo "⏳ Esperando a PostgreSQL..."
-until pg_isready -h db -U spsystem -q 2>/dev/null; do
-  sleep 1
-done
-echo "✅ PostgreSQL listo"
-
 echo "🚀 Aplicando schema..."
 npx prisma db push --accept-data-loss 2>&1
 
