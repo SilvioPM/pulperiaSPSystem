@@ -4,17 +4,24 @@ import { NextResponse } from 'next/server'
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url)
-    const desde = searchParams.get('desde')
-    const hasta = searchParams.get('hasta')
+    let desde = searchParams.get('desde')
+    let hasta = searchParams.get('hasta')
 
-    const where = { estado: { not: 'anulada' } }
-    if (desde || hasta) {
-      where.creadoEn = {}
-      if (desde) where.creadoEn.gte = new Date(desde)
-      if (hasta) {
-        const h = new Date(hasta)
-        h.setHours(23, 59, 59, 999)
-        where.creadoEn.lte = h
+    if (!desde || !hasta) {
+      const hoy = new Date()
+      if (!hasta) hasta = hoy.toISOString().split('T')[0]
+      if (!desde) {
+        const treinta = new Date(hoy)
+        treinta.setDate(treinta.getDate() - 30)
+        desde = treinta.toISOString().split('T')[0]
+      }
+    }
+
+    const where = {
+      estado: { not: 'anulada' },
+      creadoEn: {
+        gte: new Date(desde),
+        lte: new Date(hasta + 'T23:59:59.999Z')
       }
     }
 
@@ -29,7 +36,7 @@ export async function GET(req) {
         orderBy: { creadoEn: 'desc' }
       }),
       prisma.compra.findMany({
-        where: desde || hasta ? { creadoEn: where.creadoEn } : {},
+        where: { creadoEn: where.creadoEn },
         include: { proveedor: true, abonos: true },
         orderBy: { creadoEn: 'desc' }
       }),

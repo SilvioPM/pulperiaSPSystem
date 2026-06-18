@@ -6,6 +6,8 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url)
     const desde = searchParams.get('desde')
     const hasta = searchParams.get('hasta')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
 
     const where = {}
     if (desde || hasta) {
@@ -18,16 +20,22 @@ export async function GET(req) {
       }
     }
 
-    const compras = await prisma.compra.findMany({
-      where,
-      include: {
-        proveedor:   true,
-        detalles:    { include: { producto: true } },
-        abonos: true
-      },
-      orderBy: { creadoEn: 'desc' }
-    })
-    return NextResponse.json(compras)
+    const [compras, total] = await Promise.all([
+      prisma.compra.findMany({
+        where,
+        include: {
+          proveedor:   true,
+          detalles:    { include: { producto: true } },
+          abonos: true
+        },
+        orderBy: { creadoEn: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      prisma.compra.count({ where })
+    ])
+
+    return NextResponse.json({ data: compras, total, page, totalPages: Math.ceil(total / limit) })
   } catch (error) {
     return NextResponse.json({ error: 'Error al obtener compras' }, { status: 500 })
   }
@@ -35,75 +43,81 @@ export async function GET(req) {
 
 export async function POST(request) {
   try {
-    const body   = await request.json()
-    const total  = await prisma.compra.count()
-    const numero = `COM-${String(total + 1).padStart(5, '0')}`
-
-    const esCredito      = body.esCredito || false
-    const saldoPendiente = esCredito ? parseFloat(body.total) : 0
-    const estado         = esCredito ? 'credito' : 'pagada'
-
-    const compra = await prisma.compra.create({
-      data: {
-        numero,
-        proveedorId:    parseInt(body.proveedorId),
-        subtotal:       parseFloat(body.subtotal),
-        iva:            parseFloat(body.iva || 0),
-        total:          parseFloat(body.total),
-        esCredito,
-        saldoPendiente,
-        estado,
-        nota:           body.nota || null,
-        detalles: {
-          create: body.detalles.map(d => ({
-            productoId: parseInt(d.productoId),
-            cantidad:   parseFloat(d.cantidad),
-            unidad:     d.unidad || 'unidad',
-            costo:      parseFloat(d.costo),
-            subtotal:   parseFloat(d.subtotal)
-          }))
-        }
-      },
-      include: {
-        proveedor:    true,
-        detalles:     { include: { producto: true } },
-        abonos: true
-      }
-    })
-
-    // Actualizamos el stock e inventario
-    for (const detalle of body.detalles) {
-      const producto = await prisma.producto.findUnique({
-        where: { id: parseInt(detalle.productoId) }
-      })
-
-      const esUnidadCompra = detalle.unidad === producto?.unidadCompra
-      const cantidadBase   = esUnidadCompra
-        ? parseFloat(detalle.cantidad) * (producto?.factorConversion || 1)
-        : parseFloat(detalle.cantidad)
-
-      await prisma.producto.update({
-        where: { id: parseInt(detalle.productoId) },
-        data:  {
-          stock: { increment: cantidadBase },
-          costo: parseFloat(detalle.costo)
-        }
-      })
-
-      await prisma.movInventario.create({
-        data: {
-          productoId:       parseInt(detalle.productoId),
-          tipo:             'entrada',
-          cantidad:         cantidadBase,
-          cantidadOriginal: parseFloat(detalle.cantidad),
-          unidadOriginal:   detalle.unidad || 'unidad',
-          motivo:           `Compra ${numero}`
-        }
-      })
+    const body = await request.json()
+    if (!body.detalles || !Array.isArray(body.detalles) || body.detalles.length === 0) {
+      return NextResponse.json({ error: 'La compra debe tener al menos un detalle' }, { status: 400 })
     }
+
+    const compra = await prisma.$transaction(async (tx) => {
+      const ultima = await tx.compra.findFirst({ orderBy: { id: 'desc' }, select: { numero: true } })
+      let secuencia = 1
+      if (ultima?.numero) {
+        const partes = ultima.numero.split('-')
+        secuencia = parseInt(partes[1] || '0') + 1
+      }
+      const numero = `COM-${String(secuencia).padStart(5, '0')}`
+
+      const esCredito = body.esCredito || false
+      const creada = await tx.compra.create({
+        data: {
+          numero,
+          proveedorId: parseInt(body.proveedorId),
+          subtotal: parseFloat(body.subtotal),
+          iva: parseFloat(body.iva || 0),
+          total: parseFloat(body.total),
+          esCredito,
+          saldoPendiente: esCredito ? parseFloat(body.total) : 0,
+          estado: esCredito ? 'credito' : 'pagada',
+          nota: body.nota || null,
+          detalles: {
+            create: body.detalles.map(d => ({
+              productoId: parseInt(d.productoId),
+              cantidad: parseFloat(d.cantidad),
+              unidad: d.unidad || 'unidad',
+              costo: parseFloat(d.costo),
+              subtotal: parseFloat(d.subtotal)
+            }))
+          }
+        },
+        include: {
+          proveedor: true,
+          detalles: { include: { producto: true } },
+          abonos: true
+        }
+      })
+
+      for (const detalle of body.detalles) {
+        const producto = await tx.producto.findUnique({ where: { id: parseInt(detalle.productoId) } })
+        if (!producto) throw new Error(`Producto ID ${detalle.productoId} no encontrado`)
+
+        const esUnidadCompra = detalle.unidad === producto.unidadCompra
+        const cantidadBase = esUnidadCompra
+          ? parseFloat(detalle.cantidad) * (producto.factorConversion || 1)
+          : parseFloat(detalle.cantidad)
+
+        await tx.producto.update({
+          where: { id: parseInt(detalle.productoId) },
+          data: { stock: { increment: cantidadBase }, costo: parseFloat(detalle.costo) }
+        })
+
+        await tx.movInventario.create({
+          data: {
+            productoId: parseInt(detalle.productoId),
+            tipo: 'entrada',
+            cantidad: cantidadBase,
+            cantidadOriginal: parseFloat(detalle.cantidad),
+            unidadOriginal: detalle.unidad || 'unidad',
+            motivo: `Compra ${numero}`
+          }
+        })
+      }
+
+      return creada
+    })
 
     return NextResponse.json(compra, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ error: 'Error al registrar compra' }, { status: 500 })
+    console.error('Error al registrar compra:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

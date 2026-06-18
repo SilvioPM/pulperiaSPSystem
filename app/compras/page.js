@@ -26,8 +26,9 @@ export default function Compras() {
      unidadBase: 'unidad', unidadCompra: 'unidad',
      factorConversion: '1', precioMayor: '0', categoriaId: ''
   })
+  const [cargando, setCargando] = useState(true)
 
-  useEffect(() => { cargarTodo() }, [])
+  useEffect(() => { cargarTodo().finally(() => setCargando(false)) }, [])
 
  async function cargarTodo() {
   try {
@@ -41,7 +42,7 @@ export default function Compras() {
       cRes.json(), pRes.json(), prRes.json(), catRes.json()
     ])
     setCompras(Array.isArray(c) ? c : [])
-    setProductos(Array.isArray(p) ? p : [])
+    setProductos(Array.isArray(p) ? p : (p.data || []))
     setProveedores(Array.isArray(pr) ? pr : [])
     setCategorias(Array.isArray(cat) ? cat : [])
   } catch { setCompras([]) }
@@ -155,6 +156,8 @@ async function crearProductoRapido(e) {
   )
 
   const totalPendiente = compras.filter(c => c.esCredito).reduce((sum, c) => sum + c.saldoPendiente, 0)
+
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
   return (
     <div>

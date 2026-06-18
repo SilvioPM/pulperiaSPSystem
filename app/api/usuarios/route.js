@@ -9,7 +9,8 @@ export async function GET() {
     })
     return Response.json(usuarios.map(u => ({ ...u, modulos: JSON.parse(u.modulos || '[]') })))
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 })
+    console.error('Error al obtener usuarios:', error)
+    return Response.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 
@@ -40,13 +41,14 @@ export async function POST(req) {
       activo: usuario.activo,
     })
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 })
+    console.error('Error al crear usuario:', error)
+    return Response.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 
 export async function PUT(req) {
   try {
-    const { id, username, password, nombre, esAdmin, modulos, activo } = await req.json()
+    const { id, username, password, nombre, esAdmin, rol, modulos, activo } = await req.json()
     if (!id) return Response.json({ error: 'ID requerido' }, { status: 400 })
 
     const data = {}
@@ -69,6 +71,7 @@ export async function PUT(req) {
       activo: usuario.activo,
     })
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 })
+    console.error('Error al actualizar usuario:', error)
+    return Response.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

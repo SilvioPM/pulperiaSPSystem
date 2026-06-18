@@ -7,16 +7,24 @@ export default function Clientes() {
   const [clienteVer, setClienteVer]   = useState(null)
   const [buscando, setBuscando]       = useState('')
   const [clienteEditando, setClienteEditando] = useState(null)
+  const [page, setPage]               = useState(1)
+  const [totalPages, setTotalPages]   = useState(1)
+  const [totalClientes, setTotalClientes] = useState(0)
+  const [cargando, setCargando] = useState(true)
   const [form, setForm] = useState({
-    nombre: '', telefono: '', cedula: '', direccion: ''
+    nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: ''
   })
 
-  useEffect(() => { cargarClientes() }, [])
+  useEffect(() => { cargarClientes(1).finally(() => setCargando(false)) }, [])
 
-  async function cargarClientes() {
-    const res  = await fetch('/api/clientes')
+  async function cargarClientes(p) {
+    const s = buscando ? `&buscar=${encodeURIComponent(buscando)}` : ''
+    const res = await fetch(`/api/clientes?page=${p}&limit=30${s}`)
     const data = await res.json()
-    setClientes(data)
+    setClientes(data.data || data || [])
+    setTotalClientes(data.total || 0)
+    setTotalPages(data.totalPages || 1)
+    setPage(data.page || p)
   }
 
   async function guardarCliente(e) {
@@ -28,8 +36,8 @@ export default function Clientes() {
     })
     if (res.ok) {
       setMostrarForm(false)
-      setForm({ nombre: '', telefono: '', cedula: '', direccion: '' })
-      cargarClientes()
+      setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '' })
+      cargarClientes(1)
     } else {
       alert('Error al guardar cliente')
     }
@@ -38,15 +46,11 @@ export default function Clientes() {
   async function verHistorial(cliente) {
     const res  = await fetch('/api/facturas')
     const data = await res.json()
-    const facturasDel = data.filter(f => f.clienteId === cliente.id)
+    const facturasDel = (data.data || data || []).filter(f => f.clienteId === cliente.id)
     setClienteVer({ ...cliente, facturas: facturasDel })
   }
 
-  const clientesFiltrados = clientes.filter(c =>
-    c.nombre.toLowerCase().includes(buscando.toLowerCase()) ||
-    c.telefono?.includes(buscando) ||
-    c.cedula?.includes(buscando)
-  )
+  const clientesFiltrados = clientes
 
   function formatearFecha(fecha) {
     return new Date(fecha).toLocaleDateString('es-NI', {
@@ -54,13 +58,15 @@ export default function Clientes() {
     })
   }
 
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
+
   return (
     <div>
       {/* Encabezado */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>👥 Clientes</h1>
-          <p style={{ color: '#64748b', fontSize: '14px' }}>{clientes.length} clientes registrados</p>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>{totalClientes} clientes registrados</p>
         </div>
         <button className="btn-verde" onClick={() => setMostrarForm(true)}>
           + Nuevo Cliente
@@ -73,7 +79,7 @@ export default function Clientes() {
           type="text"
           placeholder="🔍 Buscar por nombre, teléfono o cédula..."
           value={buscando}
-          onChange={e => setBuscando(e.target.value)}
+          onChange={e => { setBuscando(e.target.value); if (e.target.value.length >= 2 || !e.target.value) cargarClientes(1) }}
           style={{
             width: '100%', padding: '10px 14px', borderRadius: '8px',
             border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
@@ -86,7 +92,7 @@ export default function Clientes() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['Cliente', 'Teléfono', 'Cédula', 'Dirección', 'Registrado', 'Historial'].map(h => (
+              {['Cliente', 'Teléfono', 'Cédula', 'Dirección', 'Límite Crédito', 'Registrado', 'Historial'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
                   {h}
                 </th>
@@ -96,7 +102,7 @@ export default function Clientes() {
           <tbody>
             {clientesFiltrados.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                   <div style={{ fontSize: '40px', marginBottom: '8px' }}>👥</div>
                   No hay clientes aún. ¡Agregá el primero!
                 </td>
@@ -125,6 +131,9 @@ export default function Clientes() {
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                     {c.direccion || <span style={{ color: '#cbd5e1' }}>—</span>}
                   </td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: c.limiteCredito > 0 ? '#7c3aed' : '#94a3b8' }}>
+                    {c.limiteCredito > 0 ? `C$ ${c.limiteCredito.toFixed(2)}` : '—'}
+                  </td>
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                     {formatearFecha(c.creadoEn)}
                   </td>
@@ -138,8 +147,8 @@ export default function Clientes() {
                         🧾
                       </button>
                       <button onClick={() => {
-                        setClienteEditando(c)
-                        setForm({ nombre: c.nombre, telefono: c.telefono || '', cedula: c.cedula || '', direccion: c.direccion || '' })
+                      setClienteEditando(c)
+                      setForm({ nombre: c.nombre, telefono: c.telefono || '', cedula: c.cedula || '', direccion: c.direccion || '', limiteCredito: c.limiteCredito || '' })
                       }}
                         style={{
                           padding: '6px 10px', borderRadius: '6px', border: '1px solid #dbeafe',
@@ -155,6 +164,20 @@ export default function Clientes() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
+          <button onClick={() => cargarClientes(page - 1)} disabled={page <= 1} style={{
+            padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page <= 1 ? '#f1f5f9' : '#fff',
+            cursor: page <= 1 ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, color: page <= 1 ? '#94a3b8' : '#1e293b'
+          }}>‹ Anterior</button>
+          <span style={{ fontSize: 13, color: '#475569' }}>Pág. {page} de {totalPages} ({totalClientes} clientes)</span>
+          <button onClick={() => cargarClientes(page + 1)} disabled={page >= totalPages} style={{
+            padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page >= totalPages ? '#f1f5f9' : '#fff',
+            cursor: page >= totalPages ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, color: page >= totalPages ? '#94a3b8' : '#1e293b'
+          }}>Siguiente ›</button>
+        </div>
+      )}
 
       {/* Modal nuevo cliente */}
       {mostrarForm && (
@@ -215,6 +238,17 @@ export default function Clientes() {
                 />
               </div>
 
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Límite de Crédito (C$)
+                </label>
+                <input type="number" step="0.01" min="0" value={form.limiteCredito}
+                  onChange={e => setForm({...form, limiteCredito: e.target.value})}
+                  placeholder="0.00"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button type="button" onClick={() => setMostrarForm(false)}
                   style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
@@ -238,7 +272,7 @@ export default function Clientes() {
           <div className="card" style={{ width: '460px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700 }}>✏️ Editar Cliente</h2>
-              <button onClick={() => { setClienteEditando(null); setForm({ nombre: '', telefono: '', cedula: '', direccion: '' }) }}
+              <button onClick={() => { setClienteEditando(null);                   setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '' }) }}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
             <form onSubmit={async (e) => {
@@ -250,8 +284,8 @@ export default function Clientes() {
               })
               if (res.ok) {
                 setClienteEditando(null)
-                setForm({ nombre: '', telefono: '', cedula: '', direccion: '' })
-                cargarClientes()
+                setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '' })
+                cargarClientes(1)
               } else {
                 alert('Error al actualizar cliente')
               }
@@ -286,8 +320,16 @@ export default function Clientes() {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
               </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Límite de Crédito (C$)</label>
+                <input type="number" step="0.01" min="0" value={form.limiteCredito}
+                  onChange={e => setForm({...form, limiteCredito: e.target.value})}
+                  placeholder="0.00"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => { setClienteEditando(null); setForm({ nombre: '', telefono: '', cedula: '', direccion: '' }) }}
+                <button type="button" onClick={() => { setClienteEditando(null); setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '' }) }}
                   style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
                   Cancelar
                 </button>

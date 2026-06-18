@@ -1,32 +1,39 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
+import { auditar } from '@/lib/auditarClient'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
-  const { login } = useAuth()
-  const router = useRouter()
+  const { user, login } = useAuth()
+
+  useEffect(() => {
+    if (user) window.location.replace(user.esAdmin ? '/' : '/pos')
+  }, [user])
+
+  if (user) return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#0f172a', color: '#94a3b8', fontSize: 16
+    }}>
+      Redirigiendo...
+    </div>
+  )
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setCargando(true)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error); return }
-      login(data)
-      router.push('/')
-    } catch {
-      setError('Error de conexión')
+      const data = await login(username, password)
+      auditar(data.nombre || data.username, 'login', 'sesion', 'Inicio de sesión exitoso')
+      window.location.replace(data.esAdmin ? '/' : '/pos')
+      return
+    } catch (e) {
+      setError(e.message || 'Error de conexión')
     } finally {
       setCargando(false)
     }
@@ -38,7 +45,6 @@ export default function LoginPage() {
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
       position: 'relative', overflow: 'hidden'
     }}>
-      {/* Círculos decorativos de fondo */}
       <div style={{
         position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
         background: 'radial-gradient(circle, rgba(22,163,74,0.08) 0%, transparent 70%)',
@@ -61,7 +67,6 @@ export default function LoginPage() {
         boxShadow: '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)',
         position: 'relative', backdropFilter: 'blur(10px)'
       }}>
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '36px' }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '20px',
@@ -71,7 +76,6 @@ export default function LoginPage() {
             boxShadow: '0 8px 32px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
             position: 'relative'
           }}>
-            {/* Brillo superior */}
             <div style={{
               position: 'absolute', top: 0, left: 0, right: 0, height: '40%',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%)',
@@ -97,7 +101,7 @@ export default function LoginPage() {
           }}>
             <span style={{ width: '20px', height: '2px', borderRadius: '2px', background: 'linear-gradient(90deg, transparent, #16a34a)' }} />
             <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase' }}>
-              Pulpería POS
+              SPSystem
             </span>
             <span style={{ width: '20px', height: '2px', borderRadius: '2px', background: 'linear-gradient(90deg, #16a34a, transparent)' }} />
           </div>

@@ -25,10 +25,11 @@ export default function Proformas() {
   const [nota, setNota]                 = useState('')
   const [validoHasta, setValidoHasta]   = useState('')
 
+  const [cargando, setCargando] = useState(true)
   const reciboRef = useRef(null)
 
   useEffect(() => {
-    cargarTodo()
+    cargarTodo().finally(() => setCargando(false))
   }, [])
 
   async function cargarTodo() {
@@ -43,8 +44,8 @@ export default function Proformas() {
       const [p, cl, cat, cfg, pro] = await Promise.all([
         pRes.json(), clRes.json(), catRes.json(), configRes.json(), proRes.json()
       ])
-      setProductos(Array.isArray(p) ? p : [])
-      setClientes(Array.isArray(cl) ? cl : [])
+      setProductos(Array.isArray(p) ? p : (p.data || []))
+      setClientes(Array.isArray(cl) ? cl : (cl.data || []))
       setCategorias(Array.isArray(cat) ? cat : [])
       setConfig(cfg || {})
       setProformas(Array.isArray(pro) ? pro : [])
@@ -104,7 +105,7 @@ export default function Proformas() {
   }
 
   const subtotal = carrito.reduce((sum, i) => sum + i.subtotal, 0)
-  const tasaIva  = parseFloat(config?.iva || 0)
+  const tasaIva  = parseFloat(config?.tasaIva || 0)
   const iva      = subtotal * tasaIva
   const total    = subtotal + iva
 
@@ -225,6 +226,8 @@ _Esta es una cotización, no una factura oficial._
     p.numero.toLowerCase().includes(buscar.toLowerCase()) ||
     p.cliente?.nombre?.toLowerCase().includes(buscar.toLowerCase())
   )
+
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
   return (
     <div>

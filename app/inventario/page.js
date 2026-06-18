@@ -6,13 +6,14 @@ export default function Inventario() {
   const [productos, setProductos]     = useState([])
   const [mostrarForm, setMostrarForm] = useState(false)
   const [alertas, setAlertas]         = useState([])
+  const [cargando, setCargando] = useState(true)
   const [form, setForm] = useState({
     productoId: '', tipo: 'entrada', cantidad: '', motivo: ''
   })
 
   useEffect(() => {
-    cargarMovimientos()
-    cargarProductos()
+    Promise.all([cargarMovimientos(), cargarProductos()])
+      .finally(() => setCargando(false))
   }, [])
 
   // Cada vez que cargan los productos, filtramos los de stock bajo
@@ -30,7 +31,7 @@ export default function Inventario() {
   async function cargarProductos() {
     const res  = await fetch('/api/productos')
     const data = await res.json()
-    setProductos(data)
+    setProductos(data.data || data)
   }
 
   async function guardarMovimiento(e) {
@@ -56,6 +57,8 @@ export default function Inventario() {
       hour: '2-digit', minute: '2-digit'
     })
   }
+
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
   return (
     <div>

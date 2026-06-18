@@ -129,27 +129,47 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
             <span>TOTAL:</span>
             <span>C$ {factura?.total?.toFixed(2)}</span>
           </div>
-          {factura?.metodoPago === 'dolares' ? (
-            <>
+          {/* ── Pago ── */}
+          {(() => {
+            const dp = factura?.detallesPago ? (typeof factura.detallesPago === 'string' ? JSON.parse(factura.detallesPago) : factura.detallesPago) : null
+            if (dp && dp.length > 1) {
+              return (
+                <div style={{ borderTop: '1px dashed #000', paddingTop: '4px', marginTop: '4px' }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>Pagos:</div>
+                  {dp.map((p, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                      <span style={{ textTransform: 'capitalize' }}>{p.metodo}{p.moneda === '$' ? ' (USD)' : ''}</span>
+                      <span>{p.moneda === '$' ? '$' : 'C$'} {parseFloat(p.monto).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+            if (factura?.metodoPago === 'dolares') {
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                    <span>Pagó con:</span>
+                    <span>${((factura.pagoCon || 0) / parseFloat(config?.tasaCambio || 1)).toFixed(2)} USD</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                    <span>Tasa cambio:</span>
+                    <span>C$ {parseFloat(config?.tasaCambio || 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Equivale a:</span>
+                    <span>C$ {factura?.pagoCon?.toFixed(2)}</span>
+                  </div>
+                </>
+              )
+            }
+            return (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                 <span>Pagó con:</span>
-                <span>${((factura.pagoCon || 0) / parseFloat(config?.tasaCambio || 1)).toFixed(2)} USD</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                <span>Tasa cambio:</span>
-                <span>C$ {parseFloat(config?.tasaCambio || 0).toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Equivale a:</span>
                 <span>C$ {factura?.pagoCon?.toFixed(2)}</span>
               </div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-              <span>Pagó con:</span>
-              <span>C$ {factura?.pagoCon?.toFixed(2)}</span>
-            </div>
-          )}
+            )
+          })()}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
             <span>Cambio:</span>
             <span>C$ {factura?.cambio?.toFixed(2)}</span>

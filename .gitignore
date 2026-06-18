@@ -53,3 +53,10 @@ server.log
 # generated
 public/manifest.json
 public/sw.js
+
+# license files
+*.lic
+*.licc
+licencia_*
+
+certificates

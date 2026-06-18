@@ -3,6 +3,7 @@ import { useAuth } from '@/app/context/AuthContext'
 import AuthGuard from './AuthGuard'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
+import LicenseGuard from './LicenseGuard'
 
 export default function AppShell({ children }) {
   const { user } = useAuth()
@@ -13,7 +14,9 @@ export default function AppShell({ children }) {
         <div style={{ display: 'flex', minHeight: '100vh' }}>
           <Sidebar />
           <main style={{ flex: 1, padding: '24px', overflowY: 'auto', paddingBottom: '80px' }}>
-            {children}
+            <LicenseGuard>
+              {children}
+            </LicenseGuard>
           </main>
           <MobileNav />
         </div>

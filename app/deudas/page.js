@@ -7,9 +7,10 @@ export default function Deudas() {
   const [mostrarAbono, setMostrarAbono] = useState(false)
   const [formAbono, setFormAbono]     = useState({ monto: '', nota: '' })
   const [guardando, setGuardando]     = useState(false)
+  const [cargando, setCargando]       = useState(true)
   const [filtro, setFiltro]           = useState('pendientes')
 
-  useEffect(() => { cargarCompras() }, [])
+  useEffect(() => { cargarCompras().finally(() => setCargando(false)) }, [])
 
   async function cargarCompras() {
     try {
@@ -64,6 +65,8 @@ export default function Deudas() {
   const mostradas  = filtro === 'pendientes' ? pendientes : pagadas
 
   const totalPendiente = pendientes.reduce((sum, f) => sum + f.saldoPendiente, 0)
+
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
   return (
     <div>

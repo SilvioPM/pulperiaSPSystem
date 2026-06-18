@@ -30,6 +30,28 @@
   --hover: #334155;
 }
 
+/* ── Dark mode overrides para inline styles ── */
+[data-theme="dark"] [style*="color: #1e293b"] { color: var(--texto) !important; }
+[data-theme="dark"] [style*="color: #475569"] { color: var(--texto-secundario) !important; }
+[data-theme="dark"] [style*="color: '#1e293b'"] { color: var(--texto) !important; }
+[data-theme="dark"] [style*="color: '#475569'"] { color: var(--texto-secundario) !important; }
+[data-theme="dark"] [style*="color: '#64748b'"] { color: var(--texto-secundario) !important; }
+[data-theme="dark"] [style*="color: #64748b"] { color: var(--texto-secundario) !important; }
+[data-theme="dark"] [style*="background: white"] { background: var(--card-bg) !important; }
+[data-theme="dark"] [style*="background: #fff"] { background: var(--card-bg) !important; }
+[data-theme="dark"] [style*="background: '#fff'"] { background: var(--card-bg) !important; }
+[data-theme="dark"] [style*="background-color: white"] { background-color: var(--card-bg) !important; }
+[data-theme="dark"] [style*="background: #f8fafc"] { background: var(--gris-fondo) !important; }
+[data-theme="dark"] [style*="background: '#f8fafc'"] { background: var(--gris-fondo) !important; }
+[data-theme="dark"] [style*="background: #f1f5f9"] { background: var(--hover) !important; }
+[data-theme="dark"] [style*="background: white;"] { background: var(--card-bg) !important; }
+[data-theme="dark"] [style*="border-color: #e2e8f0"] { border-color: var(--borde) !important; }
+[data-theme="dark"] [style*="border: 1px solid #e2e8f0"] { border-color: var(--borde) !important; }
+[data-theme="dark"] [style*="border-bottom: 1px solid #f1f5f9"] { border-bottom-color: var(--borde) !important; }
+[data-theme="dark"] [style*="border-bottom: 2px solid #e2e8f0"] { border-bottom-color: var(--borde) !important; }
+[data-theme="dark"] [style*="border-bottom: 2px solid #f1f5f9"] { border-bottom-color: var(--borde) !important; }
+[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3, [data-theme="dark"] h4 { color: var(--texto) !important; }
+
 [data-theme="dark"] body {
   background-color: var(--gris-fondo) !important;
 }

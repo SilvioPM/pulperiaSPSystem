@@ -1,15 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
+import { auditar } from '@/lib/auditarClient'
 
 const LISTA_MODULOS = [
-  { id: 'inicio', label: 'POS - Vender' },
+  { id: 'inicio', label: 'Inicio (Dashboard)' },
+  { id: 'pos', label: 'POS - Vender' },
   { id: 'facturas', label: 'Facturas' },
   { id: 'compras', label: 'Compras' },
   { id: 'productos', label: 'Productos' },
   { id: 'clientes', label: 'Clientes' },
   { id: 'proveedores', label: 'Proveedores' },
   { id: 'inventario', label: 'Inventario' },
+  { id: 'caja', label: 'Caja' },
   { id: 'cuentas-cobrar', label: 'CXC' },
   { id: 'deudas', label: 'CXP' },
   { id: 'proformas', label: 'Proformas' },
@@ -66,10 +69,12 @@ export default function UsuariosPage() {
         const res = await fetch('/api/usuarios', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         const data = await res.json()
         if (!res.ok) { setError(data.error); return }
+        auditar(user?.username || user?.nombre, 'editar', 'usuario', `Usuario "${form.username}" editado`)
       } else {
         const res = await fetch('/api/usuarios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, rol: form.esAdmin ? 'admin' : form.rol }) })
         const data = await res.json()
         if (!res.ok) { setError(data.error); return }
+        auditar(user?.username || user?.nombre, 'crear', 'usuario', `Usuario "${form.username}" creado`)
       }
       resetForm()
       setShowForm(false)

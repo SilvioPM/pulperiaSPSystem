@@ -21,7 +21,7 @@ async function main() {
       modulos: '[]',
     },
   })
-  console.log('Admin user created: admin / admin123')
+  console.log('Admin user created successfully')
 }
 
 main()

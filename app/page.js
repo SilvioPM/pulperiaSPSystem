@@ -1,757 +1,241 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
-import { useReactToPrint } from 'react-to-print'
-import FacturaRecibo from './components/FacturaRecibo'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useAuth } from '@/app/context/AuthContext'
 
-// ─── COMPONENTE PRINCIPAL DEL POS ───────────────────────────────
-export default function POS() {
-  const [productos, setProductos]     = useState([])
-  const [categorias, setCategorias]   = useState([])
-  const [carrito, setCarrito]         = useState([])
-  const [buscar, setBuscar]           = useState('')
-  const [categoriaActiva, setCategoriaActiva] = useState(null)
-  const [pagoCon, setPagoCon]         = useState('')
-  const [metodoPago, setMetodoPago]   = useState('efectivo')
-  const [cargando, setCargando]       = useState(false)
-  const [facturaExitosa, setFacturaExitosa] = useState(null)
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
-  const [clientes, setClientes]                       = useState([])
-  const [buscarCliente, setBuscarCliente]             = useState('')
-  const [mostrarClientes, setMostrarClientes]         = useState(false)
-  const [config, setConfig]                           = useState({})
-  const [descuento, setDescuento]                     = useState('')
-  const [esCredito, setEsCredito]                     = useState(false)
-  const [parkedSessions, setParkedSessions]           = useState([])
-  const [mostrarParked, setMostrarParked]             = useState(false)
-  const [nombreParked, setNombreParked]               = useState('')
-  const [presentacionSel, setPresentacionSel]         = useState({})
+const CARD_HOVER = { transform: 'translateY(-3px)', boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }
 
-  const reciboRef = useRef(null)
-  const imprimirTicket = useReactToPrint({
-    contentRef: reciboRef,
-    documentTitle: 'Recibo',
-  })
+export default function Inicio() {
+  const { user } = useAuth()
+  const [datos, setDatos] = useState({ config: null, stats: null, cargando: true })
 
-  // Al cargar la página, traemos productos y categorías
   useEffect(() => {
-    cargarProductos()
-    cargarCategorias()
-    cargarClientes()
-    cargarConfig()
-    cargarParked()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (user && !user.esAdmin) window.location.replace('/pos')
+  }, [user])
+
+  useEffect(() => {
+    async function cargar() {
+      try {
+        const hoy = new Date()
+        const desde = hoy.toISOString().slice(0, 10)
+        const [resConfig, resFacturas, resProductos, resClientes] = await Promise.all([
+          fetch('/api/config'),
+          fetch(`/api/facturas?desde=${desde}&hasta=${desde}&limit=9999`),
+          fetch('/api/productos?limit=9999'),
+          fetch('/api/clientes?limit=1'),
+        ])
+        const cfg = await resConfig.json()
+        const f = await resFacturas.json()
+        const p = await resProductos.json()
+        const c = await resClientes.json()
+        const facturas = f.data || []
+        setDatos({
+          config: cfg,
+          stats: {
+            ventasHoy: facturas.reduce((s, fac) => s + (fac.total || 0), 0),
+            facturasHoy: facturas.length,
+            productosBajos: (p.data || []).filter(prod => prod.stock <= (prod.stockMinimo || 0)).length,
+            clientes: c.total || 0,
+          },
+          cargando: false,
+        })
+      } catch { setDatos(p => ({ ...p, cargando: false })) }
+    }
+    cargar()
   }, [])
 
-  // Cada vez que cambia la búsqueda o categoría, filtramos
-  useEffect(() => {
-    cargarProductos()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buscar, categoriaActiva])
+  const { config, stats, cargando } = datos
+  const negocio = config?.nombre || 'SP System'
+  const slogan = config?.slogan || ''
+  const logo = config?.logo || ''
 
-  async function cargarProductos() {
-    let url = '/api/productos?'
-    if (buscar)         url += `buscar=${buscar}&`
-    if (categoriaActiva) url += `categoriaId=${categoriaActiva}`
-    const res = await fetch(url)
-    const data = await res.json()
-    setProductos(data)
-  }
-
-  async function cargarCategorias() {
-    const res = await fetch('/api/categorias')
-    const data = await res.json()
-    setCategorias(data)
-  }
-  async function cargarClientes() {
-  const res  = await fetch('/api/clientes')
-  const data = await res.json()
-  setClientes(data)
-  }
-
-  async function cargarConfig() {
-    try { const res = await fetch('/api/config'); const data = await res.json(); setConfig(data) } catch {}
-  }
-
-  async function cargarParked() {
-    try { const res = await fetch('/api/cart-sessions'); const data = await res.json(); setParkedSessions(Array.isArray(data) ? data : []) } catch {}
-  }
-
-  // ── Agregar producto al carrito ──────────────────────────────
-  function agregarAlCarrito(producto) {
-    setFacturaExitosa(null)
-    const pres = presentacionSel[producto.id] || 'base'
-    const esVenta2 = pres === 'venta2' && producto.unidadVenta2
-    const precioUsado = esVenta2 ? producto.precioVenta2 : producto.precio
-    const factorConv = esVenta2 ? (producto.factorVenta2 || 1) : 1
-    const unidadVenta = esVenta2 ? producto.unidadVenta2 : producto.unidad
-
-    // Validar stock disponible para la presentación seleccionada
-    const cantidadActual = carrito.reduce((sum, item) =>
-      item.id === producto.id && item._pres === pres ? sum + item.cantidad : sum, 0
-    )
-    const stockRequerido = (cantidadActual + 1) * factorConv
-    if (producto.stock < stockRequerido) {
-      return alert(`Stock insuficiente. Disponible: ${producto.stock} ${producto.unidad}, necesitas ${stockRequerido} ${producto.unidad}`)
-    }
-
-    setCarrito(prev => {
-      const existe = prev.find(item => item.id === producto.id && item._pres === pres)
-      if (existe) {
-        return prev.map(item =>
-          item.id === producto.id && item._pres === pres
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        )
-      }
-      return [...prev, { ...producto, cantidad: 1, _pres: pres, precio: precioUsado, unidadVenta, factorConversion: factorConv }]
-    })
-  }
-
-  function cambiarCantidad(id, nuevaCantidad) {
-    if (nuevaCantidad <= 0) return eliminarDelCarrito(id)
-    const item = carrito.find(i => i.id === id)
-    if (item) {
-      const stockReq = nuevaCantidad * (item.factorConversion || 1)
-      if (item.stock !== undefined && item.stock < stockReq) {
-        return alert(`Stock insuficiente. Disponible: ${item.stock} ${item.unidad}, necesitas ${stockReq} ${item.unidad}`)
-      }
-    }
-    setCarrito(prev =>
-      prev.map(item => item.id === id ? { ...item, cantidad: nuevaCantidad } : item)
-    )
-  }
-
-  function eliminarDelCarrito(id, pres = 'base') {
-    setCarrito(prev => prev.filter(item => !(item.id === id && (item._pres || 'base') === pres)))
-  }
-
-  function limpiarCarrito() {
-    setCarrito([])
-    setPagoCon('')
-    setFacturaExitosa(null)
-    setClienteSeleccionado(null)
-    setBuscarCliente('')
-  }
-
-  // ── Cálculos del carrito ─────────────────────────────────────
-  const subtotal  = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0)
-  const desc      = parseFloat(descuento || 0)
-  const ivaActivo = config.ivaActivo === 'true'
-  const porcIva   = parseFloat(config.tasaIva || 15)
-  const iva       = ivaActivo ? (subtotal - desc) * (porcIva / 100) : 0
-  const total     = subtotal - desc + iva
-  const tasaCambio      = parseFloat(config.tasaCambio || 0) || 0
-  const pagoConCordobas  = metodoPago === 'dolares' ? parseFloat(pagoCon || 0) * tasaCambio : parseFloat(pagoCon || 0)
-  const cambio           = pagoConCordobas - total
-
-  // ── Procesar venta ───────────────────────────────────────────
-  async function procesarVenta() {
-    if (carrito.length === 0) return alert('Agregá productos al carrito')
-    if (esCredito && !clienteSeleccionado) return alert('Seleccioná un cliente para venta al crédito')
-    if (!esCredito && metodoPago === 'efectivo' && parseFloat(pagoCon || 0) < total) {
-      return alert('El pago es menor al total')
-    }
-    if (!esCredito && metodoPago === 'dolares') {
-      if (!tasaCambio || tasaCambio <= 0) return alert('Configurá la tasa de cambio en ⚙️ Configuración antes de cobrar en dólares')
-      const enCordobas = parseFloat(pagoCon || 0) * tasaCambio
-      if (enCordobas < total) return alert('El pago en dólares es menor al total')
-    }
-
-    // Validar stock de todos los productos en el carrito
-    for (const item of carrito) {
-      const factor = item.factorConversion || 1
-      const stockReq = item.cantidad * factor
-      if (item.stock !== undefined && item.stock < stockReq) {
-        setCargando(false)
-        return alert(`Stock insuficiente para "${item.nombre}". Disponible: ${item.stock} ${item.unidad}, necesitas ${stockReq} ${item.unidad}`)
-      }
-    }
-
-    setCargando(true)
-    const esVentaCredito = esCredito || metodoPago === 'credito'
-    try {
-      const res = await fetch('/api/facturas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subtotal,
-          iva,
-          descuento: desc,
-          total,
-          pagoCon: esVentaCredito ? 0 : (metodoPago === 'dolares' ? pagoConCordobas : parseFloat(pagoCon || total)),
-          cambio: esVentaCredito ? 0 : Math.max(0, cambio),
-          clienteId: clienteSeleccionado?.id || null,
-          metodoPago: esVentaCredito ? 'credito' : metodoPago,
-          esCredito: esVentaCredito,
-          detalles: carrito.map(item => ({
-            productoId: item.id,
-            cantidad: item.cantidad,
-            precio: item.precio,
-            costo: item.costo || 0,
-            subtotal: item.precio * item.cantidad,
-            unidadVenta: item.unidadVenta || item.unidad,
-            factorConversion: item.factorConversion || 1
-          }))
-        })
-      })
-      const factura = await res.json()
-      setFacturaExitosa(factura)
-      setCarrito([])
-      setPagoCon('')
-      setDescuento('')
-      setEsCredito(false)
-      cargarProductos()
-      setTimeout(() => setFacturaExitosa(null), 6000)
-      setTimeout(imprimirTicket, 300)
-    } catch (error) {
-      alert('Error al procesar la venta')
-    }
-    setCargando(false)
-  }
-
-  // ────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', gap: '20px', height: 'calc(100vh - 48px)' }}>
+    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
 
-      {/* ── PANEL IZQUIERDO: Productos ─────────────────────── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-        {/* Barra de búsqueda */}
-        <div className="card" style={{ padding: '16px' }}>
-          <input
-            type="text"
-            placeholder="🔍 Buscar producto..."
-            value={buscar}
-            onChange={e => setBuscar(e.target.value)}
-            style={{
-              width: '100%', padding: '10px 14px', borderRadius: '8px',
-              border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
-            }}
-          />
-
-          {/* Filtro por categorías */}
-          <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setCategoriaActiva(null)}
-              style={{
-                padding: '6px 14px', borderRadius: '20px', border: 'none',
-                cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                background: !categoriaActiva ? '#16a34a' : '#f1f5f9',
-                color: !categoriaActiva ? 'white' : 'var(--texto-secundario)'
-              }}>
-              Todos
-            </button>
-            {categorias.map(cat => (
-              <button key={cat.id}
-                onClick={() => setCategoriaActiva(cat.id)}
-                style={{
-                  padding: '6px 14px', borderRadius: '20px', border: 'none',
-                  cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                  background: categoriaActiva === cat.id ? '#16a34a' : '#f1f5f9',
-                  color: categoriaActiva === cat.id ? 'white' : 'var(--texto-secundario)'
-                }}>
-                {cat.nombre}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Grid de productos */}
-        <div style={{
-          flex: 1, overflowY: 'auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-          gap: '12px', alignContent: 'start'
-        }}>
-          {productos.length === 0 ? (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-              <div style={{ fontSize: '48px' }}>📦</div>
-              <p>No hay productos aún</p>
-              <p style={{ fontSize: '13px' }}>Agregá productos desde el módulo Productos</p>
-            </div>
-          ) : (
-            productos.map(producto => {
-              const tieneVenta2 = producto.unidadVenta2 && producto.precioVenta2 > 0
-              const presActual = presentacionSel[producto.id] || 'base'
-              const precioMostrar = presActual === 'venta2' ? producto.precioVenta2 : producto.precio
-              const unidadMostrar = presActual === 'venta2' ? producto.unidadVenta2 : producto.unidad
-              const factorProd = presActual === 'venta2' ? (producto.factorVenta2 || 1) : 1
-              const stockSuficiente = producto.stock >= factorProd
-              return (
-              <div key={producto.id} style={{
-                background: 'white', border: '1px solid #e2e8f0',
-                borderRadius: '12px', padding: '12px',
-                textAlign: 'center', transition: 'all 0.2s',
-                opacity: producto.stock === 0 ? 0.5 : 1,
-              }}>
-                {tieneVenta2 && (
-                  <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', justifyContent: 'center' }}>
-                    <button onClick={() => setPresentacionSel(prev => ({...prev, [producto.id]: 'base'}))}
-                      style={{
-                        flex: 1, padding: '3px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer',
-                        border: presActual === 'base' ? '2px solid #16a34a' : '1px solid #e2e8f0',
-                        background: presActual === 'base' ? '#f0fdf4' : 'white',
-                        color: presActual === 'base' ? '#16a34a' : '#94a3b8'
-                      }}>
-                      {producto.unidad}
-                    </button>
-                    <button onClick={() => setPresentacionSel(prev => ({...prev, [producto.id]: 'venta2'}))}
-                      style={{
-                        flex: 1, padding: '3px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer',
-                        border: presActual === 'venta2' ? '2px solid #16a34a' : '1px solid #e2e8f0',
-                        background: presActual === 'venta2' ? '#f0fdf4' : 'white',
-                        color: presActual === 'venta2' ? '#16a34a' : '#94a3b8'
-                      }}>
-                      {producto.unidadVenta2}
-                    </button>
-                  </div>
-                )}
-                  <button
-                    onClick={() => agregarAlCarrito(producto)}
-                    disabled={!stockSuficiente}
-                    style={{
-                      width: '100%', background: 'transparent', border: 'none',
-                      cursor: !stockSuficiente ? 'not-allowed' : 'pointer',
-                      padding: '4px 0'
-                    }}>
-                  <div style={{ fontSize: '32px', marginBottom: '6px' }}>
-                    {producto.categoria?.nombre === 'Ropa' ? '👕' :
-                     producto.categoria?.nombre === 'Bebidas' ? '🥤' :
-                     producto.categoria?.nombre === 'Granos básicos' ? '🌾' :
-                     producto.categoria?.nombre === 'Chivería' ? '🍬' : '🛍️'}
-                  </div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--texto)', marginBottom: '4px' }}>
-                    {producto.nombre}
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#16a34a' }}>
-                    C$ {precioMostrar.toFixed(2)} / {unidadMostrar}
-                  </div>
-                </button>
-                <div style={{
-                  fontSize: '11px', marginTop: '4px',
-                  color: !stockSuficiente ? '#dc2626' : (producto.stock <= producto.stockMinimo ? '#dc2626' : 'var(--texto-secundario)')
-                }}>
-                  Stock: {producto.stock} {producto.unidad}
-                  {!stockSuficiente ? ` ❌ (necesita ${factorProd})` : (producto.stock <= producto.stockMinimo ? ' ⚠️' : '')}
-                </div>
-              </div>
-              )
-            })
-          )}
-        </div>
-      </div>
-
-      {/* ── PANEL DERECHO: Carrito y cobro ────────────────────── */}
+      {/* ── Hero / Presentación ── */}
       <div style={{
-        width: '340px', display: 'flex', flexDirection: 'column', gap: '12px', alignSelf: 'stretch'
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)',
+        borderRadius: 20, padding: '36px 24px', marginBottom: 32,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+        gap: 16, position: 'relative', overflow: 'hidden',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
       }}>
-      <div className="card" style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        gap: '12px', padding: '20px'
-      }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--texto)' }}>
-          🧾 Carrito de venta
-        </h2>
+        <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(22,163,74,0.08), transparent)', top: -100, right: -80 }} />
+        <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.06), transparent)', bottom: -60, left: 40 }} />
 
-        {/* Lista del carrito */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: '120px' }}>
-          {carrito.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
-              <div style={{ fontSize: '40px' }}>🛒</div>
-              <p style={{ fontSize: '14px' }}>Tocá un producto para agregarlo</p>
-            </div>
-          ) : (
-            carrito.map(item => (
-              <div key={`${item.id}-${item._pres || 'base'}`} style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '10px 0', borderBottom: '1px solid #f1f5f9'
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600 }}>{item.nombre}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--texto-secundario)' }}>
-                    C$ {item.precio.toFixed(2)} / {item.unidadVenta || item.unidad}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button onClick={() => cambiarCantidad(item.id, Math.max(0, item.cantidad - 0.5))}
-                    style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontWeight: 700 }}>
-                    −
-                  </button>
-                  <input type="number" step="0.5" min="0.5"
-                    value={item.cantidad}
-                    onChange={e => cambiarCantidad(item.id, parseFloat(e.target.value) || 0)}
-                    style={{
-                      fontSize: '14px', fontWeight: 700, width: '48px', textAlign: 'center',
-                      border: '1px solid #e2e8f0', borderRadius: '4px', padding: '2px'
-                    }} />
-                  <button onClick={() => cambiarCantidad(item.id, item.cantidad + 0.5)}
-                    style={{ width: '26px', height: '26px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontWeight: 700 }}>
-                    +
-                  </button>
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, minWidth: '60px', textAlign: 'right' }}>
-                  C$ {(item.precio * item.cantidad).toFixed(2)}
-                </div>
-                <button onClick={() => eliminarDelCarrito(item.id, item._pres)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '16px' }}>
-                  ✕
-                </button>
-              </div>
-            ))
-          )}
+        {logo ? (
+          <div style={{
+            width: 80, height: 80, borderRadius: 16, overflow: 'hidden',
+            background: 'rgba(255,255,255,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative', zIndex: 1,
+          }}>
+            <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
+        ) : (
+          <div style={{
+            width: 80, height: 80, borderRadius: 16,
+            background: 'linear-gradient(135deg, #16a34a, #15803d)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative', zIndex: 1,
+            boxShadow: '0 8px 24px rgba(22,163,74,0.3)',
+          }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 01-8 0" />
+              <line x1="12" y1="10" x2="12" y2="6" />
+            </svg>
+          </div>
+        )}
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>{negocio}</h1>
+          {slogan && <p style={{ color: '#94a3b8', margin: '4px 0 0', fontSize: 14 }}>{slogan}</p>}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 12 }}>
+            <span style={{ color: '#cbd5e1', fontSize: 14 }}>
+              👋 {user?.nombre || 'Usuario'}
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#475569' }} />
+            <span style={{ color: '#94a3b8', fontSize: 13 }}>
+              {new Date().toLocaleDateString('es-NI', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
+          </div>
         </div>
-        {/* Selector de cliente */}
-        <div style={{ position: 'relative' }}>
-           <div
-              onClick={() => setMostrarClientes(!mostrarClientes)}
-              style={{
-                    padding: '10px 14px', borderRadius: '8px',
-                     border: '1px solid #e2e8f0', cursor: 'pointer',
-                    background: clienteSeleccionado ? '#dbeafe' : '#f8fafc',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }}>
-              <span style={{ fontSize: '14px', color: clienteSeleccionado ? '#2563eb' : '#94a3b8', fontWeight: clienteSeleccionado ? 600 : 400 }}>
-                  {clienteSeleccionado ? `👤 ${clienteSeleccionado.nombre}` : '👤 Cliente general (opcional)'}
-             </span>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>▼</span>
-            </div>
-
-          {/* Dropdown de clientes */}
-        {mostrarClientes && (
-           <div style={{
-                position: 'absolute', top: '100%', left: 0, right: 0,
-               background: 'white', border: '1px solid #e2e8f0',
-                borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                zIndex: 10, maxHeight: '200px', overflowY: 'auto'
-            }}>
-          {/* Buscador de cliente */}
-            <div style={{ padding: '8px' }}>
-              <input
-               autoFocus
-               type="text"
-                placeholder="Buscar cliente..."
-               value={buscarCliente}
-               onChange={e => setBuscarCliente(e.target.value)}
-               style={{
-                   width: '100%', padding: '8px', borderRadius: '6px',
-                    border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none'
-                }}
-             />
-            </div>
-
-      {/* Opción general */}
-      <div
-        onClick={() => { setClienteSeleccionado(null); setMostrarClientes(false); setBuscarCliente('') }}
-        style={{
-          padding: '10px 14px', cursor: 'pointer', fontSize: '13px',
-          color: 'var(--texto-secundario)', borderBottom: '1px solid #f1f5f9',
-          background: !clienteSeleccionado ? '#f8fafc' : 'white'
-        }}>
-        👤 Cliente general
       </div>
 
-      {/* Lista de clientes */}
-      {clientes
-        .filter(c => c.nombre.toLowerCase().includes(buscarCliente.toLowerCase()))
-        .map(c => (
-          <div key={c.id}
-            onClick={() => { setClienteSeleccionado(c); setMostrarClientes(false); setBuscarCliente('') }}
-            style={{
-              padding: '10px 14px', cursor: 'pointer', fontSize: '13px',
-              borderBottom: '1px solid #f1f5f9',
-              background: clienteSeleccionado?.id === c.id ? '#dbeafe' : 'white',
-              color: clienteSeleccionado?.id === c.id ? '#2563eb' : 'var(--texto)',
-            }}>
-            <div style={{ fontWeight: 600 }}>{c.nombre}</div>
-            {c.telefono && <div style={{ fontSize: '11px', color: '#94a3b8' }}>{c.telefono}</div>}
-          </div>
-        ))
-      }
-
-      {clientes.filter(c => c.nombre.toLowerCase().includes(buscarCliente.toLowerCase())).length === 0 && (
-        <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-          No se encontró el cliente
-        </div>
-      )}
-    </div>
-  )}
-</div>
-
-        {/* Totales */}
-        <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '14px' }}>
-            <span style={{ color: 'var(--texto-secundario)' }}>Subtotal</span>
-            <span>C$ {subtotal.toFixed(2)}</span>
-          </div>
-          {desc > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '14px' }}>
-              <span style={{ color: '#dc2626' }}>Descuento</span>
-              <span style={{ color: '#dc2626' }}>- C$ {desc.toFixed(2)}</span>
-            </div>
-          )}
-          {ivaActivo && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '14px', color: '#7c3aed' }}>
-              <span>IVA ({porcIva}%)</span>
-              <span>+ C$ {iva.toFixed(2)}</span>
-            </div>
-          )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 700, color: '#16a34a' }}>
-            <span>TOTAL</span>
-            <span>C$ {total.toFixed(2)}</span>
-          </div>
-        </div>
-
-        {/* Descuento */}
-        <div>
-          <label style={{ fontSize: '13px', color: 'var(--texto-secundario)', fontWeight: 600 }}>
-            Descuento (C$)
-          </label>
-          <input
-            type="number"
-            value={descuento}
-            onChange={e => setDescuento(e.target.value)}
-            placeholder="0.00"
-            style={{
-              width: '100%', padding: '10px', borderRadius: '8px',
-              border: '1px solid #e2e8f0', fontSize: '14px',
-              marginTop: '4px', outline: 'none'
-            }}
-          />
-        </div>
-
-        {/* Método de pago */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {['efectivo', 'dolares', 'tarjeta', 'transferencia', 'credito'].map(m => (
-            <button key={m} onClick={() => { setMetodoPago(m); setEsCredito(m === 'credito'); setPagoCon('') }}
-              style={{
-                flex: '1 0 auto', minWidth: '60px', padding: '8px 6px', borderRadius: '8px', border: '2px solid',
-                borderColor: metodoPago === m ? '#16a34a' : '#e2e8f0',
-                background: metodoPago === m ? '#dcfce7' : 'white',
-                color: metodoPago === m ? '#16a34a' : 'var(--texto-secundario)',
-                cursor: 'pointer', fontSize: '11px', fontWeight: 600,
-                textTransform: 'capitalize'
-              }}>
-              {m === 'efectivo' ? '💵' : m === 'dolares' ? '🇺🇸' : m === 'tarjeta' ? '💳' : m === 'transferencia' ? '📱' : '📋'} {m}
-            </button>
+      {/* ── Stats ── */}
+      {cargando ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} style={{ height: 100, borderRadius: 14, background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'skeleton 1.5s infinite' }} />
           ))}
         </div>
-
-        {/* Alerta crédito */}
-        {esCredito && (
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
+          {/* Ventas hoy */}
           <div style={{
-            padding: '10px', borderRadius: '8px',
-            background: '#fef9c3', border: '1px solid #fde047',
-            fontSize: '13px', color: '#92400e', textAlign: 'center'
-          }}>
-            {clienteSeleccionado
-              ? `📋 Venta al crédito para ${clienteSeleccionado.nombre}`
-              : '⚠️ Seleccioná un cliente para venta al crédito'}
-          </div>
-        )}
-
-        {/* Pago con / Cambio */}
-        {(metodoPago === 'efectivo' || metodoPago === 'dolares') && (
-          <div>
-            <label style={{ fontSize: '13px', color: 'var(--texto-secundario)', fontWeight: 600 }}>
-              {metodoPago === 'dolares' ? 'Pago con ($)' : 'Pago con (C$)'}
-            </label>
-            <input
-              type="number"
-              value={pagoCon}
-              onChange={e => setPagoCon(e.target.value)}
-              placeholder="0.00"
-              style={{
-                width: '100%', padding: '10px', borderRadius: '8px',
-                border: '1px solid #e2e8f0', fontSize: '16px',
-                marginTop: '4px', outline: 'none'
-              }}
-            />
-            {metodoPago === 'dolares' && pagoCon && (
-              <div style={{ fontSize: '12px', color: tasaCambio > 0 ? 'var(--texto-secundario)' : '#dc2626', marginTop: '4px', textAlign: 'center' }}>
-                {tasaCambio > 0
-                  ? `= C$ ${pagoConCordobas.toFixed(2)} (tasa ${tasaCambio.toFixed(2)})`
-                  : '⚠️ Configurá la tasa de cambio en Configuración'}
+            borderRadius: 14, padding: 20,
+            background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)',
+            position: 'relative', overflow: 'hidden',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'default',
+          }}
+            onMouseEnter={e => Object.assign(e.currentTarget.style, CARD_HOVER)}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#15803d', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Ventas hoy</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#166534' }}>C$ {stats.ventasHoy.toFixed(2)}</div>
               </div>
-            )}
-            {pagoCon && cambio >= 0 && (
-              <div style={{
-                marginTop: '8px', padding: '10px', borderRadius: '8px',
-                background: '#dcfce7', color: '#16a34a', fontWeight: 700,
-                fontSize: '16px', textAlign: 'center'
-              }}>
-                Cambio: C$ {cambio.toFixed(2)}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tickets en espera — siempre visibles */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => setMostrarParked(true)} disabled={carrito.length === 0}
-            style={{
-              flex: 1, padding: '8px', borderRadius: '8px',
-              border: '1px solid #7c3aed',
-              background: carrito.length === 0 ? '#f1f5f9' : '#f3e8ff',
-              cursor: carrito.length === 0 ? 'not-allowed' : 'pointer',
-              fontWeight: 600,
-              color: carrito.length === 0 ? '#94a3b8' : '#7c3aed',
-              fontSize: '13px', opacity: carrito.length === 0 ? 0.5 : 1
-            }}>
-            ⏸️ Pausar ticket
-          </button>
-          <button onClick={async () => { await cargarParked(); setMostrarParked(true) }}
-            disabled={parkedSessions.length === 0}
-            style={{
-              flex: 1, padding: '8px', borderRadius: '8px',
-              border: '1px solid #2563eb',
-              background: parkedSessions.length === 0 ? '#f1f5f9' : '#dbeafe',
-              cursor: parkedSessions.length === 0 ? 'not-allowed' : 'pointer',
-              fontWeight: 600,
-              color: parkedSessions.length === 0 ? '#94a3b8' : '#2563eb',
-              fontSize: '13px', opacity: parkedSessions.length === 0 ? 0.5 : 1
-            }}>
-            📋 Tickets ({parkedSessions.length})
-          </button>
-        </div>
-
-        {/* Botones de acción — fuera del card */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={limpiarCarrito}
-            style={{
-              flex: 1, padding: '12px', borderRadius: '8px',
-              border: '1px solid #e2e8f0', background: 'white',
-              cursor: 'pointer', fontWeight: 600, color: '#dc2626'
-            }}>
-            🗑️ Limpiar
-          </button>
-          <button onClick={procesarVenta} disabled={cargando || carrito.length === 0}
-            className="btn-verde"
-            style={{ flex: 2, padding: '12px', fontSize: '15px' }}>
-            {cargando ? '⏳ Procesando...' : '✅ Cobrar'}
-          </button>
-        </div>
-      </div>
-
-
-        {/* Modal tickets en espera */}
-        {mostrarParked && (
-          <div style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
-          }}>
-            <div className="card" style={{ width: '420px', maxHeight: '80vh', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 700 }}>⏸️ Tickets en espera</h2>
-                <button onClick={() => setMostrarParked(false)}
-                  style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
-              </div>
-
-              {/* Guardar ticket actual */}
-              {carrito.length > 0 && (
-                <div style={{ marginBottom: '20px', padding: '16px', background: '#f8fafc', borderRadius: '10px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                    Nombre del ticket
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input value={nombreParked} onChange={e => setNombreParked(e.target.value)}
-                      placeholder="Ej: Cliente esperando..."
-                      style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
-                    />
-                    <button onClick={async () => {
-                      if (!nombreParked.trim()) return alert('Escribí un nombre para el ticket')
-                      await fetch('/api/cart-sessions', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          nombre: nombreParked,
-                          data: { carrito, clienteSeleccionado, metodoPago }
-                        })
-                      })
-                      setNombreParked('')
-                      limpiarCarrito()
-                      await cargarParked()
-                    }}
-                      style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#7c3aed', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}>
-                      💾 Guardar
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Lista de tickets guardados */}
-              {parkedSessions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '13px' }}>
-                  No hay tickets en espera
-                </div>
-              ) : (
-                parkedSessions.map(s => {
-                  let info = { carrito: [], clienteSeleccionado: null, metodoPago: 'efectivo' }
-                  try { info = JSON.parse(s.data); if (typeof info === 'string') info = JSON.parse(info); if (typeof info !== 'object' || info === null) info = { carrito: [], clienteSeleccionado: null, metodoPago: 'efectivo' } } catch {}
-                  return (
-                    <div key={s.id} style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '12px', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '8px'
-                    }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: '14px' }}>{s.nombre}</div>
-                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                          {info.carrito?.length || 0} productos · {new Date(s.creadoEn).toLocaleDateString('es-NI')}
-                        </div>
-                      </div>
-                      <button onClick={async () => {
-                        setCarrito(info.carrito || [])
-                        setClienteSeleccionado(info.clienteSeleccionado || null)
-                        setMetodoPago(info.metodoPago || 'efectivo')
-                        const res = await fetch(`/api/cart-sessions?id=${s.id}`, { method: 'DELETE' })
-                        if (!res.ok) return alert('Error al eliminar el ticket')
-                        await cargarParked()
-                        setMostrarParked(false)
-                      }}
-                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #16a34a', background: '#dcfce7', color: '#16a34a', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
-                        ▶️ Reanudar
-                      </button>
-                      <button onClick={async () => {
-                        await fetch(`/api/cart-sessions?id=${s.id}`, { method: 'DELETE' })
-                        await cargarParked()
-                      }}
-                        style={{ padding: '6px 8px', borderRadius: '6px', border: 'none', background: '#fee2e2', color: '#dc2626', cursor: 'pointer', fontSize: '12px' }}>
-                        🗑️
-                      </button>
-                    </div>
-                  )
-                })
-              )}
+              <span style={{ fontSize: 28, opacity: 0.3 }}>📈</span>
             </div>
           </div>
-        )}
-        
-      </div>
-
-      {/* Factura exitosa — modal centrado */}
-      {facturaExitosa && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
-        }}>
+          {/* Facturas hoy */}
           <div style={{
-            background: 'white', borderRadius: '16px', padding: '40px 48px',
-            textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎉</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: '#16a34a', marginBottom: '8px' }}>
-              ¡Venta exitosa!
+            borderRadius: 14, padding: 20,
+            background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'default',
+          }}
+            onMouseEnter={e => Object.assign(e.currentTarget.style, CARD_HOVER)}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Facturas hoy</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a8a' }}>{stats.facturasHoy}</div>
+              </div>
+              <span style={{ fontSize: 28, opacity: 0.3 }}>🧾</span>
             </div>
-            <div style={{ fontSize: '15px', color: '#15803d' }}>
-              Factura: {facturaExitosa.numero}
+          </div>
+          {/* Stock bajo */}
+          <div style={{
+            borderRadius: 14, padding: 20,
+            background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'default',
+          }}
+            onMouseEnter={e => Object.assign(e.currentTarget.style, CARD_HOVER)}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#92400e', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Stock bajo</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#78350f' }}>{stats.productosBajos}</div>
+              </div>
+              <span style={{ fontSize: 28, opacity: 0.3 }}>📦</span>
+            </div>
+          </div>
+          {/* Clientes */}
+          <div style={{
+            borderRadius: 14, padding: 20,
+            background: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'default',
+          }}
+            onMouseEnter={e => Object.assign(e.currentTarget.style, CARD_HOVER)}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#6b21a8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Clientes</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#4c1d95' }}>{stats.clientes}</div>
+              </div>
+              <span style={{ fontSize: 28, opacity: 0.3 }}>👥</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* FacturaRecibo oculto para imprimir con react-to-print */}
-      <div style={{ display: 'none' }}>
-        <FacturaRecibo ref={reciboRef} factura={facturaExitosa} config={config} />
+      {/* ── Accesos rápidos ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        <Link href="/pos" style={{
+          borderRadius: 14, padding: 28, textDecoration: 'none',
+          background: 'linear-gradient(135deg, #16a34a, #15803d)',
+          color: 'white', display: 'flex', alignItems: 'center', gap: 18,
+          transition: 'transform 0.25s, box-shadow 0.25s',
+          boxShadow: '0 4px 16px rgba(22,163,74,0.3)',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(22,163,74,0.4)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 16px rgba(22,163,74,0.3)' }}>
+          <span style={{ fontSize: 40 }}>🛒</span>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Ir al POS</div>
+            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Cobrar productos y facturar</div>
+          </div>
+        </Link>
+        <Link href="/facturas" style={{
+          borderRadius: 14, padding: 28, textDecoration: 'none',
+          background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+          color: 'white', display: 'flex', alignItems: 'center', gap: 18,
+          transition: 'transform 0.25s, box-shadow 0.25s',
+          boxShadow: '0 4px 16px rgba(37,99,235,0.3)',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(37,99,235,0.4)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,99,235,0.3)' }}>
+          <span style={{ fontSize: 40 }}>🧾</span>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Facturas</div>
+            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Ver historial de ventas</div>
+          </div>
+        </Link>
+        <Link href="/caja" style={{
+          borderRadius: 14, padding: 28, textDecoration: 'none',
+          background: 'linear-gradient(135deg, #d97706, #b45309)',
+          color: 'white', display: 'flex', alignItems: 'center', gap: 18,
+          transition: 'transform 0.25s, box-shadow 0.25s',
+          boxShadow: '0 4px 16px rgba(217,119,6,0.3)',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(217,119,6,0.4)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 16px rgba(217,119,6,0.3)' }}>
+          <span style={{ fontSize: 40 }}>💰</span>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Caja / Arqueo</div>
+            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Abrir, cerrar y revisar caja</div>
+          </div>
+        </Link>
       </div>
+
+      {/* Skeleton keyframe */}
+      <style>{`@keyframes skeleton { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
     </div>
   )
 }

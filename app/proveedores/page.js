@@ -11,9 +11,10 @@ export default function Proveedores() {
   const [form, setForm] = useState({
     nombre: '', telefono: '', contacto: '', direccion: '', email: ''
   })
+  const [cargando, setCargando] = useState(true)
   const { toast, mostrar, cerrar } = useToast()
 
-  useEffect(() => { cargarProveedores() }, [])
+  useEffect(() => { cargarProveedores().finally(() => setCargando(false)) }, [])
 
   async function cargarProveedores() {
     try {
@@ -64,6 +65,8 @@ export default function Proveedores() {
   const filtrados = proveedores.filter(p =>
     p.nombre.toLowerCase().includes(buscando.toLowerCase())
   )
+
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
   return (
     <div>

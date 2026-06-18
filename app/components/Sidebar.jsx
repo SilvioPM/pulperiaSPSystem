@@ -40,25 +40,38 @@ export default function Sidebar() {
       <div style={{
         padding: '20px 16px',
         borderBottom: '1px solid #334155',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px'
+        textAlign: 'center',
+        position: 'relative',
       }}>
-        <span style={{ fontSize: '24px' }}>🛒</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: collapsed ? 0 : '6px' }}>
+          {!collapsed && (
+            <span style={{ fontSize: '20px', fontWeight: 800, color: '#fff', letterSpacing: '-1px' }}>
+              SP<span style={{ color: '#16a34a' }}>System</span>
+            </span>
+          )}
+        </div>
         {!collapsed && (
-          <span style={{ fontWeight: 700, fontSize: '16px' }}>
-            Pulpería
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <span style={{ width: '16px', height: '1.5px', borderRadius: '2px', background: 'linear-gradient(90deg, transparent, #16a34a)' }} />
+            <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase' }}>
+              POS
+            </span>
+            <span style={{ width: '16px', height: '1.5px', borderRadius: '2px', background: 'linear-gradient(90deg, #16a34a, transparent)' }} />
+          </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           style={{
-            marginLeft: 'auto',
+            position: 'absolute',
+            right: '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
             background: 'none',
             border: 'none',
-            color: '#94a3b8',
             cursor: 'pointer',
-            fontSize: '18px'
+            color: '#94a3b8',
+            fontSize: '18px',
+            padding: '4px'
           }}>
           {collapsed ? '→' : '←'}
         </button>
@@ -87,6 +100,31 @@ export default function Sidebar() {
             </Link>
           )
         })}
+        {user?.rol === 'admin' && (
+          <>
+            {!collapsed && <div style={{ color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', padding: '16px 10px 8px', fontWeight: 600 }}>Sistema</div>}
+            {[
+              { href: '/auditoria', icono: '📋', label: 'Auditoría' },
+              { href: '/licencia', icono: '🔑', label: 'Licencia' },
+              { href: '/respaldos', icono: '💾', label: 'Respaldos' },
+            ].map(item => {
+              const activo = pathname === item.href
+              return (
+                <Link key={item.href} href={item.href} style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '12px 10px', borderRadius: '8px', marginBottom: '4px',
+                  textDecoration: 'none',
+                  color: activo ? 'white' : '#94a3b8',
+                  background: activo ? '#16a34a' : 'transparent',
+                  fontWeight: activo ? 600 : 400, fontSize: '14px', transition: 'all 0.2s',
+                }}>
+                  <span style={{ fontSize: '18px' }}>{item.icono}</span>
+                  {!collapsed && item.label}
+                </Link>
+              )
+            })}
+          </>
+        )}
       </nav>
 
       <div style={{

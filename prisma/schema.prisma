@@ -38,17 +38,24 @@ model Producto {
   movimientos       MovInventario[]
   detallesCompra    DetalleCompra[]
   detallesProforma  DetalleProforma[]
+
+  @@index([nombre])
+  @@index([categoriaId])
+  @@index([activo])
 }
 
 model Cliente {
-  id        Int        @id @default(autoincrement())
-  nombre    String
-  telefono  String?
-  cedula    String?
-  direccion String?
-  facturas  Factura[]
-  proformas Proforma[]
-  creadoEn  DateTime   @default(now())
+  id            Int        @id @default(autoincrement())
+  nombre        String
+  telefono      String?
+  cedula        String?
+  direccion     String?
+  limiteCredito Float      @default(0)
+  facturas      Factura[]
+  proformas     Proforma[]
+  creadoEn      DateTime   @default(now())
+
+  @@index([nombre])
 }
 
 model Factura {
@@ -68,9 +75,14 @@ model Factura {
   estado           String     @default("pagada")
   anuladaEn        DateTime?
   anuladaPor       String?
+  detallesPago     String?
   detalles         DetalleFac[]
   abonos           Abono[]
   creadoEn         DateTime   @default(now())
+
+  @@index([creadoEn])
+  @@index([clienteId])
+  @@index([estado])
 }
 
 model DetalleFac {
@@ -85,18 +97,24 @@ model DetalleFac {
   costo      Float    @default(0)
   subtotal   Float
   factorConversion Float @default(1)
+
+  @@index([facturaId])
+  @@index([productoId])
 }
 
 model MovInventario {
   id               Int      @id @default(autoincrement())
   productoId       Int
   producto         Producto @relation(fields: [productoId], references: [id])
-  tipo             String   // "entrada" o "salida"
+  tipo             String
   cantidad         Float
   cantidadOriginal Float?
   unidadOriginal   String?
   motivo           String?
   creadoEn         DateTime @default(now())
+
+  @@index([productoId])
+  @@index([creadoEn])
 }
 
 model Abono {
@@ -198,13 +216,76 @@ model Config {
 }
 
 model Usuario {
+  id              Int       @id @default(autoincrement())
+  username        String    @unique
+  password        String
+  nombre          String
+  esAdmin         Boolean   @default(false)
+  rol             String    @default("cajero")
+  modulos         String    @default("[]")
+  activo          Boolean   @default(true)
+  intentosFallidos Int      @default(0)
+  bloqueadoHasta  DateTime?
+  creadoEn        DateTime  @default(now())
+}
+
+model Auditoria {
   id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  nombre    String
-  esAdmin   Boolean  @default(false)
-  rol       String   @default("cajero")
-  modulos   String   @default("[]")
-  activo    Boolean  @default(true)
-  creadoEn  DateTime @default(now())
+  usuario   String
+  accion    String
+  entidad   String
+  detalle   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entidad])
+  @@index([usuario])
+}
+
+model Caja {
+  id             Int       @id @default(autoincrement())
+  usuarioApertura String
+  usuarioCierre  String?
+  montoInicial   Float     @default(0)
+  ventasEfectivoCs Float   @default(0)
+  ventasEfectivoUs Float   @default(0)
+  ventasTarjeta   Float    @default(0)
+  ventasTransfer  Float    @default(0)
+  ventasCredito   Float    @default(0)
+  totalVendido    Float    @default(0)
+  ingresosExtra   Float    @default(0)
+  egresos         Float    @default(0)
+  efectivoRealCs  Float?
+  efectivoRealUs  Float?
+  diferencia      Float?
+  diferenciaUs    Float?
+  observacion     String?
+  estado          String   @default("abierta")
+  abiertaEn       DateTime @default(now())
+  cerradaEn       DateTime?
+  arqueo          ArqueoDetalle[]
+  movimientos     MovimientoCaja[]
+
+  @@index([estado])
+}
+
+model ArqueoDetalle {
+  id           Int    @id @default(autoincrement())
+  cajaId       Int
+  caja         Caja   @relation(fields: [cajaId], references: [id])
+  moneda       String // 'C$' o '$'
+  denominacion Float
+  cantidad     Int
+  subtotal     Float
+}
+
+model MovimientoCaja {
+  id       Int      @id @default(autoincrement())
+  cajaId   Int
+  caja     Caja     @relation(fields: [cajaId], references: [id])
+  tipo     String   // 'entrada' o 'salida'
+  concepto String
+  moneda   String   // 'C$' o '$'
+  monto    Float
+  creadoEn DateTime @default(now())
 }

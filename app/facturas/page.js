@@ -7,6 +7,10 @@ import FacturaRecibo from '../components/FacturaRecibo'
 export default function Facturas() {
   const { user, puedeEditar } = useAuth()
   const [facturas, setFacturas]     = useState([])
+  const [facturasHoy, setFacturasHoy] = useState([])
+  const [totalFacturas, setTotalFacturas] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [page, setPage]             = useState(1)
   const [facturaVer, setFacturaVer] = useState(null)
   const [buscando, setBuscando]     = useState('')
   const [config, setConfig]         = useState({})
@@ -15,17 +19,31 @@ export default function Facturas() {
   const [authPass, setAuthPass]     = useState('')
   const [authError, setAuthError]   = useState('')
   const [anulando, setAnulando]     = useState(false)
+  const [cargando, setCargando]     = useState(true)
   const reciboRef                   = useRef(null)
 
   useEffect(() => {
-    cargarFacturas()
-    cargarConfig()
+    Promise.all([
+      cargarFacturas(1),
+      cargarFacturasHoyStats(),
+      cargarConfig()
+    ]).finally(() => setCargando(false))
   }, [])
 
-  async function cargarFacturas() {
-    const res  = await fetch('/api/facturas')
+  async function cargarFacturas(p) {
+    const res  = await fetch(`/api/facturas?page=${p}&limit=30${buscando ? `&buscar=${buscando}` : ''}`)
     const data = await res.json()
-    setFacturas(data)
+    setFacturas(data.data || data)
+    setTotalFacturas(data.total || 0)
+    setTotalPages(data.totalPages || 1)
+    setPage(data.page || p)
+  }
+
+  async function cargarFacturasHoyStats() {
+    const hoy = new Date().toISOString().split('T')[0]
+    const res = await fetch(`/api/facturas?desde=${hoy}&hasta=${hoy}&page=1&limit=9999`)
+    const data = await res.json()
+    setFacturasHoy(data.data || data || [])
   }
 
   async function cargarConfig() {
@@ -103,8 +121,10 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
   )
 
   const hoy       = new Date().toDateString()
-  const ventasHoy = facturas.filter(f => new Date(f.creadoEn).toDateString() === hoy && f.estado !== 'anulada')
+  const ventasHoy = facturasHoy.filter(f => new Date(f.creadoEn).toDateString() === hoy && f.estado !== 'anulada')
   const totalHoy  = ventasHoy.reduce((sum, f) => sum + f.total, 0)
+
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
   return (
     <div>
@@ -126,7 +146,7 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
         </div>
         <div className="card" style={{ borderLeft: '4px solid #7c3aed' }}>
           <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px' }}>Total facturas</div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#7c3aed' }}>{facturas.length}</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#7c3aed' }}>{totalFacturas}</div>
           <div style={{ fontSize: '12px', color: '#94a3b8' }}>historial completo</div>
         </div>
       </div>
@@ -176,13 +196,15 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
                     {f.cliente?.nombre || <span style={{ color: '#94a3b8' }}>General</span>}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <span style={{
-                      padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                      background: f.metodoPago === 'efectivo' ? '#dcfce7' : f.metodoPago === 'tarjeta' ? '#dbeafe' : '#f3e8ff',
-                      color: f.metodoPago === 'efectivo' ? '#16a34a' : f.metodoPago === 'tarjeta' ? '#2563eb' : '#7c3aed'
-                    }}>
-                      {f.metodoPago === 'efectivo' ? '💵' : f.metodoPago === 'tarjeta' ? '💳' : '📱'} {f.metodoPago}
-                    </span>
+                    {(() => {
+                      const dp = f.detallesPago ? (typeof f.detallesPago === 'string' ? JSON.parse(f.detallesPago) : f.detallesPago) : null
+                      if (dp && dp.length > 1) {
+                        return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#f3e8ff', color: '#7c3aed' }}>🔄 Mixto ({dp.length})</span>
+                      }
+                      const colores = { efectivo: { bg: '#dcfce7', fg: '#16a34a', icon: '💵' }, tarjeta: { bg: '#dbeafe', fg: '#2563eb', icon: '💳' }, transferencia: { bg: '#f3e8ff', fg: '#7c3aed', icon: '📱' }, dolares: { bg: '#fef9c3', fg: '#ca8a04', icon: '🇺🇸' }, credito: { bg: '#fef9c3', fg: '#ca8a04', icon: '📋' }, mixto: { bg: '#f3e8ff', fg: '#7c3aed', icon: '🔄' } }
+                      const c = colores[f.metodoPago] || { bg: '#f1f5f9', fg: '#475569', icon: '' }
+                      return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: c.bg, color: c.fg }}>{c.icon} {f.metodoPago}</span>
+                    })()}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     {f.estado === 'anulada' ? (
@@ -252,6 +274,21 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
         </table>
       </div>
 
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
+          <button onClick={() => cargarFacturas(page - 1)} disabled={page <= 1} style={{
+            padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page <= 1 ? '#f1f5f9' : '#fff',
+            cursor: page <= 1 ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, color: page <= 1 ? '#94a3b8' : '#1e293b'
+          }}>‹ Anterior</button>
+          <span style={{ fontSize: 13, color: '#475569' }}>Pág. {page} de {totalPages} ({totalFacturas} facturas)</span>
+          <button onClick={() => cargarFacturas(page + 1)} disabled={page >= totalPages} style={{
+            padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page >= totalPages ? '#f1f5f9' : '#fff',
+            cursor: page >= totalPages ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, color: page >= totalPages ? '#94a3b8' : '#1e293b'
+          }}>Siguiente ›</button>
+        </div>
+      )}
+
       {/* Modal ver factura */}
       {facturaVer && (
         <div style={{
@@ -309,7 +346,7 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
             </div>
 
             <p style={{ fontSize: '14px', color: '#475569', marginBottom: '16px' }}>
-              {user.rol === 'cajero' || (!puedeAnular) ? (
+              {user?.rol === 'cajero' || (!puedeAnular) ? (
                 'Para anular esta factura necesitás la autorización de un Supervisor, Encargado o Administrador. Ingresá sus credenciales:'
               ) : (
                 'Ingresá tu contraseña para confirmar la anulación de esta factura.'

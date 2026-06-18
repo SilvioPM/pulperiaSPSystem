@@ -1,11 +1,15 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@/app/context/AuthContext'
+import { auditar } from '@/lib/auditarClient'
 
 export default function Configuracion() {
+  const { user } = useAuth()
   const [config, setConfig] = useState({
     nombre: '', slogan: '', direccion: '',
     telefono: '', ruc: '', ciudad: '', mensajePie: '', logo: '',
-    tasaCambio: '', ivaActivo: 'false', tasaIva: '15'
+    tasaCambio: '', ivaActivo: 'false', tasaIva: '15',
+    dgiActivo: 'false', nrc: '', cai: '', rangoInicio: '', rangoFin: ''
   })
   const [guardado, setGuardado] = useState(false)
   const inputLogo = useRef(null)
@@ -27,6 +31,7 @@ export default function Configuracion() {
     })
     if (res.ok) {
       setGuardado(true)
+      auditar(user?.username || user?.nombre, 'editar', 'config', 'Configuración del sistema actualizada')
       setTimeout(() => setGuardado(false), 3000)
     }
   }
@@ -139,6 +144,65 @@ export default function Configuracion() {
               <input type="number" step="0.01" min="0" max="100"
                 value={config.tasaIva} onChange={e => setConfig({ ...config, tasaIva: e.target.value })}
                 placeholder="15" style={{ ...inputStyle, maxWidth: '200px' }} />
+            </div>
+          )}
+        </div>
+
+        {/* ── e-Factura DGI ── */}
+        <div className="card" style={{ marginBottom: '20px', padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #f1f5f9' }}>
+            <span style={{ fontSize: '24px' }}>📄</span>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>e-Factura DGI (Nicaragua)</h2>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '14px 16px', background: '#f9fafb', borderRadius: '10px' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '14px', color: '#374151' }}>e-Factura DGI</div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>{config.dgiActivo === 'true' ? 'Las facturas generarán XML para DGI' : 'Desactivado — solo facturación simple'}</div>
+            </div>
+            <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={config.dgiActivo === 'true'}
+                onChange={e => setConfig({ ...config, dgiActivo: e.target.checked ? 'true' : 'false' })}
+                style={{ opacity: 0, width: 0, height: 0 }} />
+              <span style={{
+                position: 'absolute', inset: 0, borderRadius: '26px',
+                background: config.dgiActivo === 'true' ? '#7c3aed' : '#d1d5db',
+                transition: '0.3s', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.15)'
+              }}>
+                <span style={{
+                  position: 'absolute', top: '3px', left: config.dgiActivo === 'true' ? '25px' : '3px',
+                  width: '20px', height: '20px', borderRadius: '50%', background: '#fff',
+                  transition: '0.3s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                }} />
+              </span>
+            </label>
+          </div>
+
+          {config.dgiActivo === 'true' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>NRC (Número de Registro del Contribuyente)</label>
+                <input value={config.nrc} onChange={e => setConfig({ ...config, nrc: e.target.value })}
+                  placeholder="Ej: 123456-7" style={inputStyle} />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>CAI (Código de Autorización de Impresión)</label>
+                <input value={config.cai} onChange={e => setConfig({ ...config, cai: e.target.value })}
+                  placeholder="Ej: A1B2-C3D4-E5F6-G7H8-I9J0" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Rango factura inicial</label>
+                <input type="number" value={config.rangoInicio} onChange={e => setConfig({ ...config, rangoInicio: e.target.value })}
+                  placeholder="Ej: 1" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Rango factura final</label>
+                <input type="number" value={config.rangoFin} onChange={e => setConfig({ ...config, rangoFin: e.target.value })}
+                  placeholder="Ej: 1000" style={inputStyle} />
+              </div>
+              <div style={{ gridColumn: '1 / -1', fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>
+                Los rangos CAI los otorga la DGI. Cuando se agote el rango, deberá solicitar uno nuevo.
+              </div>
             </div>
           )}
         </div>

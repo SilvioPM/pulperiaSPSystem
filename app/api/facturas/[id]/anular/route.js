@@ -62,8 +62,18 @@ export async function POST(req, { params }) {
       })
     }
 
+    await prisma.auditoria.create({
+      data: {
+        usuario: `${autorizador.nombre} (${autorizador.username})`,
+        accion: 'anular',
+        entidad: 'factura',
+        detalle: `Factura #${facturaAnular.numero} - C$ ${facturaAnular.total.toFixed(2)}`
+      }
+    })
+
     return Response.json({ mensaje: 'Factura anulada exitosamente' })
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 })
+    console.error('Error al anular factura:', error)
+    return Response.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect } from 'react'
 import Toast from '../components/Toast'
 import { useToast } from '../hooks/useToast'
@@ -10,17 +10,17 @@ export default function CuentasCobrar() {
   const [formAbono, setFormAbono]     = useState({ monto: '', nota: '' })
   const [guardando, setGuardando]     = useState(false)
   const [filtro, setFiltro]           = useState('pendientes')
+  const [cargando, setCargando] = useState(true)
   const { toast, mostrar, cerrar } = useToast()
 
-  useEffect(() => { cargarFacturas() }, [])
+  useEffect(() => { cargarFacturas().finally(() => setCargando(false)) }, [])
 
   async function cargarFacturas() {
     try {
       const res  = await fetch('/api/facturas')
       const data = await res.json()
-      const creditos = Array.isArray(data)
-        ? data.filter(f => f.esCredito && f.estado !== 'anulada')
-        : []
+      const facturasArr = Array.isArray(data) ? data : (data.data || [])
+      const creditos = facturasArr.filter(f => f.esCredito && f.estado !== 'anulada')
       setFacturas(creditos)
     } catch {
       setFacturas([])
@@ -75,10 +75,11 @@ export default function CuentasCobrar() {
   const totalPendiente = pendientes.reduce((sum, f) => sum + f.saldoPendiente, 0)
   const totalCreditos  = facturas.reduce((sum, f) => sum + f.total, 0)
 
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
+
   return (
     <div>
       {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
-      {/* Encabezado */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>
           📋 Cuentas por Cobrar
@@ -88,7 +89,6 @@ export default function CuentasCobrar() {
         </p>
       </div>
 
-      {/* Tarjetas resumen */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <div className="card" style={{ borderLeft: '4px solid #dc2626' }}>
           <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Total pendiente</div>
@@ -113,7 +113,6 @@ export default function CuentasCobrar() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
         {[
           { key: 'pendientes', label: `📋 Pendientes (${pendientes.length})` },
@@ -133,7 +132,6 @@ export default function CuentasCobrar() {
         ))}
       </div>
 
-      {/* Lista de créditos */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -239,7 +237,6 @@ export default function CuentasCobrar() {
         </table>
       </div>
 
-      {/* Modal registrar abono */}
       {mostrarAbono && facturaSeleccionada && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
@@ -252,7 +249,6 @@ export default function CuentasCobrar() {
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
 
-            {/* Info del crédito */}
             <div style={{
               background: '#f8fafc', borderRadius: '10px', padding: '16px', marginBottom: '20px'
             }}>
@@ -276,7 +272,6 @@ export default function CuentasCobrar() {
               </div>
             </div>
 
-            {/* Historial de abonos */}
             {facturaSeleccionada.abonos?.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>
@@ -311,7 +306,6 @@ export default function CuentasCobrar() {
                   placeholder={`Máx: C$ ${facturaSeleccionada.saldoPendiente.toFixed(2)}`}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
-                {/* Botón pagar todo */}
                 <button type="button"
                   onClick={() => setFormAbono({...formAbono, monto: facturaSeleccionada.saldoPendiente.toString()})}
                   style={{
@@ -350,7 +344,6 @@ export default function CuentasCobrar() {
         </div>
       )}
 
-      {/* Modal ver detalle */}
       {facturaSeleccionada && !mostrarAbono && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',

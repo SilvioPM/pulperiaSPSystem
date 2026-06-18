@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import * as XLSX from 'xlsx'
+import Excel from 'exceljs'
 
 export async function POST(request) {
   try {
@@ -11,25 +11,33 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No se recibió archivo' }, { status: 400 })
     }
 
-    // Convertimos el archivo a buffer para que xlsx lo pueda leer
-    const buffer   = await archivo.arrayBuffer()
-    const workbook = XLSX.read(buffer, { type: 'array' })
+    const buffer   = Buffer.from(await archivo.arrayBuffer())
+    const workbook = new Excel.Workbook()
+    await workbook.xlsx.load(buffer)
+    const worksheet = workbook.worksheets[0]
 
-    // Tomamos la primera hoja del Excel
-    const hoja     = workbook.Sheets[workbook.SheetNames[0]]
-    const filas    = XLSX.utils.sheet_to_json(hoja)
+    const filas = []
+    const rowCount = worksheet.rowCount
+    if (rowCount > 1) {
+      const headers = []
+      worksheet.getRow(1).eachCell((cell, col) => { headers[col] = cell.value })
+      for (let i = 2; i <= rowCount; i++) {
+        const row = worksheet.getRow(i)
+        const obj = {}
+        row.eachCell((cell, col) => { obj[headers[col]] = cell.value })
+        filas.push(obj)
+      }
+    }
 
     const resultados = { exitosos: 0, fallidos: 0, errores: [] }
 
     for (const fila of filas) {
       try {
-        // Buscamos la categoría por nombre
         const nombreCat = String(fila['Categoria'] || fila['Categoría'] || '').trim()
         let categoria   = await prisma.categoria.findFirst({
           where: { nombre: { equals: nombreCat } }
         })
 
-        // Si la categoría no existe, la creamos automáticamente
         if (!categoria && nombreCat) {
           categoria = await prisma.categoria.create({
             data: { nombre: nombreCat }
@@ -42,7 +50,6 @@ export async function POST(request) {
           continue
         }
 
-        // Si tiene código, usamos upsert para evitar duplicados
 if (fila['Codigo'] && String(fila['Codigo']).trim()) {
   await prisma.producto.upsert({
     where: { codigo: String(fila['Codigo']).trim() },
@@ -67,7 +74,6 @@ if (fila['Codigo'] && String(fila['Codigo']).trim()) {
     }
   })
 } else {
-  // Sin código, siempre creamos nuevo
   await prisma.producto.create({
     data: {
       nombre:      String(fila['Nombre'] || '').trim(),
@@ -92,6 +98,7 @@ if (fila['Codigo'] && String(fila['Codigo']).trim()) {
     return NextResponse.json(resultados)
 
   } catch (error) {
+    console.error('Error al importar:', error)
     return NextResponse.json({ error: 'Error al procesar el archivo' }, { status: 500 })
   }
 }

@@ -28,6 +28,7 @@ export async function POST(req) {
       user: { id: usuario.id, username: usuario.username, nombre: usuario.nombre, rol: usuario.rol },
     })
   } catch (error) {
-    return Response.json({ valido: false, error: error.message })
+    console.error('Error en verificar contraseña:', error)
+    return Response.json({ valido: false, error: 'Error interno del servidor' })
   }
 }

@@ -1,9 +1,10 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
+import { auditar } from '@/lib/auditarClient'
 
 export default function Productos() {
-  const { puedeEditar } = useAuth()
+  const { puedeEditar, user } = useAuth()
   const editable = puedeEditar('productos')
   const [tab, setTab]               = useState('productos') // 'productos' o 'categorias'
   const [productos, setProductos]   = useState([])
@@ -23,16 +24,17 @@ export default function Productos() {
   const [importando, setImportando]       = useState(false)
   const [resultImport, setResultImport]   = useState(null)
   const inputExcel                        = useRef(null) 
+  const [cargando, setCargando]           = useState(true)
 
   useEffect(() => {
-    cargarProductos()
-    cargarCategorias()
+    Promise.all([cargarProductos(), cargarCategorias()])
+      .finally(() => setCargando(false))
   }, [])
 
   async function cargarProductos() {
     const res  = await fetch('/api/productos')
     const data = await res.json()
-    setProductos(data)
+    setProductos(data.data || data)
   }
 
   async function cargarCategorias() {
@@ -54,6 +56,7 @@ export default function Productos() {
                     stock: '', stockMinimo: '5', unidad: 'unidad',
                     unidadVenta2: '', precioVenta2: '', factorVenta2: '',
                     categoriaId: '' })
+      auditar(user?.username || user?.nombre, 'crear', 'producto', `Producto "${formProd.nombre}" creado`)
       cargarProductos()
     } else {
       alert('Error al guardar producto')
@@ -102,6 +105,7 @@ async function guardarEdicion(e) {
   })
   if (res.ok) {
     setProductoEditar(null)
+    auditar(user?.username || user?.nombre, 'editar', 'producto', `Producto "${productoEditar.nombre}" editado`)
     cargarProductos()
   } else {
     alert('Error al editar producto')
@@ -116,6 +120,7 @@ async function eliminarProducto(id) {
     if (!res.ok) {
       alert(data.error || 'Error al eliminar')
     } else {
+      auditar(user?.username || user?.nombre, 'eliminar', 'producto', `Producto ID ${id} eliminado`)
       cargarProductos()
     }
   } catch (error) {
@@ -205,6 +210,8 @@ async function importarExcel(e) {
     '#16a34a', '#2563eb', '#ca8a04', '#db2777',
     '#7c3aed', '#ea580c', '#0284c7', '#dc2626'
   ]
+
+  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
   return (
     <div>

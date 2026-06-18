@@ -10,7 +10,8 @@ export async function GET() {
     })
     return NextResponse.json(proveedores)
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error al obtener proveedores:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 export async function POST(request) {
@@ -27,7 +28,7 @@ export async function POST(request) {
     })
     return NextResponse.json(proveedor, { status: 201 })
   } catch (error) {
-    console.error('ERROR PROVEEDOR:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error al crear proveedor:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

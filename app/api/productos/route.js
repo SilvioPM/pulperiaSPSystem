@@ -1,27 +1,38 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-// GET — Obtener todos los productos
+// GET — Obtener todos los productos (con paginación)
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
     const buscar = searchParams.get('buscar')
     const categoriaId = searchParams.get('categoriaId')
+    const page = Math.max(1, parseInt(searchParams.get('page') || 1))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || 50)))
 
-    const productos = await prisma.producto.findMany({
-      where: {
-        activo: true,
-        ...(buscar && {
-          nombre: { contains: buscar }
-        }),
-        ...(categoriaId && {
-          categoriaId: parseInt(categoriaId)
-        })
-      },
-      include: { categoria: true },
-      orderBy: { nombre: 'asc' }
+    const where = {
+      activo: true,
+      ...(buscar && { nombre: { contains: buscar } }),
+      ...(categoriaId && { categoriaId: parseInt(categoriaId) })
+    }
+
+    const [productos, total] = await Promise.all([
+      prisma.producto.findMany({
+        where,
+        include: { categoria: true },
+        orderBy: { nombre: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      prisma.producto.count({ where })
+    ])
+
+    return NextResponse.json({
+      data: productos,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
     })
-    return NextResponse.json(productos)
   } catch (error) {
     return NextResponse.json({ error: 'Error al obtener productos' }, { status: 500 })
   }

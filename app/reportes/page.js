@@ -144,7 +144,7 @@ export default function Reportes() {
 
       const res = await fetch(url)
       const data = await res.json()
-      const arr = Array.isArray(data) ? data : []
+      const arr = Array.isArray(data) ? data : (data.data || [])
 
       let mapeados
       if (modulo === 'ventas' || modulo === 'ganancias') {

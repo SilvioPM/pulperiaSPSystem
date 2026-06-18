@@ -6,12 +6,14 @@ import { useAuth } from '@/app/context/AuthContext'
 const RUTAS_PUBLICAS = ['/login']
 const MODULO_POR_RUTA = {
   '/': 'inicio',
+  '/pos': 'pos',
   '/facturas': 'facturas',
   '/compras': 'compras',
   '/productos': 'productos',
   '/clientes': 'clientes',
   '/proveedores': 'proveedores',
   '/inventario': 'inventario',
+  '/caja': 'caja',
   '/cuentas-cobrar': 'cuentas-cobrar',
   '/deudas': 'deudas',
   '/proformas': 'proformas',
@@ -25,19 +27,21 @@ export default function AuthGuard({ children }) {
   const router = useRouter()
   const pathname = usePathname()
 
+  useEffect(() => { router.prefetch('/'); router.prefetch('/pos') }, [router])
+
   useEffect(() => {
     if (cargando) return
     if (!user && !RUTAS_PUBLICAS.includes(pathname)) {
-      router.push('/login')
+      router.replace('/login')
       return
     }
     if (user && pathname === '/login') {
-      router.push('/')
+      router.replace(user.esAdmin ? '/' : '/pos')
       return
     }
     const modulo = MODULO_POR_RUTA[pathname]
     if (modulo && !tieneAcceso(modulo)) {
-      router.push('/')
+      router.replace('/')
     }
   }, [cargando, user, pathname, router, tieneAcceso])
 

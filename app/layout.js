@@ -3,8 +3,8 @@ import { AuthProvider } from './context/AuthContext'
 import AppShell from './components/AppShell'
 
 export const metadata = {
-  title: 'Pulpería System',
-  description: 'Sistema de facturación para pulpería',
+  title: 'SPSystem',
+  description: 'Sistema de facturación',
 }
 
 export default function RootLayout({ children }) {
