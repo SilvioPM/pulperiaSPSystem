@@ -9,7 +9,8 @@ export default function Productos() {
   const { puedeEditar, user } = useAuth()
   const editable = puedeEditar('productos')
   const { toast, mostrar, cerrar } = useToast()
-  const [tab, setTab]               = useState('productos') // 'productos' o 'categorias'
+  const [confirm, setConfirm] = useState(null) // { mensaje, onConfirm }
+  const [tab, setTab]         = useState('productos')
   const [productos, setProductos]   = useState([])
   const [categorias, setCategorias] = useState([])
   const [mostrarFormProd, setMostrarFormProd] = useState(false)
@@ -62,7 +63,7 @@ export default function Productos() {
       auditar(user?.username || user?.nombre, 'crear', 'producto', `Producto "${formProd.nombre}" creado`)
       cargarProductos()
     } else {
-      alert('Error al guardar producto')
+      mostrar('Error al guardar producto', 'error')
     }
   }
 
@@ -78,25 +79,25 @@ export default function Productos() {
       setFormCat({ nombre: '' })
       cargarCategorias()
     } else {
-      alert('Error al guardar categoría')
+      mostrar('Error al guardar categoría', 'error')
     }
   }
 
 async function eliminarCategoria(id) {
-  if (!confirm('¿Seguro que querés eliminar esta categoría?')) return
-  try {
-    const res  = await fetch(`/api/categorias?id=${id}`, { method: 'DELETE' })
-    const text = await res.text() // Leemos como texto primero
-    const data = text ? JSON.parse(text) : {}  // Solo parseamos si hay contenido
-
-    if (!res.ok) {
-      alert(data.error || 'Error al eliminar')
-    } else {
-      cargarCategorias()
+  setConfirm({ mensaje: '¿Seguro que querés eliminar esta categoría?', onConfirm: async () => {
+    try {
+      const res  = await fetch(`/api/categorias?id=${id}`, { method: 'DELETE' })
+      const text = await res.text()
+      const data = text ? JSON.parse(text) : {}
+      if (!res.ok) {
+        mostrar(data.error || 'Error al eliminar', 'error')
+      } else {
+        cargarCategorias()
+      }
+    } catch (error) {
+      mostrar('Error al eliminar categoría', 'error')
     }
-  } catch (error) {
-    alert('Error al eliminar categoría')
-  }
+  }})
 }
 
 async function guardarEdicion(e) {
@@ -111,24 +112,25 @@ async function guardarEdicion(e) {
     auditar(user?.username || user?.nombre, 'editar', 'producto', `Producto "${productoEditar.nombre}" editado`)
     cargarProductos()
   } else {
-    alert('Error al editar producto')
+    mostrar('Error al editar producto', 'error')
   }
 }
 async function eliminarProducto(id) {
-  if (!confirm('¿Seguro que querés eliminar este producto?')) return
-  try {
-    const res  = await fetch(`/api/productos/${id}`, { method: 'DELETE' })
-    const text = await res.text()
-    const data = text ? JSON.parse(text) : {}
-    if (!res.ok) {
-      mostrar(data.error || 'Error al eliminar', 'error')
-    } else {
-      auditar(user?.username || user?.nombre, 'eliminar', 'producto', `Producto ID ${id} eliminado`)
-      cargarProductos()
+  setConfirm({ mensaje: '¿Seguro que querés eliminar este producto?', onConfirm: async () => {
+    try {
+      const res  = await fetch(`/api/productos/${id}`, { method: 'DELETE' })
+      const text = await res.text()
+      const data = text ? JSON.parse(text) : {}
+      if (!res.ok) {
+        mostrar(data.error || 'Error al eliminar', 'error')
+      } else {
+        auditar(user?.username || user?.nombre, 'eliminar', 'producto', `Producto ID ${id} eliminado`)
+        cargarProductos()
+      }
+    } catch (error) {
+      mostrar('Error al eliminar producto', 'error')
     }
-  } catch (error) {
-    mostrar('Error al eliminar producto', 'error')
-  }
+  }})
 }
 // Descargar plantilla Excel de ejemplo
 function descargarPlantilla() {
@@ -196,7 +198,7 @@ async function importarExcel(e) {
     cargarProductos()
     cargarCategorias()
   } catch (error) {
-    alert('Error al importar archivo')
+    mostrar('Error al importar archivo', 'error')
   }
 
   setImportando(false)
@@ -224,6 +226,37 @@ async function importarExcel(e) {
   return (
     <div>
       {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
+      {confirm && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 12, padding: 24, width: 380,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.15)', textAlign: 'center'
+          }}>
+            <p style={{ fontSize: 15, color: '#1e293b', marginBottom: 20, fontWeight: 500 }}>
+              {confirm.mensaje}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setConfirm(null)}
+                style={{
+                  padding: '8px 24px', borderRadius: 8, border: '1px solid #e2e8f0',
+                  background: '#fff', color: '#475569', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                }}>
+                Cancelar
+              </button>
+              <button onClick={() => { confirm.onConfirm(); setConfirm(null) }}
+                style={{
+                  padding: '8px 24px', borderRadius: 8, border: 'none',
+                  background: '#dc2626', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                }}>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Encabezado */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>

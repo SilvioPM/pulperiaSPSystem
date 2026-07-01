@@ -1,8 +1,11 @@
 #!/bin/sh
 set -e
 
-echo "🚀 Aplicando schema..."
-npx prisma db push --accept-data-loss 2>&1
+echo "🚀 Aplicando migraciones..."
+npx prisma migrate deploy 2>&1 || {
+  echo "⚠️ Primera ejecución — aplicando schema inicial..."
+  npx prisma db push --accept-data-loss 2>&1
+}
 
 echo "🌱 Sembrando datos iniciales..."
 npx prisma db seed 2>&1 || echo "⚠️ Seed ya ejecutado o datos existentes"
