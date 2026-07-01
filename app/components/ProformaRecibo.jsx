@@ -93,6 +93,12 @@ const ProformaRecibo = forwardRef(({ proforma, config }, ref) => {
             <span>TOTAL:</span>
             <span>C$ {proforma?.total?.toFixed(2)}</span>
           </div>
+          {config?.tasaCambio > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '4px' }}>
+              <span>USD:</span>
+              <span>$ {(proforma?.total / Number(config.tasaCambio)).toFixed(2)}</span>
+            </div>
+          )}
         </div>
 
         {/* Nota */}

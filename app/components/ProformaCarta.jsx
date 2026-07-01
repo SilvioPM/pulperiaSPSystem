@@ -230,6 +230,16 @@ const ProformaCarta = forwardRef(({ proforma, config }, ref) => {
               <span style={{ fontSize: '16px', fontWeight: 700 }}>TOTAL:</span>
               <span style={{ fontSize: '20px', fontWeight: 900 }}>C$ {total.toFixed(2)}</span>
             </div>
+            {config?.tasaCambio > 0 && (
+              <div style={{
+                display: 'flex', justifyContent: 'space-between',
+                padding: '8px 16px', marginTop: '4px',
+                background: '#f1f5f9', borderRadius: '8px', color: '#475569', fontSize: '14px', fontWeight: 600
+              }}>
+                <span>Equivalente en USD:</span>
+                <span>$ {(total / Number(config.tasaCambio)).toFixed(2)}</span>
+              </div>
+            )}
           </div>
         </div>
 
