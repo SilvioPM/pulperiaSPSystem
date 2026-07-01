@@ -16,7 +16,9 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const { username, password, nombre, esAdmin, rol, modulos } = await req.json()
+    let { username, password, nombre, esAdmin, rol, modulos } = await req.json()
+    username = username?.trim()
+    nombre = nombre?.trim()
     if (!username || !password || !nombre) {
       return Response.json({ error: 'Username, password y nombre requeridos' }, { status: 400 })
     }
@@ -48,12 +50,12 @@ export async function POST(req) {
 
 export async function PUT(req) {
   try {
-    const { id, username, password, nombre, esAdmin, rol, modulos, activo } = await req.json()
+    let { id, username, password, nombre, esAdmin, rol, modulos, activo } = await req.json()
     if (!id) return Response.json({ error: 'ID requerido' }, { status: 400 })
 
     const data = {}
-    if (username !== undefined) data.username = username
-    if (nombre !== undefined) data.nombre = nombre
+    if (username !== undefined) data.username = username.trim()
+    if (nombre !== undefined) data.nombre = nombre.trim()
     if (esAdmin !== undefined) data.esAdmin = esAdmin
     if (rol !== undefined) data.rol = rol
     if (modulos !== undefined) data.modulos = JSON.stringify(modulos)

@@ -2,10 +2,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
 import { auditar } from '@/lib/auditarClient'
+import Toast from '@/app/components/Toast'
+import { useToast } from '@/app/hooks/useToast'
 
 export default function Productos() {
   const { puedeEditar, user } = useAuth()
   const editable = puedeEditar('productos')
+  const { toast, mostrar, cerrar } = useToast()
   const [tab, setTab]               = useState('productos') // 'productos' o 'categorias'
   const [productos, setProductos]   = useState([])
   const [categorias, setCategorias] = useState([])
@@ -15,7 +18,7 @@ export default function Productos() {
   const [formProd, setFormProd]     = useState({
     nombre: '', codigo: '', precio: '', costo: '',
     stock: '', stockMinimo: '5', unidad: 'unidad',
-    unidadVenta2: '', precioVenta2: '', factorVenta2: '',
+    unidadVenta2: '', precioVenta2: '', costoVenta2: '', factorVenta2: '',
     categoriaId: ''
   })
   const [productoEditar, setProductoEditar] = useState(null)
@@ -54,7 +57,7 @@ export default function Productos() {
       setMostrarFormProd(false)
       setFormProd({ nombre: '', codigo: '', precio: '', costo: '',
                     stock: '', stockMinimo: '5', unidad: 'unidad',
-                    unidadVenta2: '', precioVenta2: '', factorVenta2: '',
+                    unidadVenta2: '', precioVenta2: '', costoVenta2: '', factorVenta2: '',
                     categoriaId: '' })
       auditar(user?.username || user?.nombre, 'crear', 'producto', `Producto "${formProd.nombre}" creado`)
       cargarProductos()
@@ -118,13 +121,13 @@ async function eliminarProducto(id) {
     const text = await res.text()
     const data = text ? JSON.parse(text) : {}
     if (!res.ok) {
-      alert(data.error || 'Error al eliminar')
+      mostrar(data.error || 'Error al eliminar', 'error')
     } else {
       auditar(user?.username || user?.nombre, 'eliminar', 'producto', `Producto ID ${id} eliminado`)
       cargarProductos()
     }
   } catch (error) {
-    alert('Error al eliminar producto')
+    mostrar('Error al eliminar producto', 'error')
   }
 }
 // Descargar plantilla Excel de ejemplo
@@ -139,7 +142,11 @@ function descargarPlantilla() {
       Stock: 50,
       StockMinimo: 10,
       Unidad: 'libra',
-      Categoria: 'Granos básicos'
+      Categoria: 'Granos básicos',
+      UnidadVenta2: 'quintal',
+      PrecioVenta2: 2800,
+      CostoVenta2: 2200,
+      FactorVenta2: 100
     },
     {
       Nombre: 'Coca Cola 500ml',
@@ -198,7 +205,8 @@ async function importarExcel(e) {
 }
 
   const productosFiltrados = productos.filter(p =>
-    p.nombre.toLowerCase().includes(buscando.toLowerCase())
+    p.nombre.toLowerCase().includes(buscando.toLowerCase()) ||
+    (p.codigo && p.codigo.toLowerCase().includes(buscando.toLowerCase()))
   )
 
   // Colores para las categorías
@@ -215,6 +223,7 @@ async function importarExcel(e) {
 
   return (
     <div>
+      {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
       {/* Encabezado */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
@@ -559,7 +568,7 @@ async function importarExcel(e) {
               {/* Segunda presentación */}
               <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>📦 Segunda presentación (opcional)</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
                     <select value={formProd.unidadVenta2 || ''} onChange={e => setFormProd({...formProd, unidadVenta2: e.target.value})}
@@ -577,6 +586,14 @@ async function importarExcel(e) {
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
                     <input type="number" step="0.01" value={formProd.precioVenta2 || ''}
                       onChange={e => setFormProd({...formProd, precioVenta2: e.target.value})}
+                      placeholder="0"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
+                    <input type="number" step="0.01" value={formProd.costoVenta2 || ''}
+                      onChange={e => setFormProd({...formProd, costoVenta2: e.target.value})}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -724,7 +741,7 @@ async function importarExcel(e) {
         {/* Segunda presentación */}
         <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>📦 Segunda presentación (opcional)</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
               <select value={productoEditar.unidadVenta2 || ''} onChange={e => setProductoEditar({...productoEditar, unidadVenta2: e.target.value})}
@@ -742,6 +759,14 @@ async function importarExcel(e) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
               <input type="number" step="0.01" value={productoEditar.precioVenta2 || ''}
                 onChange={e => setProductoEditar({...productoEditar, precioVenta2: e.target.value})}
+                placeholder="0"
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
+              <input type="number" step="0.01" value={productoEditar.costoVenta2 || ''}
+                onChange={e => setProductoEditar({...productoEditar, costoVenta2: e.target.value})}
                 placeholder="0"
                 style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
               />

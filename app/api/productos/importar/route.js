@@ -50,6 +50,13 @@ export async function POST(request) {
           continue
         }
 
+const venta2Common = {
+  unidadVenta2: String(fila['UnidadVenta2'] || '').trim() || null,
+  precioVenta2: parseFloat(fila['PrecioVenta2'] || 0),
+  costoVenta2:  parseFloat(fila['CostoVenta2'] || 0),
+  factorVenta2: parseFloat(fila['FactorVenta2'] || 1),
+}
+
 if (fila['Codigo'] && String(fila['Codigo']).trim()) {
   await prisma.producto.upsert({
     where: { codigo: String(fila['Codigo']).trim() },
@@ -60,7 +67,8 @@ if (fila['Codigo'] && String(fila['Codigo']).trim()) {
       stock:       parseInt(fila['Stock']    || 0),
       stockMinimo: parseInt(fila['StockMinimo'] || 5),
       unidad:      String(fila['Unidad'] || 'unidad').trim(),
-      categoriaId: categoria.id
+      categoriaId: categoria.id,
+      ...venta2Common
     },
     create: {
       nombre:      String(fila['Nombre'] || '').trim(),
@@ -70,7 +78,8 @@ if (fila['Codigo'] && String(fila['Codigo']).trim()) {
       stock:       parseInt(fila['Stock']    || 0),
       stockMinimo: parseInt(fila['StockMinimo'] || 5),
       unidad:      String(fila['Unidad'] || 'unidad').trim(),
-      categoriaId: categoria.id
+      categoriaId: categoria.id,
+      ...venta2Common
     }
   })
 } else {
@@ -83,7 +92,8 @@ if (fila['Codigo'] && String(fila['Codigo']).trim()) {
       stock:       parseInt(fila['Stock']    || 0),
       stockMinimo: parseInt(fila['StockMinimo'] || 5),
       unidad:      String(fila['Unidad'] || 'unidad').trim(),
-      categoriaId: categoria.id
+      categoriaId: categoria.id,
+      ...venta2Common
     }
   })
 }

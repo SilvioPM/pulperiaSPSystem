@@ -16,9 +16,8 @@ export default function Deudas() {
     try {
       const res  = await fetch('/api/compras')
       const data = await res.json()
-      const creditos = Array.isArray(data)
-        ? data.filter(f => f.esCredito)
-        : []
+      const comprasArr = Array.isArray(data) ? data : (data.data || [])
+      const creditos = comprasArr.filter(f => f.esCredito)
       setCompras(creditos)
     } catch {
       setCompras([])
@@ -116,7 +115,7 @@ export default function Deudas() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['Factura #', 'Proveedor', 'Fecha', 'Total', 'Pendiente', 'Acciones'].map(h => (
+              {['Factura #', 'Proveedor', 'Fecha', 'Vencimiento', 'Total', 'Abonado', 'Pendiente', 'Acciones'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
                   {h}
                 </th>
@@ -126,12 +125,14 @@ export default function Deudas() {
           <tbody>
             {mostradas.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                   No hay deudas {filtro === 'pendientes' ? 'pendientes' : 'pagadas'}
                 </td>
               </tr>
             ) : (
-              mostradas.map((f, i) => (
+              mostradas.map((f, i) => {
+                const abonado = f.abonos?.reduce((sum, a) => sum + a.monto, 0) || 0
+                return (
                 <tr key={f.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                   <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563eb', fontSize: '14px' }}>
                     {f.numero}
@@ -142,8 +143,14 @@ export default function Deudas() {
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                     {formatearFecha(f.creadoEn)}
                   </td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
+                    {f.fechaVencimiento ? formatearFecha(f.fechaVencimiento) : '—'}
+                  </td>
                   <td style={{ padding: '12px 16px', fontWeight: 700 }}>
                     C$ {f.total.toFixed(2)}
+                  </td>
+                  <td style={{ padding: '12px 16px', color: '#16a34a', fontWeight: 600 }}>
+                    C$ {abonado.toFixed(2)}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{ fontWeight: 700, color: f.saldoPendiente > 0 ? '#dc2626' : '#16a34a' }}>
@@ -164,7 +171,8 @@ export default function Deudas() {
                     )}
                   </td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>
@@ -193,6 +201,28 @@ export default function Deudas() {
                 <span style={{ fontWeight: 700, color: '#dc2626' }}>C$ {compraSeleccionada.saldoPendiente.toFixed(2)}</span>
               </div>
             </div>
+
+            {compraSeleccionada.abonos?.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>
+                  Pagos anteriores:
+                </div>
+                {compraSeleccionada.abonos.map(a => (
+                  <div key={a.id} style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px'
+                  }}>
+                    <span style={{ color: '#64748b' }}>
+                      {new Date(a.creadoEn).toLocaleDateString('es-NI')}
+                      {a.nota && ` — ${a.nota}`}
+                    </span>
+                    <span style={{ fontWeight: 600, color: '#dc2626' }}>
+                      C$ {a.monto.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <form onSubmit={registrarAbono}>
               <div style={{ marginBottom: '16px' }}>

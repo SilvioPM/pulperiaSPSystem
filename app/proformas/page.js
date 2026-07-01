@@ -48,7 +48,7 @@ export default function Proformas() {
       setClientes(Array.isArray(cl) ? cl : (cl.data || []))
       setCategorias(Array.isArray(cat) ? cat : [])
       setConfig(cfg || {})
-      setProformas(Array.isArray(pro) ? pro : [])
+      setProformas(Array.isArray(pro) ? pro : (Array.isArray(pro?.data) ? pro.data : []))
     } catch {
       setProformas([])
     }
@@ -105,8 +105,9 @@ export default function Proformas() {
   }
 
   const subtotal = carrito.reduce((sum, i) => sum + i.subtotal, 0)
+  const ivaActivo = config?.ivaActivo === 'true'
   const tasaIva  = parseFloat(config?.tasaIva || 0)
-  const iva      = subtotal * tasaIva
+  const iva      = ivaActivo ? subtotal * tasaIva : 0
   const total    = subtotal + iva
 
   async function guardarProforma() {

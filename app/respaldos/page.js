@@ -29,7 +29,7 @@ export default function RespaldosPage() {
       const a = document.createElement('a')
       a.href = url
       const today = new Date().toISOString().slice(0, 10)
-      a.download = `respaldo-${today}.db`
+      a.download = `respaldo-${today}.sql`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -118,7 +118,7 @@ export default function RespaldosPage() {
           ⚠ Esta acción reemplazará toda la base de datos. Se cerrará la sesión automáticamente.
         </p>
         <form onSubmit={restaurar}>
-          <input type="file" ref={fileRef} accept=".db"
+          <input type="file" ref={fileRef} accept=".sql"
             style={{
               display: 'block', marginBottom: 16, fontSize: 14,
               color: '#1e293b', width: '100%'

@@ -22,12 +22,16 @@ export default function POS() {
   const [mostrarClientes, setMostrarClientes]         = useState(false)
   const [config, setConfig]                           = useState({})
   const [descuento, setDescuento]                     = useState('')
+  const [descPorc, setDescPorc]                       = useState(false)
   const [esCredito, setEsCredito]                     = useState(false)
+  const [fechaVencimiento, setFechaVencimiento]         = useState('')
   const [parkedSessions, setParkedSessions]           = useState([])
   const [mostrarParked, setMostrarParked]             = useState(false)
   const [nombreParked, setNombreParked]               = useState('')
   const [presentacionSel, setPresentacionSel]         = useState({})
   const [errorCaja, setErrorCaja]                     = useState(false)
+  const [mostrarFormCliente, setMostrarFormCliente]   = useState(false)
+  const [nuevoCliente, setNuevoCliente]               = useState({ nombre: '', telefono: '', direccion: '' })
 
   const reciboRef = useRef(null)
   const imprimirTicket = useReactToPrint({
@@ -108,7 +112,7 @@ export default function POS() {
         case 'F1': e.preventDefault(); searchRef.current?.focus(); break
         case 'F2': e.preventDefault(); pagoRef.current?.focus(); break
         case 'F3': e.preventDefault(); if (carritoRef.current?.length > 0) procesarRef.current?.(); break
-        case 'Escape': e.preventDefault(); if (carritoRef.current?.length > 0 && confirm('¿Limpiar carrito?')) { setCarrito([]); setPagoCon(''); setDescuento('') }; break
+        case 'Escape': e.preventDefault(); if (carritoRef.current?.length > 0 && confirm('¿Limpiar carrito?')) { setCarrito([]); setPagoCon(''); setDescuento(''); setDescPorc(false) }; break
         case 'F4': e.preventDefault(); document.getElementById('campo-descuento')?.focus(); break
         case 'F5': e.preventDefault(); setMostrarClientes(true); break
         case 'F8': e.preventDefault(); if (carritoRef.current?.length > 0) setMostrarParked(true); break
@@ -202,7 +206,8 @@ export default function POS() {
   }
 
   const subtotal  = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0)
-  const desc      = parseFloat(descuento || 0)
+  const descVal   = parseFloat(descuento || 0)
+  const desc      = descPorc ? (subtotal * descVal) / 100 : descVal
   const ivaActivo = config.ivaActivo === 'true'
   const porcIva   = parseFloat(config.tasaIva || 15)
   const iva       = ivaActivo ? (subtotal - desc) * (porcIva / 100) : 0
@@ -229,6 +234,7 @@ export default function POS() {
         const enCordobas = parseFloat(pagoCon || 0) * tasaCambio
         if (enCordobas < total) return alert('El pago en dólares es menor al total')
       }
+
     }
     const esVentaCredito = esCredito || metodoPago === 'credito'
     if (esVentaCredito && clienteSeleccionado?.limiteCredito > 0) {
@@ -285,12 +291,13 @@ export default function POS() {
           clienteId: clienteSeleccionado?.id || null,
           metodoPago: metodosPago.length > 1 ? 'mixto' : (esVentaCredito ? 'credito' : metodoPago),
           esCredito: esVentaCredito,
+          fechaVencimiento: esVentaCredito ? fechaVencimiento : null,
           detallesPago: metodosPago.length > 1 ? metodosPago.filter(p => parseFloat(p.monto || 0) > 0) : undefined,
           detalles: carrito.map(item => ({
             productoId: item.id,
             cantidad: item.cantidad,
             precio: item.precio,
-            costo: item.costo || 0,
+            costo: item._pres === 'venta2' ? parseFloat(item.costoVenta2 || 0) || (item.costo || 0) * (item.factorConversion || 1) : (item.costo || 0),
             subtotal: item.precio * item.cantidad,
             unidadVenta: item.unidadVenta || item.unidad,
             factorConversion: item.factorConversion || 1
@@ -303,6 +310,7 @@ export default function POS() {
       setPagoCon('')
       setDescuento('')
       setEsCredito(false)
+      setFechaVencimiento('')
       setMetodosPago([{ metodo: 'efectivo', monto: '' }])
       cargarProductos()
       setTimeout(() => setFacturaExitosa(null), 6000)
@@ -582,8 +590,18 @@ export default function POS() {
       }
 
       {clientes.filter(c => c.nombre.toLowerCase().includes(buscarCliente.toLowerCase())).length === 0 && (
-        <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-          No se encontró el cliente
+        <div style={{ padding: '16px', textAlign: 'center' }}>
+          <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '8px' }}>
+            No se encontr&oacute; &apos;{buscarCliente}&apos;
+          </div>
+          <button onClick={() => { setNuevoCliente({ nombre: buscarCliente, telefono: '', direccion: '' }); setMostrarFormCliente(true) }}
+            style={{
+              padding: '8px 16px', borderRadius: '8px', border: 'none',
+              background: '#16a34a', color: 'white', cursor: 'pointer',
+              fontWeight: 600, fontSize: '13px'
+            }}>
+            + Crear cliente rápido
+          </button>
         </div>
       )}
     </div>
@@ -614,9 +632,19 @@ export default function POS() {
         </div>
 
         <div>
-          <label style={{ fontSize: '13px', color: 'var(--texto-secundario)', fontWeight: 600 }}>
-            Descuento (C$)
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <label style={{ fontSize: '13px', color: 'var(--texto-secundario)', fontWeight: 600 }}>
+              Descuento {descPorc ? '(%)' : '(C$)'}
+            </label>
+            <button onClick={() => { setDescPorc(!descPorc); setDescuento('') }}
+              style={{
+                padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0',
+                fontSize: '11px', cursor: 'pointer', background: descPorc ? '#dbeafe' : 'white',
+                fontWeight: 600, color: descPorc ? '#2563eb' : '#64748b'
+              }}>
+              {descPorc ? 'C$' : '%'}
+            </button>
+          </div>
           <input
             id="campo-descuento"
             type="number"
@@ -640,20 +668,30 @@ export default function POS() {
                 if (m === 'credito') {
                   if (activo) {
                     setEsCredito(false)
+                    setFechaVencimiento('')
                     setMetodosPago(prev => prev.filter(p => p.metodo !== 'credito'))
                     if (metodosPago.length <= 1) setMetodoPago('efectivo')
                   } else {
                     setEsCredito(true)
-                    setMetodosPago(prev => [...prev.filter(p => p.metodo !== 'credito'), { metodo: 'credito', monto: '' }])
+                    setMetodoPago('credito')
+                    setMetodosPago([{ metodo: 'credito', monto: '' }])
                   }
                   return
                 }
                 setEsCredito(false)
+                setFechaVencimiento('')
                 if (metodosPago.some(p => p.metodo === m)) {
-                  setMetodosPago(prev => prev.filter(p => p.metodo !== m))
-                  if (metodosPago.length <= 1) setMetodoPago('efectivo')
+                  if (metodosPago.length <= 1) return
+                  const nuevos = metodosPago.filter(p => p.metodo !== m)
+                  setMetodosPago(nuevos)
+                  setMetodoPago(nuevos[0]?.metodo || 'efectivo')
                 } else {
-                  setMetodosPago(prev => [...prev, { metodo: m, monto: '' }])
+                  if (metodosPago.length === 1 && metodosPago[0].metodo === 'efectivo') {
+                    setMetodosPago([{ metodo: m, monto: '' }])
+                    setMetodoPago(m)
+                  } else {
+                    setMetodosPago(prev => [...prev, { metodo: m, monto: '' }])
+                  }
                 }
               }}
                 style={{
@@ -677,14 +715,25 @@ export default function POS() {
         )}
 
         {esCredito && (
-          <div style={{
-            padding: '10px', borderRadius: '8px',
-            background: '#fef9c3', border: '1px solid #fde047',
-            fontSize: '13px', color: '#92400e', textAlign: 'center'
-          }}>
-            {clienteSeleccionado
-              ? `📋 Venta al crédito para ${clienteSeleccionado.nombre}`
-              : '⚠️ Seleccioná un cliente para venta al crédito'}
+          <div>
+            <div style={{
+              padding: '10px', borderRadius: '8px',
+              background: '#fef9c3', border: '1px solid #fde047',
+              fontSize: '13px', color: '#92400e', textAlign: 'center', marginBottom: 8
+            }}>
+              {clienteSeleccionado
+                ? `📋 Venta al crédito para ${clienteSeleccionado.nombre}`
+                : '⚠️ Seleccioná un cliente para venta al crédito'}
+            </div>
+            {clienteSeleccionado && (
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 2, color: 'var(--texto-secundario)' }}>
+                  Fecha de vencimiento
+                </label>
+                <input type="date" value={fechaVencimiento} onChange={e => setFechaVencimiento(e.target.value)}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: 14 }} />
+              </div>
+            )}
           </div>
         )}
 
@@ -887,6 +936,53 @@ export default function POS() {
         )}
         
       </div>
+
+      {mostrarFormCliente && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+        }}>
+          <div className="card" style={{ width: '380px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>+ Nuevo cliente rápido</h2>
+              <button onClick={() => setMostrarFormCliente(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input placeholder="Nombre *" value={nuevoCliente.nombre}
+                onChange={e => setNuevoCliente(p => ({ ...p, nombre: e.target.value }))}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }} />
+              <input placeholder="Teléfono" value={nuevoCliente.telefono}
+                onChange={e => setNuevoCliente(p => ({ ...p, telefono: e.target.value }))}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }} />
+              <input placeholder="Dirección" value={nuevoCliente.direccion}
+                onChange={e => setNuevoCliente(p => ({ ...p, direccion: e.target.value }))}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }} />
+              <button onClick={async () => {
+                if (!nuevoCliente.nombre.trim()) return alert('El nombre es obligatorio')
+                try {
+                  const res = await fetch('/api/clientes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nuevoCliente)
+                  })
+                  const cliente = await res.json()
+                  setClientes(prev => [...prev, cliente])
+                  setClienteSeleccionado(cliente)
+                  setMostrarFormCliente(false)
+                  setMostrarClientes(false)
+                  setBuscarCliente('')
+                } catch {
+                  alert('Error al crear cliente')
+                }
+              }}
+                style={{ padding: '12px', borderRadius: '8px', border: 'none', background: '#16a34a', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '15px' }}>
+                💾 Guardar y seleccionar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {facturaExitosa && (
         <div style={{

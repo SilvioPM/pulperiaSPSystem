@@ -100,7 +100,7 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
           {factura?.detalles?.map(d => (
             <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontSize: '10px' }}>
               <span style={{ flex: 2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{d.producto?.nombre}</span>
-              <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad}</span>
+              <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad} {d.unidadVenta || ''}</span>
               <span style={{ flex: 1, textAlign: 'right' }}>{d.precio.toFixed(2)}</span>
               <span style={{ flex: 1, textAlign: 'right' }}>{d.subtotal.toFixed(2)}</span>
             </div>
@@ -131,7 +131,8 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
           </div>
           {/* ── Pago ── */}
           {(() => {
-            const dp = factura?.detallesPago ? (typeof factura.detallesPago === 'string' ? JSON.parse(factura.detallesPago) : factura.detallesPago) : null
+            let dp = null
+            try { dp = factura?.detallesPago ? (typeof factura.detallesPago === 'string' ? JSON.parse(factura.detallesPago) : factura.detallesPago) : null } catch {}
             if (dp && dp.length > 1) {
               return (
                 <div style={{ borderTop: '1px dashed #000', paddingTop: '4px', marginTop: '4px' }}>

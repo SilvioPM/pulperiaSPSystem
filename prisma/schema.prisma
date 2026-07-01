@@ -29,6 +29,7 @@ model Producto {
   precioMayor       Float            @default(0)
   unidadVenta2      String?
   precioVenta2      Float            @default(0)
+  costoVenta2       Float            @default(0)
   factorVenta2      Float            @default(1)
   categoriaId       Int
   categoria         Categoria        @relation(fields: [categoriaId], references: [id])
@@ -76,6 +77,7 @@ model Factura {
   anuladaEn        DateTime?
   anuladaPor       String?
   detallesPago     String?
+  fechaVencimiento DateTime?
   detalles         DetalleFac[]
   abonos           Abono[]
   creadoEn         DateTime   @default(now())
@@ -150,6 +152,7 @@ model Compra {
   saldoPendiente   Float          @default(0)
   estado           String         @default("pagada")
   nota             String?
+  fechaVencimiento DateTime?
   detalles         DetalleCompra[]
   abonos           AbonoCompra[]
   creadoEn         DateTime       @default(now())

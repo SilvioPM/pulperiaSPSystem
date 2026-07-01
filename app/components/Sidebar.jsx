@@ -100,6 +100,25 @@ export default function Sidebar() {
             </Link>
           )
         })}
+        {!collapsed && <div style={{ color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', padding: '16px 10px 8px', fontWeight: 600 }}>Ayuda</div>}
+        {[
+          { href: '/manual', icono: '📖', label: 'Manual' },
+        ].map(item => {
+          const activo = pathname === item.href
+          return (
+            <Link key={item.href} href={item.href} style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '12px 10px', borderRadius: '8px', marginBottom: '4px',
+              textDecoration: 'none',
+              color: activo ? 'white' : '#94a3b8',
+              background: activo ? '#16a34a' : 'transparent',
+              fontWeight: activo ? 600 : 400, fontSize: '14px', transition: 'all 0.2s',
+            }}>
+              <span style={{ fontSize: '18px' }}>{item.icono}</span>
+              {!collapsed && item.label}
+            </Link>
+          )
+        })}
         {user?.rol === 'admin' && (
           <>
             {!collapsed && <div style={{ color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', padding: '16px 10px 8px', fontWeight: 600 }}>Sistema</div>}

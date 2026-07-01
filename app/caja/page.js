@@ -180,20 +180,21 @@ export default function CajaPage() {
                 <div style={{ fontSize: 16, fontWeight: 600, color: '#1e293b' }}>C$ {caja.montoInicial.toFixed(2)}</div>
               </div>
               <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
-                <div style={{ fontSize: 12, color: '#64748b' }}>Vendido hoy</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Total ingresado</div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: '#1e293b' }}>C$ {caja.totalVendido.toFixed(2)}</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Solo pagos reales (sin crédito)</div>
               </div>
             </div>
 
             <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', margin: '0 0 12px' }}>Ventas del día</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', margin: '0 0 12px' }}>Ingresos por método de pago</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {[
-                  { label: 'Efectivo C$', val: caja.ventasEfectivoCs, moneda: 'C$' },
+                  { label: 'Efectivo C$ (ventas)', val: caja.ventasEfectivoCs, moneda: 'C$' },
                   { label: 'Efectivo USD', val: caja.ventasEfectivoUs, moneda: '$' },
+                  { label: 'Abonos de clientes', val: caja.abonosTotal || 0, moneda: 'C$' },
                   { label: 'Tarjeta', val: caja.ventasTarjeta, moneda: 'C$' },
                   { label: 'Transferencia', val: caja.ventasTransfer, moneda: 'C$' },
-                  { label: 'Crédito', val: caja.ventasCredito, moneda: 'C$' },
                 ].map(m => (
                   <div key={m.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 14 }}>
                     <span style={{ color: '#475569' }}>{m.label}</span>
@@ -319,8 +320,8 @@ export default function CajaPage() {
             <div style={{ marginBottom: 16, background: '#f8fafc', borderRadius: 8, padding: 12, fontSize: 13 }}>
               <h4 style={{ margin: '0 0 8px', fontWeight: 600, color: '#1e293b' }}>Esperado</h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                <span style={{ color: '#475569' }}>C$: Inicial {caja.montoInicial.toFixed(2)} + Ventas {caja.ventasEfectivoCs.toFixed(2)} + Ingresos {caja.ingresosExtra.toFixed(2)} - Egresos {caja.egresos.toFixed(2)}</span>
-                <span style={{ fontWeight: 600 }}>= C$ {(caja.montoInicial + caja.ventasEfectivoCs + caja.ingresosExtra - caja.egresos).toFixed(2)}</span>
+                <span style={{ color: '#475569' }}>C$: Inicial {caja.montoInicial.toFixed(2)} + Efectivo {caja.ventasEfectivoCs.toFixed(2)} + Abonos {caja.abonosTotal?.toFixed(2) || '0.00'} + Ingresos {caja.ingresosExtra.toFixed(2)} - Egresos {caja.egresos.toFixed(2)}</span>
+                <span style={{ fontWeight: 600 }}>= C$ {(caja.montoInicial + caja.ventasEfectivoCs + (caja.abonosTotal || 0) + caja.ingresosExtra - caja.egresos).toFixed(2)}</span>
                 <span style={{ color: '#475569' }}>$: Ventas {caja.ventasEfectivoUs.toFixed(2)}</span>
                 <span style={{ fontWeight: 600 }}>= $ {caja.ventasEfectivoUs.toFixed(2)}</span>
               </div>

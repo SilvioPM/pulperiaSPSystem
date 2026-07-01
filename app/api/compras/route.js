@@ -68,6 +68,7 @@ export async function POST(request) {
           esCredito,
           saldoPendiente: esCredito ? parseFloat(body.total) : 0,
           estado: esCredito ? 'credito' : 'pagada',
+          fechaVencimiento: body.fechaVencimiento ? new Date(body.fechaVencimiento) : null,
           nota: body.nota || null,
           detalles: {
             create: body.detalles.map(d => ({
@@ -95,9 +96,19 @@ export async function POST(request) {
           ? parseFloat(detalle.cantidad) * (producto.factorConversion || 1)
           : parseFloat(detalle.cantidad)
 
+        const updateData = {
+          stock: { increment: cantidadBase },
+          costo: esUnidadCompra
+            ? parseFloat(detalle.costo) / (producto.factorConversion || 1)
+            : parseFloat(detalle.costo)
+        }
+        // Si la unidad de compra coincide con unidadVenta2, actualizar costoVenta2
+        if (producto.unidadVenta2 && detalle.unidad === producto.unidadVenta2) {
+          updateData.costoVenta2 = parseFloat(detalle.costo)
+        }
         await tx.producto.update({
           where: { id: parseInt(detalle.productoId) },
-          data: { stock: { increment: cantidadBase }, costo: parseFloat(detalle.costo) }
+          data: updateData
         })
 
         await tx.movInventario.create({

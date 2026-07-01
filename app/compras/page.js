@@ -1,6 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useReactToPrint } from 'react-to-print'
 import Toast from '../components/Toast'
+import AbonoRecibo from '../components/AbonoRecibo'
 import { useToast } from '../hooks/useToast'
 
 export default function Compras() {
@@ -14,7 +16,7 @@ export default function Compras() {
   const [carrito, setCarrito]         = useState([])
   const [filtro, setFiltro]           = useState('todas')
   const [form, setForm] = useState({
-    proveedorId: '', esCredito: false, nota: ''
+    proveedorId: '', esCredito: false, fechaVencimiento: '', nota: ''
   })
   const { toast, mostrar, cerrar } = useToast()
   const [buscarProducto, setBuscarProducto]   = useState('')
@@ -27,8 +29,15 @@ export default function Compras() {
      factorConversion: '1', precioMayor: '0', categoriaId: ''
   })
   const [cargando, setCargando] = useState(true)
+  const [config, setConfig] = useState({})
+  const [reciboAbono, setReciboAbono] = useState(null)
+  const reciboRef = useRef(null)
+  const imprimirAbono = useReactToPrint({ contentRef: reciboRef, documentTitle: 'Abono' })
 
-  useEffect(() => { cargarTodo().finally(() => setCargando(false)) }, [])
+  useEffect(() => {
+    cargarTodo().finally(() => setCargando(false))
+    fetch('/api/config').then(r => r.json()).then(setConfig).catch(() => {})
+  }, [])
 
  async function cargarTodo() {
   try {
@@ -41,7 +50,7 @@ export default function Compras() {
     const [c, p, pr, cat] = await Promise.all([
       cRes.json(), pRes.json(), prRes.json(), catRes.json()
     ])
-    setCompras(Array.isArray(c) ? c : [])
+    setCompras(Array.isArray(c) ? c : (Array.isArray(c.data) ? c.data : []))
     setProductos(Array.isArray(p) ? p : (p.data || []))
     setProveedores(Array.isArray(pr) ? pr : [])
     setCategorias(Array.isArray(cat) ? cat : [])
@@ -111,6 +120,7 @@ async function crearProductoRapido(e) {
         body: JSON.stringify({
           proveedorId: parseInt(form.proveedorId),
           esCredito:   form.esCredito,
+          fechaVencimiento: form.fechaVencimiento || null,
           subtotal, iva: 0, total,
           nota:        form.nota,
           detalles:    carrito
@@ -138,11 +148,20 @@ async function crearProductoRapido(e) {
       })
       const data = await res.json()
       if (res.ok) {
-        mostrar('Abono registrado exitosamente', 'exito')
+        setReciboAbono({
+          tipo: 'cxp',
+          numero: compraVer.numero,
+          entidad: compraVer.proveedor?.nombre || 'Proveedor',
+          montoOriginal: compraVer.total,
+          abonoMonto: parseFloat(formAbono.monto),
+          saldoPendiente: data.nuevoSaldo,
+          nota: formAbono.nota
+        })
         setMostrarAbono(false)
         setFormAbono({ monto: '', nota: '' })
         setCompraVer(null)
         cargarTodo()
+        setTimeout(() => imprimirAbono(), 300)
       } else {
         mostrar(data.error, 'error')
       }
@@ -375,6 +394,14 @@ async function crearProductoRapido(e) {
                   📋 Crédito
                 </button>
               </div>
+
+              {form.esCredito && (
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Fecha de vencimiento</label>
+                  <input type="date" value={form.fechaVencimiento || ''} onChange={e => setForm({...form, fechaVencimiento: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px' }} />
+                </div>
+              )}
 
               {/* Items del carrito */}
               <div style={{ flex: 1, maxHeight: '300px', overflowY: 'auto' }}>
@@ -677,6 +704,12 @@ async function crearProductoRapido(e) {
       )}
 
       {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
+
+      {reciboAbono && (
+        <div style={{ display: 'none' }}>
+          <AbonoRecibo ref={reciboRef} config={config} {...reciboAbono} />
+        </div>
+      )}
     </div>
   )
 }

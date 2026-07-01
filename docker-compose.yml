@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: spsystem123
     volumes:
       - pgdata:/var/lib/postgresql/data
-    restart: unless-stopped
+    restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U spsystem"]
       interval: 5s
@@ -24,12 +24,14 @@ services:
       APP_LICENSE_SECRET: ${APP_LICENSE_SECRET:-spsystem-license-secret-change-in-production}
       NODE_ENV: production
       SPSYSTEM_DATA_DIR: /app/data
+      SPSYSTEM_BACKUP_DIR: /app/respaldos
     volumes:
       - appdata:/app/data
+      - C:\respaldos-spsystem:/app/respaldos
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
 
 volumes:
   pgdata:

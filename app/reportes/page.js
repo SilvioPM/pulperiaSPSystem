@@ -571,10 +571,10 @@ export default function Reportes() {
                               {col.key === 'estado' ? (
                                 <span style={{
                                   padding: '3px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600,
-                                  background: fila[col.key] === 'anulada' ? '#fee2e2' : fila[col.key] === 'credito' ? '#fef9c3' : '#dcfce7',
-                                  color: fila[col.key] === 'anulada' ? '#dc2626' : fila[col.key] === 'credito' ? '#ca8a04' : '#16a34a'
+                                  background: fila._raw?.estado === 'anulada' ? '#fee2e2' : fila._raw?.estado === 'credito' ? '#fef9c3' : '#dcfce7',
+                                  color: fila._raw?.estado === 'anulada' ? '#dc2626' : fila._raw?.estado === 'credito' ? '#ca8a04' : '#16a34a'
                                 }}>
-                                  {fila[col.key] === 'anulada' ? '❌ Anulada' : fila[col.key] === 'credito' ? '📋 Crédito' : '✅ Pagada'}
+                                  {fila._raw?.estado === 'anulada' ? '❌ Anulada' : fila._raw?.estado === 'credito' ? '📋 Crédito' : '✅ Pagada'}
                                 </span>
                               ) : col.key === 'total' || col.key === 'subtotal' || col.key === 'ganancia' || col.key === 'precio' || col.key === 'costo' || col.key === 'descuento'
                                 ? `C$ ${(fila[col.key] || 0).toFixed(2)}`

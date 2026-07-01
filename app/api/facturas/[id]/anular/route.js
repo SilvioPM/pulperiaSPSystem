@@ -38,37 +38,42 @@ export async function POST(req, { params }) {
       return Response.json({ error: 'La factura ya está anulada' }, { status: 400 })
     }
 
-    await prisma.factura.update({
-      where: { id: parseInt(id) },
-      data: { estado: 'anulada', anuladaEn: new Date(), anuladaPor: `${autorizador.nombre} (${autorizador.username})` },
-    })
+    await prisma.$transaction(async (tx) => {
+      // Primero restaurar stock y registrar movimientos
+      for (const detalle of facturaAnular.detalles) {
+        const factor = detalle.factorConversion || 1
+        const cantidadBase = detalle.cantidad * factor
 
-    for (const detalle of facturaAnular.detalles) {
-      const factor = detalle.factorConversion || 1
-      const cantidadBase = detalle.cantidad * factor
+        await tx.producto.update({
+          where: { id: detalle.productoId },
+          data: { stock: { increment: cantidadBase } },
+        })
 
-      await prisma.producto.update({
-        where: { id: detalle.productoId },
-        data: { stock: { increment: cantidadBase } },
-      })
-
-      await prisma.movInventario.create({
-        data: {
-          productoId: detalle.productoId,
-          tipo: 'entrada',
-          cantidad: cantidadBase,
-          motivo: `Anulación ${facturaAnular.numero} (autorizado por ${autorizador.username})`,
-        },
-      })
-    }
-
-    await prisma.auditoria.create({
-      data: {
-        usuario: `${autorizador.nombre} (${autorizador.username})`,
-        accion: 'anular',
-        entidad: 'factura',
-        detalle: `Factura #${facturaAnular.numero} - C$ ${facturaAnular.total.toFixed(2)}`
+        await tx.movInventario.create({
+          data: {
+            productoId: detalle.productoId,
+            tipo: 'entrada',
+            cantidad: cantidadBase,
+            motivo: `Anulación ${facturaAnular.numero} (autorizado por ${autorizador.username})`,
+          },
+        })
       }
+
+      // Luego marcar factura como anulada
+      await tx.factura.update({
+        where: { id: parseInt(id) },
+        data: { estado: 'anulada', anuladaEn: new Date(), anuladaPor: `${autorizador.nombre} (${autorizador.username})` },
+      })
+
+      // Auditoría
+      await tx.auditoria.create({
+        data: {
+          usuario: `${autorizador.nombre} (${autorizador.username})`,
+          accion: 'anular',
+          entidad: 'factura',
+          detalle: `Factura #${facturaAnular.numero} - C$ ${facturaAnular.total.toFixed(2)}`
+        }
+      })
     })
 
     return Response.json({ mensaje: 'Factura anulada exitosamente' })

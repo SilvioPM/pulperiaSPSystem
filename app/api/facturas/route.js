@@ -30,7 +30,8 @@ export async function GET(req) {
         where,
         include: {
           cliente: true,
-          detalles: { include: { producto: true } }
+          detalles: { include: { producto: true } },
+          abonos: true
         },
         orderBy: { creadoEn: 'desc' },
         skip: (page - 1) * limit,
@@ -97,6 +98,7 @@ export async function POST(request) {
           esCredito,
           saldoPendiente: esCredito ? totalVal : 0,
           estado: esCredito ? 'credito' : 'pagada',
+          fechaVencimiento: body.fechaVencimiento ? new Date(body.fechaVencimiento) : null,
           detallesPago: body.detallesPago ? JSON.stringify(body.detallesPago) : null,
           detalles: {
             create: body.detalles.map(d => ({

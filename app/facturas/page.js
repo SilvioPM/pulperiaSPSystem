@@ -31,12 +31,14 @@ export default function Facturas() {
   }, [])
 
   async function cargarFacturas(p) {
-    const res  = await fetch(`/api/facturas?page=${p}&limit=30${buscando ? `&buscar=${buscando}` : ''}`)
-    const data = await res.json()
-    setFacturas(data.data || data)
-    setTotalFacturas(data.total || 0)
-    setTotalPages(data.totalPages || 1)
-    setPage(data.page || p)
+    try {
+      const res  = await fetch(`/api/facturas?page=${p || 1}&limit=30${buscando ? `&buscar=${buscando}` : ''}`)
+      const data = await res.json()
+      setFacturas(Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [])
+      setTotalFacturas(data.total || 0)
+      setTotalPages(data.totalPages || 1)
+      setPage(data.page || p || 1)
+    } catch { setFacturas([]) }
   }
 
   async function cargarFacturasHoyStats() {
@@ -58,11 +60,12 @@ export default function Facturas() {
   })
 
   function compartirWhatsApp(factura) {
-    const negocio  = config?.nombre || 'Mi Pulpería'
-    const productos = factura.detalles?.map(d =>
-      `  • ${d.producto?.nombre} x${d.cantidad} = C$ ${d.subtotal.toFixed(2)}`
-    ).join('\n')
-    const mensaje = `
+    try {
+      const negocio  = config?.nombre || 'Mi Pulpería'
+      const productos = factura.detalles?.map(d =>
+        `  • ${d.producto?.nombre} x${d.cantidad}${d.unidadVenta ? ' ' + d.unidadVenta : ''} = C$ ${(d.subtotal || 0).toFixed(2)}`
+      )?.join('\n') || ''
+      const mensaje = `
 🛒 *${negocio}*
 📄 Factura: *${factura.numero}*
 📅 ${new Date(factura.creadoEn).toLocaleString('es-NI')}
@@ -72,16 +75,17 @@ export default function Facturas() {
 ${productos}
 
 ─────────────────
-Subtotal: C$ ${factura.subtotal.toFixed(2)}
-${factura.iva > 0 ? `IVA: + C$ ${factura.iva.toFixed(2)}\n` : ''}*TOTAL: C$ ${factura.total.toFixed(2)}*
+Subtotal: C$ ${(factura.subtotal || 0).toFixed(2)}
+${factura.iva > 0 ? `IVA: + C$ ${(factura.iva || 0).toFixed(2)}\n` : ''}*TOTAL: C$ ${(factura.total || 0).toFixed(2)}*
 ─────────────────
-Pagó con: C$ ${factura.pagoCon.toFixed(2)}
-Cambio: C$ ${factura.cambio.toFixed(2)}
-Método: ${factura.metodoPago}
+Pagó con: C$ ${(factura.pagoCon || 0).toFixed(2)}
+Cambio: C$ ${(factura.cambio || 0).toFixed(2)}
+Método: ${factura.metodoPago || '—'}
 
 ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
-    `.trim()
-    window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank')
+      `.trim()
+      window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank')
+    } catch {}
   }
 
   function formatearFecha(fecha) {
@@ -107,7 +111,7 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
       setShowAnular(null)
       setAuthUser('')
       setAuthPass('')
-      cargarFacturas()
+      cargarFacturas(page)
     } catch {
       setAuthError('Error de conexión')
     } finally {
@@ -197,7 +201,8 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     {(() => {
-                      const dp = f.detallesPago ? (typeof f.detallesPago === 'string' ? JSON.parse(f.detallesPago) : f.detallesPago) : null
+                      let dp = null
+                      try { dp = f.detallesPago ? (typeof f.detallesPago === 'string' ? JSON.parse(f.detallesPago) : f.detallesPago) : null } catch {}
                       if (dp && dp.length > 1) {
                         return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#f3e8ff', color: '#7c3aed' }}>🔄 Mixto ({dp.length})</span>
                       }

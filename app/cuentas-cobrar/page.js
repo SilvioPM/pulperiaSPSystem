@@ -1,6 +1,8 @@
 ﻿'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useReactToPrint } from 'react-to-print'
 import Toast from '../components/Toast'
+import AbonoRecibo from '../components/AbonoRecibo'
 import { useToast } from '../hooks/useToast'
 
 export default function CuentasCobrar() {
@@ -10,10 +12,18 @@ export default function CuentasCobrar() {
   const [formAbono, setFormAbono]     = useState({ monto: '', nota: '' })
   const [guardando, setGuardando]     = useState(false)
   const [filtro, setFiltro]           = useState('pendientes')
-  const [cargando, setCargando] = useState(true)
+  const [cargando, setCargando]       = useState(true)
+  const [config, setConfig]           = useState({})
+  const [reciboAbono, setReciboAbono] = useState(null)
   const { toast, mostrar, cerrar } = useToast()
+  const reciboRef = useRef(null)
+  const imprimirAbono = useReactToPrint({ contentRef: reciboRef, documentTitle: 'Abono' })
 
-  useEffect(() => { cargarFacturas().finally(() => setCargando(false)) }, [])
+  useEffect(() => {
+    cargarFacturas()
+    fetch('/api/config').then(r => r.json()).then(setConfig).catch(() => {})
+    .finally(() => setCargando(false))
+  }, [])
 
   async function cargarFacturas() {
     try {
@@ -45,10 +55,20 @@ export default function CuentasCobrar() {
       if (!res.ok) {
         mostrar(data.error, 'error')
       } else {
+        setReciboAbono({
+          tipo: 'cxc',
+          numero: facturaSeleccionada.numero,
+          entidad: facturaSeleccionada.cliente?.nombre || 'General',
+          montoOriginal: facturaSeleccionada.total,
+          abonoMonto: parseFloat(formAbono.monto),
+          saldoPendiente: data.nuevoSaldo,
+          nota: formAbono.nota
+        })
         setMostrarAbono(false)
         setFormAbono({ monto: '', nota: '' })
         setFacturaSeleccionada(null)
         cargarFacturas()
+        setTimeout(() => imprimirAbono(), 300)
       }
     } catch {
       mostrar('Error al registrar abono', 'error')
@@ -136,7 +156,7 @@ export default function CuentasCobrar() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['Factura', 'Cliente', 'Fecha', 'Días', 'Total', 'Abonado', 'Pendiente', 'Acciones'].map(h => (
+              {['Factura', 'Cliente', 'Fecha', 'Vencimiento', 'Días', 'Total', 'Abonado', 'Pendiente', 'Acciones'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
                   {h}
                 </th>
@@ -146,7 +166,7 @@ export default function CuentasCobrar() {
           <tbody>
             {mostradas.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                <td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                   <div style={{ fontSize: '40px', marginBottom: '8px' }}>
                     {filtro === 'pendientes' ? '🎉' : '📋'}
                   </div>
@@ -158,7 +178,8 @@ export default function CuentasCobrar() {
             ) : (
               mostradas.map((f, i) => {
                 const abonado = f.abonos?.reduce((sum, a) => sum + a.monto, 0) || 0
-                const dias    = diasDeudor(f.creadoEn)
+                const refFecha = f.fechaVencimiento || f.creadoEn
+                const dias    = diasDeudor(refFecha)
                 const urgente = dias > 30 && f.saldoPendiente > 0
 
                 return (
@@ -181,6 +202,9 @@ export default function CuentasCobrar() {
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                       {formatearFecha(f.creadoEn)}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '13px', color: f.fechaVencimiento ? '#64748b' : '#94a3b8' }}>
+                      {f.fechaVencimiento ? formatearFecha(f.fechaVencimiento) : '—'}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{
@@ -382,6 +406,32 @@ export default function CuentasCobrar() {
               </tbody>
             </table>
 
+            {facturaSeleccionada.abonos?.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>
+                  Abonos registrados:
+                </div>
+                {facturaSeleccionada.abonos.map(a => (
+                  <div key={a.id} style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px'
+                  }}>
+                    <span style={{ color: '#64748b' }}>
+                      {new Date(a.creadoEn).toLocaleDateString('es-NI')}
+                      {a.nota && ` — ${a.nota}`}
+                    </span>
+                    <span style={{ fontWeight: 600, color: '#16a34a' }}>
+                      C$ {a.monto.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '13px', fontWeight: 700, borderTop: '2px solid #e2e8f0', marginTop: '4px' }}>
+                  <span>Total abonado</span>
+                  <span style={{ color: '#16a34a' }}>C$ {facturaSeleccionada.abonos.reduce((s, a) => s + a.monto, 0).toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
             <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '12px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 700, color: '#dc2626' }}>
                 <span>Saldo pendiente</span>
@@ -403,6 +453,12 @@ export default function CuentasCobrar() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {reciboAbono && (
+        <div style={{ display: 'none' }}>
+          <AbonoRecibo ref={reciboRef} config={config} {...reciboAbono} />
         </div>
       )}
     </div>

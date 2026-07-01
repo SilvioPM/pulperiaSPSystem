@@ -12,7 +12,12 @@ export async function GET(request) {
 
     const where = {
       activo: true,
-      ...(buscar && { nombre: { contains: buscar } }),
+      ...(buscar && {
+        OR: [
+          { nombre: { contains: buscar } },
+          { codigo: { contains: buscar } }
+        ]
+      }),
       ...(categoriaId && { categoriaId: parseInt(categoriaId) })
     }
 
@@ -57,6 +62,7 @@ export async function POST(request) {
         precioMayor: parseFloat(body.precioMayor || 0),
         unidadVenta2: body.unidadVenta2 || null,
         precioVenta2: parseFloat(body.precioVenta2 || 0),
+        costoVenta2: parseFloat(body.costoVenta2 || 0),
         factorVenta2: parseFloat(body.factorVenta2 || 1),
         categoriaId: parseInt(body.categoriaId)
       }
