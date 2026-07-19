@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#166534"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="90" ry="90" fill="url(#g)"/>
+  <rect width="180" height="90" rx="90" ry="0" fill="rgba(255,255,255,0.08)"/>
+  <text x="90" y="115" font-family="'Segoe UI',-apple-system,sans-serif" font-size="80" font-weight="800" fill="white" text-anchor="middle" letter-spacing="-4">SP</text>
+</svg>

@@ -17,6 +17,7 @@ const MODULO_POR_RUTA = {
   '/cuentas-cobrar': 'cuentas-cobrar',
   '/deudas': 'deudas',
   '/proformas': 'proformas',
+  '/gastos': 'gastos',
   '/reportes': 'reportes',
   '/configuracion': 'configuracion',
   '/usuarios': 'usuarios',

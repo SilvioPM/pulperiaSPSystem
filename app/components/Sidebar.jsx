@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
+import * as Icons from 'lucide-react'
 
 export default function Sidebar() {
   const pathname = usePathname()
@@ -23,7 +24,7 @@ export default function Sidebar() {
     document.documentElement.setAttribute('data-theme', nuevo ? 'dark' : 'light')
   }
 
-  const menu = modulosPermitidos().map(m => ({ href: m.path, icono: m.label.split(' ')[0], label: m.label.replace(/^[^\s]+\s/, '') }))
+  const menu = modulosPermitidos().map(m => ({ href: m.path, icono: m.icono, label: m.label }))
 
   return (
     <aside style={{
@@ -77,9 +78,12 @@ export default function Sidebar() {
         </button>
       </div>
 
+
+
       <nav style={{ flex: 1, padding: '12px 8px' }}>
         {menu.map(item => {
           const activo = pathname === item.href
+          const IconComp = Icons[item.icono]
           return (
             <Link key={item.href} href={item.href} style={{
               display: 'flex',
@@ -95,16 +99,17 @@ export default function Sidebar() {
               fontSize: '14px',
               transition: 'all 0.2s',
             }}>
-              <span style={{ fontSize: '18px' }}>{item.icono}</span>
+              {IconComp && <IconComp size={18} />}
               {!collapsed && item.label}
             </Link>
           )
         })}
         {!collapsed && <div style={{ color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', padding: '16px 10px 8px', fontWeight: 600 }}>Ayuda</div>}
         {[
-          { href: '/manual', icono: '📖', label: 'Manual' },
+          { href: '/manual', icono: 'BookOpen', label: 'Manual' },
         ].map(item => {
           const activo = pathname === item.href
+          const IconComp = Icons[item.icono]
           return (
             <Link key={item.href} href={item.href} style={{
               display: 'flex', alignItems: 'center', gap: '12px',
@@ -114,7 +119,7 @@ export default function Sidebar() {
               background: activo ? '#16a34a' : 'transparent',
               fontWeight: activo ? 600 : 400, fontSize: '14px', transition: 'all 0.2s',
             }}>
-              <span style={{ fontSize: '18px' }}>{item.icono}</span>
+              {IconComp && <IconComp size={18} />}
               {!collapsed && item.label}
             </Link>
           )
@@ -123,11 +128,12 @@ export default function Sidebar() {
           <>
             {!collapsed && <div style={{ color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', padding: '16px 10px 8px', fontWeight: 600 }}>Sistema</div>}
             {[
-              { href: '/auditoria', icono: '📋', label: 'Auditoría' },
-              { href: '/licencia', icono: '🔑', label: 'Licencia' },
-              { href: '/respaldos', icono: '💾', label: 'Respaldos' },
+              { href: '/auditoria', icono: 'ClipboardList', label: 'Auditoría' },
+              { href: '/licencia', icono: 'Key', label: 'Licencia' },
+              { href: '/respaldos', icono: 'Save', label: 'Respaldos' },
             ].map(item => {
               const activo = pathname === item.href
+              const IconComp = Icons[item.icono]
               return (
                 <Link key={item.href} href={item.href} style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
@@ -137,7 +143,7 @@ export default function Sidebar() {
                   background: activo ? '#16a34a' : 'transparent',
                   fontWeight: activo ? 600 : 400, fontSize: '14px', transition: 'all 0.2s',
                 }}>
-                  <span style={{ fontSize: '18px' }}>{item.icono}</span>
+                  {IconComp && <IconComp size={18} />}
                   {!collapsed && item.label}
                 </Link>
               )
@@ -157,21 +163,21 @@ export default function Sidebar() {
         )}
         {!collapsed ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#475569' }}>Sistema v1.0 🇳🇮</span>
+            <span style={{ fontSize: '12px', color: '#475569' }}>Sistema v1.0 NI</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={logout}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   fontSize: '14px', color: '#ef4444', padding: '4px'
                 }}>
-                ⏻
+                <Icons.LogOut size={18} />
               </button>
               <button onClick={toggleTema}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   fontSize: '18px', color: '#94a3b8', padding: '4px'
                 }}>
-                {dark ? '☀️' : '🌙'}
+                {dark ? <Icons.Sun size={18} /> : <Icons.Moon size={18} />}
               </button>
             </div>
           </div>
@@ -182,14 +188,14 @@ export default function Sidebar() {
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: '14px', color: '#ef4444', padding: '4px'
               }}>
-              ⏻
+              <Icons.LogOut size={18} />
             </button>
             <button onClick={toggleTema}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: '18px', color: '#94a3b8', padding: '4px'
               }}>
-              {dark ? '☀️' : '🌙'}
+              {dark ? <Icons.Sun size={18} /> : <Icons.Moon size={18} />}
             </button>
           </div>
         )}
@@ -197,3 +203,5 @@ export default function Sidebar() {
     </aside>
   )
 }
+
+

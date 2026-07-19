@@ -27,18 +27,29 @@ model Producto {
   unidadCompra      String           @default("unidad")
   factorConversion  Float            @default(1)
   precioMayor       Float            @default(0)
+  cantidadMinimaMayor Float          @default(0)
   unidadVenta2      String?
   precioVenta2      Float            @default(0)
   costoVenta2       Float            @default(0)
   factorVenta2      Float            @default(1)
+  unidadVenta3      String?
+  precioVenta3      Float            @default(0)
+  costoVenta3       Float            @default(0)
+  factorVenta3      Float            @default(1)
+  unidadVenta4      String?
+  precioVenta4      Float            @default(0)
+  costoVenta4       Float            @default(0)
+  factorVenta4      Float            @default(1)
   categoriaId       Int
   categoria         Categoria        @relation(fields: [categoriaId], references: [id])
   activo            Boolean          @default(true)
+  esGenerico        Boolean          @default(false)
   creadoEn          DateTime         @default(now())
   detalles          DetalleFac[]
   movimientos       MovInventario[]
   detallesCompra    DetalleCompra[]
   detallesProforma  DetalleProforma[]
+  fechaVencimiento  DateTime?
 
   @@index([nombre])
   @@index([categoriaId])
@@ -46,15 +57,17 @@ model Producto {
 }
 
 model Cliente {
-  id            Int        @id @default(autoincrement())
-  nombre        String
-  telefono      String?
-  cedula        String?
-  direccion     String?
-  limiteCredito Float      @default(0)
-  facturas      Factura[]
-  proformas     Proforma[]
-  creadoEn      DateTime   @default(now())
+  id                 Int        @id @default(autoincrement())
+  nombre             String
+  telefono           String?
+  cedula             String?
+  direccion          String?
+  limiteCredito      Float      @default(0)
+  saldoInicial       Float      @default(0)
+  saldoInicialPagado Float      @default(0)
+  facturas           Factura[]
+  proformas          Proforma[]
+  creadoEn           DateTime   @default(now())
 
   @@index([nombre])
 }
@@ -129,20 +142,23 @@ model Abono {
 }
 
 model Proveedor {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  telefono  String?
-  contacto  String?
-  direccion String?
-  email     String?
-  activo    Boolean  @default(true)
-  compras   Compra[]
-  creadoEn  DateTime @default(now())
+  id                    Int      @id @default(autoincrement())
+  nombre                String
+  telefono              String?
+  contacto              String?
+  direccion             String?
+  email                 String?
+  activo                Boolean  @default(true)
+  saldoInicialCxp       Float    @default(0)
+  saldoInicialCxpPagado Float    @default(0)
+  compras               Compra[]
+  creadoEn              DateTime @default(now())
 }
 
 model Compra {
   id               Int            @id @default(autoincrement())
   numero           String         @unique
+  facturaProveedor String?
   proveedorId      Int
   proveedor        Proveedor      @relation(fields: [proveedorId], references: [id], onDelete: Restrict)
   subtotal         Float
@@ -151,11 +167,15 @@ model Compra {
   esCredito        Boolean        @default(false)
   saldoPendiente   Float          @default(0)
   estado           String         @default("pagada")
+  anuladaEn        DateTime?
+  anuladaPor       String?
   nota             String?
   fechaVencimiento DateTime?
   detalles         DetalleCompra[]
   abonos           AbonoCompra[]
   creadoEn         DateTime       @default(now())
+
+  @@index([facturaProveedor])
 }
 
 model DetalleCompra {
@@ -168,6 +188,26 @@ model DetalleCompra {
   unidad    String   @default("unidad")
   costo     Float
   subtotal  Float
+}
+
+model UnidadMedida {
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique
+  activo Boolean @default(true)
+}
+
+model Gasto {
+  id         Int      @id @default(autoincrement())
+  concepto   String
+  categoria  String   @default("Operativos")
+  monto      Float
+  fecha      DateTime
+  metodoPago String   @default("efectivo")
+  nota       String?
+  creadoEn   DateTime @default(now())
+
+  @@index([fecha])
+  @@index([categoria])
 }
 
 model AbonoCompra {

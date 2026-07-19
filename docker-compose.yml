@@ -17,7 +17,7 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "${PUERTO:-3000}:3000"
     environment:
       DATABASE_URL: postgresql://spsystem:spsystem123@db:5432/spsystem
       JWT_SECRET: ${JWT_SECRET:-686bdbca4b9522bbf637ff0ae8bdaa784e24cf965ea55592e8a28f6e596c88f3}
@@ -27,11 +27,14 @@ services:
       SPSYSTEM_BACKUP_DIR: /app/respaldos
     volumes:
       - appdata:/app/data
-      - C:\respaldos-spsystem:/app/respaldos
+      - ${RUTA_RESPALDOS:-./respaldos}:/app/respaldos
     depends_on:
       db:
         condition: service_healthy
     restart: always
+    labels:
+      - "app=spsystem"
+      - "version=1.0"
 
 volumes:
   pgdata:

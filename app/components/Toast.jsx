@@ -1,5 +1,6 @@
 'use client'
 import { useEffect } from 'react'
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 
 export default function Toast({ mensaje, tipo = 'exito', onCerrar }) {
   useEffect(() => {
@@ -8,13 +9,13 @@ export default function Toast({ mensaje, tipo = 'exito', onCerrar }) {
   }, [])
 
   const estilos = {
-    exito:   { bg: '#dcfce7', color: '#16a34a', borde: '#16a34a', icono: '✅' },
-    error:   { bg: '#fee2e2', color: '#dc2626', borde: '#dc2626', icono: '❌' },
-    alerta:  { bg: '#fef9c3', color: '#ca8a04', borde: '#fde047', icono: '⚠️' },
-    info:    { bg: '#dbeafe', color: '#2563eb', borde: '#2563eb', icono: 'ℹ️' },
+    exito:   { bg: '#dcfce7', color: '#16a34a', borde: '#16a34a', icono: CheckCircle },
+    error:   { bg: '#fee2e2', color: '#dc2626', borde: '#dc2626', icono: XCircle },
+    alerta:  { bg: '#fef9c3', color: '#ca8a04', borde: '#fde047', icono: AlertTriangle },
+    info:    { bg: '#dbeafe', color: '#2563eb', borde: '#2563eb', icono: Info },
   }
 
-  const { bg, color, borde, icono } = estilos[tipo] || estilos.exito
+  const { bg, color, borde, icono: Icono } = estilos[tipo] || estilos.exito
 
   return (
     <div style={{
@@ -35,16 +36,17 @@ export default function Toast({ mensaje, tipo = 'exito', onCerrar }) {
         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         minWidth: '280px', maxWidth: '400px'
       }}>
-        <span style={{ fontSize: '20px' }}>{icono}</span>
+        <Icono size={20} />
         <span style={{ fontSize: '14px', fontWeight: 600, color, flex: 1 }}>
           {mensaje}
         </span>
         <button onClick={onCerrar}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color, fontSize: '18px', lineHeight: 1, opacity: 0.7
+            color, fontSize: '18px', lineHeight: 1, opacity: 0.7,
+            padding: 4, display: 'flex',
           }}>
-          ✕
+          <XCircle size={16} />
         </button>
       </div>
     </div>

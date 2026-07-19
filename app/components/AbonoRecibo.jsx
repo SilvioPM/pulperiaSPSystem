@@ -1,5 +1,6 @@
 'use client'
 import { forwardRef } from 'react'
+import * as Icons from 'lucide-react'
 
 const AbonoRecibo = forwardRef(({ config, tipo, numero, entidad, montoOriginal, abonoMonto, saldoPendiente, nota }, ref) => {
 
@@ -40,8 +41,8 @@ const AbonoRecibo = forwardRef(({ config, tipo, numero, entidad, montoOriginal, 
             {config?.nombre || 'Mi Pulpería'}
           </div>
           {config?.slogan && <div style={{ fontSize: '11px', fontStyle: 'italic' }}>{config.slogan}</div>}
-          {config?.direccion && <div style={{ fontSize: '11px' }}>📍 {config.direccion}</div>}
-          {config?.telefono && <div style={{ fontSize: '11px' }}>📞 {config.telefono}</div>}
+          {config?.direccion && <div style={{ fontSize: '11px' }}><Icons.MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.direccion}</div>}
+          {config?.telefono && <div style={{ fontSize: '11px' }}><Icons.Phone size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.telefono}</div>}
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '8px' }}>
@@ -90,11 +91,10 @@ const AbonoRecibo = forwardRef(({ config, tipo, numero, entidad, montoOriginal, 
 
         <div style={{ textAlign: 'center', fontSize: '11px' }}>
           {config?.mensajePie || '¡Gracias!'}
-          {config?.ciudad && <div style={{ marginTop: '4px' }}>📍 {config.ciudad}</div>}
-          <div style={{ marginTop: '8px', fontSize: '10px', color: '#666' }}>
-            — Vuelva pronto —
-          </div>
+          {config?.ciudad && <div style={{ marginTop: '4px' }}><Icons.MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.ciudad}</div>}
         </div>
+        <div style={{ borderTop: '1px dashed #ccc', margin: '12px 0 8px' }} />
+        <div style={{ height: '30px' }} />
       </div>
     </div>
   )

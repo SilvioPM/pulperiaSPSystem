@@ -1,5 +1,6 @@
 'use client'
 import { forwardRef } from 'react'
+import * as Icons from 'lucide-react'
 
 // forwardRef permite que react-to-print acceda a este componente
 const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
@@ -14,11 +15,12 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
   return (
     <div ref={ref} style={{
       width: '80mm',
-      padding: '4mm',
+      padding: '3mm',
       fontFamily: 'monospace',
-      fontSize: '12px',
+      fontSize: '11px',
       color: '#000',
       background: '#fff',
+      boxSizing: 'border-box',
     }}>
 
       {/* ── Estilos solo para impresión ── */}
@@ -28,15 +30,21 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
             size: 80mm auto;
             margin: 0;
           }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto;
+          }
           body * { visibility: hidden; }
           .recibo-print, .recibo-print * { visibility: visible; }
           .recibo-print {
             position: absolute;
             left: 0; top: 0;
-            width: 80mm;
+            width: 74mm;
+            padding: 3mm;
           }
         }
-      `}</style>
+      `}      </style>
 
       <div className="recibo-print">
         {/* Cabecera del negocio */}
@@ -60,10 +68,10 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
             <div style={{ fontSize: '11px', fontStyle: 'italic' }}>{config.slogan}</div>
           )}
           {config?.direccion && (
-            <div style={{ fontSize: '11px' }}>📍 {config.direccion}</div>
+            <div style={{ fontSize: '11px' }}><Icons.MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.direccion}</div>
           )}
           {config?.telefono && (
-            <div style={{ fontSize: '11px' }}>📞 {config.telefono}</div>
+            <div style={{ fontSize: '11px' }}><Icons.Phone size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.telefono}</div>
           )}
           {config?.ruc && (
             <div style={{ fontSize: '11px' }}>RUC: {config.ruc}</div>
@@ -137,12 +145,16 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
               return (
                 <div style={{ borderTop: '1px dashed #000', paddingTop: '4px', marginTop: '4px' }}>
                   <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>Pagos:</div>
-                  {dp.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                      <span style={{ textTransform: 'capitalize' }}>{p.metodo}{p.moneda === '$' ? ' (USD)' : ''}</span>
-                      <span>{p.moneda === '$' ? '$' : 'C$'} {parseFloat(p.monto).toFixed(2)}</span>
-                    </div>
-                  ))}
+                  {dp.map((p, i) => {
+                    const tasa = parseFloat(config?.tasaCambio || 0) || 0
+                    const enCordobas = p.metodo === 'dolares' && tasa > 0 ? parseFloat(p.monto || 0) * tasa : null
+                    return (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                        <span style={{ textTransform: 'capitalize' }}>{p.metodo === 'efectivo' ? 'Efectivo' : p.metodo === 'dolares' ? 'Dólares' : p.metodo}</span>
+                        <span>{enCordobas !== null ? `C$ ${enCordobas.toFixed(2)}` : `C$ ${parseFloat(p.monto || 0).toFixed(2)}`}</span>
+                      </div>
+                    )
+                  })}
                 </div>
               )
             }
@@ -181,12 +193,11 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
         <div style={{ textAlign: 'center', fontSize: '11px' }}>
           {config?.mensajePie || '¡Gracias por su compra!'}
           {config?.ciudad && (
-            <div style={{ marginTop: '4px' }}>📍 {config.ciudad}</div>
+            <div style={{ marginTop: '4px' }}><Icons.MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.ciudad}</div>
           )}
-          <div style={{ marginTop: '8px', fontSize: '10px', color: '#666' }}>
-            — Vuelva pronto —
-          </div>
         </div>
+        <div style={{ borderTop: '1px dashed #ccc', margin: '12px 0 8px' }} />
+        <div style={{ height: '30px' }} />
       </div>
     </div>
   )

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
 import { auditar } from '@/lib/auditarClient'
+import * as Icons from 'lucide-react'
 
 const LISTA_MODULOS = [
   { id: 'inicio', label: 'Inicio (Dashboard)' },
@@ -93,7 +94,7 @@ export default function UsuariosPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h1 style={{ margin: 0 }}>Usuarios</h1>
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}><Icons.User size={24} /> Usuarios</h1>
         <button onClick={() => { resetForm(); setShowForm(!showForm) }}
           style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
           {showForm ? 'Cancelar' : 'Nuevo Usuario'}

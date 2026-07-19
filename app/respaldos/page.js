@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
+import * as Icons from 'lucide-react'
 
 export default function RespaldosPage() {
   const [cargando, setCargando] = useState(false)
@@ -71,8 +72,8 @@ export default function RespaldosPage() {
 
   return (
     <div style={{ maxWidth: 500, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24, color: '#1e293b' }}>
-        💾 Respaldos
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Icons.Save size={24} /> Respaldos
       </h1>
 
       {mensaje && (
@@ -105,7 +106,7 @@ export default function RespaldosPage() {
             background: cargando ? '#94a3b8' : '#16a34a',
             color: '#fff', fontSize: 14, fontWeight: 600, cursor: cargando ? 'not-allowed' : 'pointer'
           }}>
-          {cargando ? 'Descargando...' : '📥 Descargar respaldo'}
+          {cargando ? 'Descargando...' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Download size={16} /> Descargar respaldo</span>}
         </button>
       </div>
 
@@ -129,7 +130,7 @@ export default function RespaldosPage() {
               background: restaurando ? '#94a3b8' : '#dc2626',
               color: '#fff', fontSize: 14, fontWeight: 600, cursor: restaurando ? 'not-allowed' : 'pointer'
             }}>
-            {restaurando ? 'Restaurando...' : '📤 Restaurar respaldo'}
+            {restaurando ? 'Restaurando...' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Upload size={16} /> Restaurar respaldo</span>}
           </button>
         </form>
       </div>

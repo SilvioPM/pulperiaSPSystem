@@ -8,6 +8,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [recordar, setRecordar] = useState(true)
+  const [verPassword, setVerPassword] = useState(false)
   const { user, login } = useAuth()
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export default function LoginPage() {
     setError('')
     setCargando(true)
     try {
-      const data = await login(username, password)
+      const data = await login(username, password, recordar)
       auditar(data.nombre || data.username, 'login', 'sesion', 'Inicio de sesión exitoso')
       window.location.replace(data.esAdmin ? '/' : '/pos')
       return
@@ -148,18 +150,39 @@ export default function LoginPage() {
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0110 0v4" />
             </svg>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+            <input type={verPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
               placeholder="Ingresá tu contraseña"
               style={{
-                width: '100%', padding: '12px 12px 12px 40px', borderRadius: '10px',
+                width: '100%', padding: '12px 40px 12px 40px', borderRadius: '10px',
                 border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(15,23,42,0.6)',
                 color: '#e2e8f0', fontSize: '14px', outline: 'none',
                 transition: 'all 0.2s'
               }}
               onFocus={e => { e.target.style.borderColor = '#16a34a'; e.target.style.background = 'rgba(15,23,42,0.8)' }}
               onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.background = 'rgba(15,23,42,0.6)' }} />
+            <button type="button" onClick={() => setVerPassword(!verPassword)}
+              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px', display: 'flex', alignItems: 'center' }}>
+              {verPassword ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', cursor: 'pointer', color: '#94a3b8', fontSize: '13px' }}>
+          <input type="checkbox" checked={recordar} onChange={e => setRecordar(e.target.checked)}
+            style={{ width: '16px', height: '16px', accentColor: '#16a34a', cursor: 'pointer' }} />
+          Recordarme
+        </label>
 
         <button type="submit" disabled={cargando}
           style={{

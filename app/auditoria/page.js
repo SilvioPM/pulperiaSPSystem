@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AuthGuard from '@/app/components/AuthGuard'
+import * as Icons from 'lucide-react'
 
 const ACCIONES = ['', 'crear', 'editar', 'anular', 'eliminar', 'login', 'logout']
 const ENTIDADES = ['', 'producto', 'usuario', 'factura', 'config', 'cliente', 'compra', 'proforma']
@@ -63,8 +64,8 @@ export default function AuditoriaPage() {
   return (
     <AuthGuard modulos={['configuracion']}>
       <div style={{ padding: '24px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1e293b', marginBottom: '24px' }}>
-          Auditoría del Sistema
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1e293b', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Icons.ClipboardList size={24} /> Auditoría del Sistema
         </h1>
 
         <div style={{

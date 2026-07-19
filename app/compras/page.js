@@ -4,6 +4,7 @@ import { useReactToPrint } from 'react-to-print'
 import Toast from '../components/Toast'
 import AbonoRecibo from '../components/AbonoRecibo'
 import { useToast } from '../hooks/useToast'
+import * as Icons from 'lucide-react'
 
 export default function Compras() {
   const [compras, setCompras]         = useState([])
@@ -13,13 +14,17 @@ export default function Compras() {
   const [compraVer, setCompraVer]     = useState(null)
   const [mostrarAbono, setMostrarAbono] = useState(false)
   const [formAbono, setFormAbono]     = useState({ monto: '', nota: '' })
+  const [mostrarAnular, setMostrarAnular] = useState(false)
+  const [compraAnular, setCompraAnular] = useState(null)
+  const [formAnular, setFormAnular] = useState({ username: '', password: '' })
   const [carrito, setCarrito]         = useState([])
   const [filtro, setFiltro]           = useState('todas')
   const [form, setForm] = useState({
-    proveedorId: '', esCredito: false, fechaVencimiento: '', nota: ''
+    proveedorId: '', facturaProveedor: '', esCredito: false, fechaVencimiento: '', nota: ''
   })
   const { toast, mostrar, cerrar } = useToast()
   const [buscarProducto, setBuscarProducto]   = useState('')
+  const [buscarFactura, setBuscarFactura]     = useState('')
   const [mostrarNuevoProd, setMostrarNuevoProd] = useState(false)
   const [categorias, setCategorias]           = useState([])
   const [formProd, setFormProd] = useState({
@@ -93,7 +98,8 @@ async function crearProductoRapido(e) {
         unidad:     producto.unidadCompra || producto.unidadBase || 'unidad',
         cantidad:   1,
         costo:      producto.costo || 0,
-        subtotal:   producto.costo || 0
+        subtotal:   producto.costo || 0,
+        fechaVencimiento: ''
       }]
     })
   }
@@ -101,6 +107,7 @@ async function crearProductoRapido(e) {
   function actualizarDetalle(productoId, campo, valor) {
     setCarrito(prev => prev.map(i => {
       if (i.productoId !== productoId) return i
+      if (campo === 'fechaVencimiento') return { ...i, fechaVencimiento: valor }
       const actualizado = { ...i, [campo]: parseFloat(valor) || 0 }
       actualizado.subtotal = actualizado.cantidad * actualizado.costo
       return actualizado
@@ -172,7 +179,7 @@ async function crearProductoRapido(e) {
     filtro === 'todas'   ? true :
     filtro === 'credito' ? c.esCredito && c.saldoPendiente > 0 :
     filtro === 'pagadas' ? !c.esCredito || c.saldoPendiente <= 0 : true
-  )
+  ).filter(c => !buscarFactura || (c.facturaProveedor || '').toLowerCase().includes(buscarFactura.toLowerCase()))
 
   const totalPendiente = compras.filter(c => c.esCredito).reduce((sum, c) => sum + c.saldoPendiente, 0)
 
@@ -182,7 +189,7 @@ async function crearProductoRapido(e) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>🛒 Compras</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}><Icons.ShoppingCart size={24} /> Compras</h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>Registro de compras a proveedores</p>
         </div>
         <button className="btn-verde" onClick={() => setMostrarForm(true)}>+ Nueva Compra</button>
@@ -209,7 +216,7 @@ async function crearProductoRapido(e) {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
         {[
-          { key: 'todas',   label: `📋 Todas (${compras.length})`                                      },
+          { key: 'todas',   label: <><Icons.ClipboardList size={16} /> Todas ({compras.length})</> },
           { key: 'credito', label: `⏳ Pendientes (${compras.filter(c => c.esCredito && c.saldoPendiente > 0).length})` },
           { key: 'pagadas', label: `✅ Pagadas`                                                          },
         ].map(t => (
@@ -226,23 +233,43 @@ async function crearProductoRapido(e) {
         ))}
       </div>
 
+      {/* Buscar por factura proveedor */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <Icons.Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          <input type="text" placeholder="Buscar por # factura del proveedor..." value={buscarFactura}
+            onChange={e => setBuscarFactura(e.target.value)}
+            style={{ width: '100%', padding: '10px 14px 10px 36px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }} />
+          {buscarFactura && <button onClick={() => setBuscarFactura('')}
+            style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '16px' }}>✕</button>}
+        </div>
+      </div>
+
       {/* Tabla */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['# Compra', 'Fecha', 'Proveedor', 'Total', 'Pendiente', 'Tipo', 'Acciones'].map(h => (
+              {['# Compra', 'Factura Prov.', 'Fecha', 'Proveedor', 'Total', 'Pendiente', 'Tipo', 'Acciones'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {comprasFiltradas.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No hay compras</td></tr>
+              <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No hay compras</td></tr>
             ) : (
               comprasFiltradas.map((c, i) => (
                 <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563eb' }}>{c.numero}</td>
+                  <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563eb' }}>
+                    {c.numero}
+                    {c.estado === 'anulada' && (
+                      <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: '#fee2e2', color: '#dc2626', fontSize: '11px', fontWeight: 700 }}>ANULADA</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
+                    {c.facturaProveedor || '—'}
+                  </td>
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                     {new Date(c.creadoEn).toLocaleDateString('es-NI')}
                   </td>
@@ -255,21 +282,28 @@ async function crearProductoRapido(e) {
                     <span style={{
                       padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
                       background: c.esCredito ? '#fee2e2' : '#dcfce7',
-                      color: c.esCredito ? '#dc2626' : '#16a34a'
+                      color: c.esCredito ? '#dc2626' : '#16a34a',
+                      display: 'inline-flex', alignItems: 'center', gap: 4
                     }}>
-                      {c.esCredito ? '📋 Crédito' : '💵 Contado'}
+                      {c.esCredito ? <><Icons.ClipboardList size={14} /> Crédito</> : <><Icons.DollarSign size={14} /> Contado</>}
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button onClick={() => setCompraVer(c)}
                         style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '13px' }}>
-                        👁️
+                        <Icons.Eye size={16} />
                       </button>
-                      {c.saldoPendiente > 0 && (
+                      {c.saldoPendiente > 0 && c.estado !== 'anulada' && (
                         <button onClick={() => { setCompraVer(c); setMostrarAbono(true) }}
                           style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                          💰 Abonar
+                          <Icons.DollarSign size={16} /> Abonar
+                        </button>
+                      )}
+                      {c.estado !== 'anulada' && (
+                        <button onClick={() => { setCompraAnular(c); setMostrarAnular(true) }}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
+                          <Icons.Ban size={16} />
                         </button>
                       )}
                     </div>
@@ -289,7 +323,7 @@ async function crearProductoRapido(e) {
             {/* Panel izquierdo — productos */}
 <div style={{ flex: 1 }}>
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-    <h3 style={{ fontWeight: 700 }}>📦 Productos</h3>
+    <h3 style={{ fontWeight: 700 }}><Icons.Package size={16} /> Productos</h3>
     <button onClick={() => setMostrarNuevoProd(true)}
       style={{
         padding: '6px 12px', borderRadius: '8px', border: 'none',
@@ -300,7 +334,7 @@ async function crearProductoRapido(e) {
     </button>
   </div>
 
-  <input type="text" placeholder="🔍 Buscar producto..."
+  <input type="text" placeholder="Buscar producto..."
     value={buscarProducto}
     onChange={e => setBuscarProducto(e.target.value)}
     style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px', outline: 'none' }}
@@ -356,7 +390,7 @@ async function crearProductoRapido(e) {
             {/* Detalle */}
             <div style={{ width: '360px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <h3 style={{ fontWeight: 700 }}>🛒 Detalle de compra</h3>
+                <h3 style={{ fontWeight: 700 }}><Icons.ShoppingCart size={16} /> Detalle de compra</h3>
                 <button onClick={() => { setMostrarForm(false); setCarrito([]) }}
                   style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
               </div>
@@ -371,6 +405,14 @@ async function crearProductoRapido(e) {
                 </select>
               </div>
 
+              {/* Factura del proveedor */}
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>N° Factura del proveedor</label>
+                <input value={form.facturaProveedor} onChange={e => setForm({...form, facturaProveedor: e.target.value})}
+                  placeholder="Ej: F001-001234..."
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }} />
+              </div>
+
               {/* Tipo de pago */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => setForm({...form, esCredito: false})}
@@ -381,7 +423,7 @@ async function crearProductoRapido(e) {
                     color: !form.esCredito ? '#16a34a' : '#64748b',
                     cursor: 'pointer', fontWeight: 700
                   }}>
-                  💵 Contado
+                  <Icons.DollarSign size={14} /> Contado
                 </button>
                 <button onClick={() => setForm({...form, esCredito: true})}
                   style={{
@@ -391,7 +433,7 @@ async function crearProductoRapido(e) {
                     color: form.esCredito ? '#dc2626' : '#64748b',
                     cursor: 'pointer', fontWeight: 700
                   }}>
-                  📋 Crédito
+                  <Icons.ClipboardList size={14} /> Crédito
                 </button>
               </div>
 
@@ -433,6 +475,13 @@ async function crearProductoRapido(e) {
                           />
                         </div>
                       </div>
+                      <div style={{ marginTop: '6px' }}>
+                        <label style={{ fontSize: '11px', color: '#64748b' }}>Fecha de vencimiento <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcional)</span></label>
+                        <input type="date" value={item.fechaVencimiento || ''}
+                          onChange={e => actualizarDetalle(item.productoId, 'fechaVencimiento', e.target.value)}
+                          style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                        />
+                      </div>
                       <div style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, marginTop: '4px', color: '#16a34a' }}>
                         C$ {item.subtotal.toFixed(2)}
                       </div>
@@ -451,13 +500,13 @@ async function crearProductoRapido(e) {
 
               {/* Nota */}
               <input value={form.nota} onChange={e => setForm({...form, nota: e.target.value})}
-                placeholder="📝 Nota (opcional)"
+                placeholder="Nota (opcional)"
                 style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
               />
 
               <button onClick={guardarCompra}
                 className="btn-verde" style={{ padding: '14px', fontSize: '15px' }}>
-                💾 Registrar Compra
+                <Icons.Save size={16} /> Registrar Compra
               </button>
             </div>
 
@@ -467,7 +516,7 @@ async function crearProductoRapido(e) {
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
               }}>
-                <div className="card" style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card" style={{ width: '90vw', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <h2 style={{ fontSize: '18px', fontWeight: 700 }}>➕ Nuevo Producto</h2>
                     <button onClick={() => setMostrarNuevoProd(false)}
@@ -556,7 +605,7 @@ async function crearProductoRapido(e) {
                       background: '#dbeafe', borderRadius: '8px', padding: '10px',
                       fontSize: '13px', color: '#2563eb', marginBottom: '16px'
                     }}>
-                      💡 El stock inicial será 0. Se actualizará cuando registres la compra.
+                      <Icons.Lightbulb size={14} /> El stock inicial será 0. Se actualizará cuando registres la compra.
                     </div>
 
                     <div style={{ display: 'flex', gap: '12px' }}>
@@ -565,7 +614,7 @@ async function crearProductoRapido(e) {
                         Cancelar
                       </button>
                       <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                        💾 Crear y agregar a compra
+                        <Icons.Save size={16} /> Crear y agregar a compra
                       </button>
                     </div>
                   </form>
@@ -583,13 +632,14 @@ async function crearProductoRapido(e) {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700 }}>{compraVer.numero}</h2>
               <button onClick={() => setCompraVer(null)}
-                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', fontSize: '16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
 
             <div style={{ marginBottom: '16px', fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div><strong>Proveedor:</strong> {compraVer.proveedor?.nombre}</div>
               <div><strong>Fecha:</strong> {new Date(compraVer.creadoEn).toLocaleDateString('es-NI')}</div>
-              <div><strong>Tipo:</strong> {compraVer.esCredito ? '📋 Crédito' : '💵 Contado'}</div>
+              {compraVer.facturaProveedor && <div><strong>Factura proveedor:</strong> {compraVer.facturaProveedor}</div>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><strong>Tipo:</strong> {compraVer.esCredito ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.ClipboardList size={14} /> Crédito</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.DollarSign size={14} /> Contado</span>}</div>
               {compraVer.nota && <div><strong>Nota:</strong> {compraVer.nota}</div>}
             </div>
 
@@ -638,10 +688,16 @@ async function crearProductoRapido(e) {
             )}
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              {compraVer.saldoPendiente > 0 && (
+              {compraVer.saldoPendiente > 0 && compraVer.estado !== 'anulada' && (
                 <button onClick={() => setMostrarAbono(true)}
                   className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  💰 Registrar Abono
+                  <Icons.DollarSign size={16} /> Registrar Abono
+                </button>
+              )}
+              {compraVer.estado !== 'anulada' && (
+                <button onClick={() => { setCompraAnular(compraVer); setMostrarAnular(true) }}
+                  style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #fee2e2', background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626', fontWeight: 600 }}>
+                  <Icons.Ban size={16} /> Anular
                 </button>
               )}
               <button onClick={() => setCompraVer(null)}
@@ -658,7 +714,7 @@ async function crearProductoRapido(e) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div className="card" style={{ width: '400px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>💰 Abonar a {compraVer.numero}</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}><Icons.DollarSign size={16} /> Abonar a {compraVer.numero}</h2>
               <button onClick={() => { setMostrarAbono(false); setFormAbono({ monto: '', nota: '' }) }}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
@@ -695,7 +751,72 @@ async function crearProductoRapido(e) {
                   Cancelar
                 </button>
                 <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  💰 Registrar Abono
+                  <Icons.DollarSign size={16} /> Registrar Abono
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal anular compra */}
+      {mostrarAnular && compraAnular && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div className="card" style={{ width: '420px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#dc2626' }}><Icons.Ban size={16} /> Anular Compra</h2>
+              <button onClick={() => { setMostrarAnular(false); setFormAnular({ username: '', password: '' }) }}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+            </div>
+
+            <div style={{ background: '#fef2f2', borderRadius: '10px', padding: '14px', marginBottom: '20px', fontSize: '13px', color: '#991b1b' }}>
+              ⚠️ Vas a anular <strong>{compraAnular.numero}</strong> por <strong>C$ {compraAnular.total.toFixed(2)}</strong>.
+              El stock se descontará automáticamente. Esta acción requiere autorización.
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              try {
+                const res = await fetch(`/api/compras/${compraAnular.id}/anular`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(formAnular)
+                })
+                const data = await res.json()
+                if (res.ok) {
+                  mostrar('Compra anulada exitosamente', 'exito')
+                  setMostrarAnular(false)
+                  setCompraAnular(null)
+                  setFormAnular({ username: '', password: '' })
+                  setCompraVer(null)
+                  cargarTodo()
+                } else {
+                  mostrar(data.error, 'error')
+                }
+              } catch { mostrar('Error al anular compra', 'error') }
+            }}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Usuario autorizador *</label>
+                <input required value={formAnular.username}
+                  onChange={e => setFormAnular({...formAnular, username: e.target.value})}
+                  placeholder="Admin o supervisor"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Contraseña *</label>
+                <input required type="password" value={formAnular.password}
+                  onChange={e => setFormAnular({...formAnular, password: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => { setMostrarAnular(false); setFormAnular({ username: '', password: '' }) }}
+                  style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                  Cancelar
+                </button>
+                <button type="submit" style={{ flex: 2, padding: '12px', borderRadius: '8px', border: 'none', background: '#dc2626', color: 'white', cursor: 'pointer', fontWeight: 700 }}>
+                  <Icons.Ban size={16} /> Anular Compra
                 </button>
               </div>
             </form>

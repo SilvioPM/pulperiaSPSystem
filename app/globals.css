@@ -95,7 +95,10 @@ input::placeholder {
   transition: all 0.2s;
 }
 
-.btn-verde:hover { background-color: #15803d; }
+@media (hover: hover) {
+  .btn-verde:hover { background-color: #15803d; }
+  .btn-rojo:hover { background-color: #b91c1c; }
+}
 
 .btn-rojo {
   background-color: var(--rojo);
@@ -125,6 +128,87 @@ th {
 
 td {
   color: var(--texto) !important;
+}
+
+/* ── Touch: active state (replaces sticky hover on touch) ── */
+@media (hover: none) and (pointer: coarse) {
+  .btn-verde:active { background-color: #15803d; }
+  .btn-rojo:active { background-color: #b91c1c; }
+  button:active, .touch-active:active { opacity: 0.7; }
+}
+
+/* ── Touch-friendly sizing ── */
+@media (pointer: coarse) {
+  button, .btn, [role="button"], .touch-btn {
+    min-height: 44px;
+  }
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  td, th {
+    padding: 12px 10px !important;
+  }
+  tbody tr {
+    min-height: 48px;
+  }
+}
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* ── Mobile: horizontal scroll for card grids and tables ── */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+  .scroll-x {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .card-grid {
+    overflow-x: auto !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 12px;
+    padding: 4px 8px;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  .card-grid > * {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+  }
+  table {
+    white-space: nowrap;
+  }
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pos-layout {
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 100vh;
+  }
+  .pos-layout > div:first-child {
+    flex: none !important;
+    height: 50vh !important;
+  }
+  .pos-layout > div:last-child {
+    flex: none !important;
+    height: 50vh !important;
+  }
+  .card {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  .card * {
+    max-width: 100%;
+  }
 }
 
 @media print {

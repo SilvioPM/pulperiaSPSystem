@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AuthGuard from '@/app/components/AuthGuard'
+import * as Icons from 'lucide-react'
 
 export default function LicenciaPage() {
   const [licencia, setLicencia] = useState(null)
@@ -59,8 +60,8 @@ export default function LicenciaPage() {
   return (
     <AuthGuard modulos={['configuracion']}>
       <div style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1e293b', marginBottom: '24px' }}>
-          Licencia del Sistema
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1e293b', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Icons.Key size={24} /> Licencia del Sistema
         </h1>
 
         {licencia?.valida ? (

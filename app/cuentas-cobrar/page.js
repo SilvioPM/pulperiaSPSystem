@@ -4,6 +4,7 @@ import { useReactToPrint } from 'react-to-print'
 import Toast from '../components/Toast'
 import AbonoRecibo from '../components/AbonoRecibo'
 import { useToast } from '../hooks/useToast'
+import * as Icons from 'lucide-react'
 
 export default function CuentasCobrar() {
   const [facturas, setFacturas]       = useState([])
@@ -27,11 +28,31 @@ export default function CuentasCobrar() {
 
   async function cargarFacturas() {
     try {
-      const res  = await fetch('/api/facturas')
-      const data = await res.json()
-      const facturasArr = Array.isArray(data) ? data : (data.data || [])
+      const [resFacturas, resClientes] = await Promise.all([
+        fetch('/api/facturas'),
+        fetch('/api/clientes')
+      ])
+      const dataFacturas = await resFacturas.json()
+      const dataClientes = await resClientes.json()
+      const facturasArr = Array.isArray(dataFacturas) ? dataFacturas : (dataFacturas.data || [])
       const creditos = facturasArr.filter(f => f.esCredito && f.estado !== 'anulada')
-      setFacturas(creditos)
+
+      const clientesArr = Array.isArray(dataClientes) ? dataClientes : (dataClientes.data || [])
+      const saldoInicialArr = clientesArr
+        .filter(c => (c.saldoInicial || 0) > (c.saldoInicialPagado || 0))
+        .map(c => ({
+          id: `saldo-${c.id}`,
+          tipo: 'saldo_inicial',
+          cliente: c,
+          numero: 'Saldo anterior',
+          total: c.saldoInicial || 0,
+          saldoPendiente: (c.saldoInicial || 0) - (c.saldoInicialPagado || 0),
+          abonos: [],
+          creadoEn: null,
+          esCredito: true
+        }))
+
+      setFacturas([...creditos, ...saldoInicialArr])
     } catch {
       setFacturas([])
     }
@@ -42,26 +63,29 @@ export default function CuentasCobrar() {
     if (!facturaSeleccionada) return
     setGuardando(true)
     try {
-      const res  = await fetch('/api/abonos', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          facturaId: facturaSeleccionada.id,
-          monto:     parseFloat(formAbono.monto),
-          nota:      formAbono.nota
-        })
-      })
+      const esSaldoInicial = facturaSeleccionada.tipo === 'saldo_inicial'
+      const monto = parseFloat(formAbono.monto)
+      const url = esSaldoInicial
+        ? `/api/clientes/${facturaSeleccionada.cliente.id}/abonar-inicial`
+        : '/api/abonos'
+      const body = esSaldoInicial
+        ? JSON.stringify({ monto, nota: formAbono.nota })
+        : JSON.stringify({ facturaId: facturaSeleccionada.id, monto, nota: formAbono.nota })
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
       const data = await res.json()
       if (!res.ok) {
         mostrar(data.error, 'error')
       } else {
+        const saldoPendiente = esSaldoInicial
+          ? 0
+          : data.nuevoSaldo
         setReciboAbono({
           tipo: 'cxc',
           numero: facturaSeleccionada.numero,
           entidad: facturaSeleccionada.cliente?.nombre || 'General',
           montoOriginal: facturaSeleccionada.total,
-          abonoMonto: parseFloat(formAbono.monto),
-          saldoPendiente: data.nuevoSaldo,
+          abonoMonto: monto,
+          saldoPendiente,
           nota: formAbono.nota
         })
         setMostrarAbono(false)
@@ -101,8 +125,8 @@ export default function CuentasCobrar() {
     <div>
       {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>
-          📋 Cuentas por Cobrar
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Icons.Wallet size={24} /> Cuentas por Cobrar
         </h1>
         <p style={{ color: '#64748b', fontSize: '14px' }}>
           Control de ventas al crédito y abonos
@@ -135,8 +159,8 @@ export default function CuentasCobrar() {
 
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
         {[
-          { key: 'pendientes', label: `📋 Pendientes (${pendientes.length})` },
-          { key: 'pagadas',    label: `✅ Saldadas (${pagadas.length})`      },
+          { key: 'pendientes', label: `Pendientes (${pendientes.length})` },
+          { key: 'pagadas',    label: `Saldadas (${pagadas.length})`      },
         ].map(t => (
           <button key={t.key} onClick={() => setFiltro(t.key)}
             style={{
@@ -147,12 +171,15 @@ export default function CuentasCobrar() {
               boxShadow: filtro === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               transition: 'all 0.2s'
             }}>
-            {t.label}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {t.key === 'pendientes' ? <Icons.ClipboardList size={16} /> : <Icons.CheckCircle size={16} />}
+              {t.label}
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
@@ -167,9 +194,9 @@ export default function CuentasCobrar() {
             {mostradas.length === 0 ? (
               <tr>
                 <td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '8px' }}>
-                    {filtro === 'pendientes' ? '🎉' : '📋'}
-                  </div>
+                    <div style={{ marginBottom: '8px' }}>
+                      {filtro === 'pendientes' ? <Icons.Star size={48} /> : <Icons.ClipboardList size={48} />}
+                    </div>
                   {filtro === 'pendientes'
                     ? '¡No hay deudas pendientes!'
                     : 'No hay créditos saldados aún'}
@@ -179,16 +206,18 @@ export default function CuentasCobrar() {
               mostradas.map((f, i) => {
                 const abonado = f.abonos?.reduce((sum, a) => sum + a.monto, 0) || 0
                 const refFecha = f.fechaVencimiento || f.creadoEn
-                const dias    = diasDeudor(refFecha)
+                const dias    = refFecha ? diasDeudor(refFecha) : 0
                 const urgente = dias > 30 && f.saldoPendiente > 0
+                const esSaldoInicial = f.tipo === 'saldo_inicial'
 
                 return (
                   <tr key={f.id} style={{
                     borderBottom: '1px solid #f1f5f9',
-                    background: urgente ? '#fff5f5' : i % 2 === 0 ? 'white' : '#fafafa'
+                    background: urgente ? '#fff5f5' : i % 2 === 0 ? 'white' : '#fafafa',
+                    opacity: esSaldoInicial ? 0.85 : 1
                   }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563eb', fontSize: '14px' }}>
-                      {f.numero}
+                    <td style={{ padding: '12px 16px', fontWeight: 700, color: esSaldoInicial ? '#ca8a04' : '#2563eb', fontSize: '14px' }}>
+                      {esSaldoInicial ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.ClipboardList size={14} /> Saldo anterior</span> : f.numero}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ fontWeight: 600, fontSize: '14px' }}>
@@ -196,17 +225,20 @@ export default function CuentasCobrar() {
                       </div>
                       {f.cliente?.telefono && (
                         <div style={{ fontSize: '12px', color: '#64748b' }}>
-                          📞 {f.cliente.telefono}
+                          <Icons.Phone size={14} /> {f.cliente.telefono}
                         </div>
                       )}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
-                      {formatearFecha(f.creadoEn)}
+                      {esSaldoInicial ? '—' : formatearFecha(f.creadoEn)}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '13px', color: f.fechaVencimiento ? '#64748b' : '#94a3b8' }}>
-                      {f.fechaVencimiento ? formatearFecha(f.fechaVencimiento) : '—'}
+                      {f.fechaVencimiento ? formatearFecha(f.fechaVencimiento) : esSaldoInicial ? '—' : '—'}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
+                      {esSaldoInicial ? (
+                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>—</span>
+                      ) : (
                       <span style={{
                         padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
                         background: dias > 30 ? '#fee2e2' : dias > 15 ? '#fef9c3' : '#dcfce7',
@@ -214,6 +246,7 @@ export default function CuentasCobrar() {
                       }}>
                         {dias} días
                       </span>
+                      )}
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 700 }}>
                       C$ {f.total.toFixed(2)}
@@ -239,7 +272,7 @@ export default function CuentasCobrar() {
                               background: '#16a34a', color: 'white',
                               cursor: 'pointer', fontSize: '13px', fontWeight: 600
                             }}>
-                            💰 Abonar
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.DollarSign size={16} /> Abonar</span>
                           </button>
                         )}
                         <button
@@ -249,7 +282,7 @@ export default function CuentasCobrar() {
                             border: '1px solid #e2e8f0', background: 'white',
                             cursor: 'pointer', fontSize: '13px'
                           }}>
-                          👁️
+                          <Icons.Eye size={16} />
                         </button>
                       </div>
                     </td>
@@ -268,7 +301,7 @@ export default function CuentasCobrar() {
         }}>
           <div className="card" style={{ width: '420px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>💰 Registrar Abono</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.DollarSign size={16} /> Registrar Abono</span></h2>
               <button onClick={() => { setMostrarAbono(false); setFormAbono({ monto: '', nota: '' }) }}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
@@ -281,8 +314,8 @@ export default function CuentasCobrar() {
                 <span style={{ fontWeight: 700 }}>{facturaSeleccionada.cliente?.nombre}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '13px', color: '#64748b' }}>Factura</span>
-                <span style={{ fontWeight: 700, color: '#2563eb' }}>{facturaSeleccionada.numero}</span>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>{facturaSeleccionada.tipo === 'saldo_inicial' ? 'Concepto' : 'Factura'}</span>
+                <span style={{ fontWeight: 700, color: facturaSeleccionada.tipo === 'saldo_inicial' ? '#ca8a04' : '#2563eb' }}>{facturaSeleccionada.numero}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', color: '#64748b' }}>Total original</span>
@@ -360,7 +393,7 @@ export default function CuentasCobrar() {
                 </button>
                 <button type="submit" disabled={guardando}
                   className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  {guardando ? '⏳ Guardando...' : '💰 Registrar Abono'}
+                  {guardando ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Loader size={16} /> Guardando...</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.DollarSign size={16} /> Registrar Abono</span>}
                 </button>
               </div>
             </form>
@@ -376,7 +409,7 @@ export default function CuentasCobrar() {
           <div className="card" style={{ width: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700 }}>
-                📋 {facturaSeleccionada.numero}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.ClipboardList size={16} /> {facturaSeleccionada.numero}</span>
               </h2>
               <button onClick={() => setFacturaSeleccionada(null)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
@@ -444,7 +477,7 @@ export default function CuentasCobrar() {
                 <button
                   onClick={() => setMostrarAbono(true)}
                   className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  💰 Registrar Abono
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.DollarSign size={16} /> Registrar Abono</span>
                 </button>
               )}
               <button onClick={() => setFacturaSeleccionada(null)}

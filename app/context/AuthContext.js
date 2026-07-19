@@ -4,21 +4,22 @@ import { createContext, useContext, useState, useEffect } from 'react'
 const AuthContext = createContext()
 
 const MODULOS = [
-  { id: 'inicio', label: '\uD83C\uDFE0 Inicio', path: '/' },
-  { id: 'pos', label: '\uD83D\uDED2 POS', path: '/pos' },
-  { id: 'facturas', label: '\uD83E\uDDFE Facturas', path: '/facturas' },
-  { id: 'compras', label: '\uD83D\uDCE6 Compras', path: '/compras' },
-  { id: 'productos', label: '\uD83C\uDFF7\uFE0F Productos', path: '/productos' },
-  { id: 'clientes', label: '\uD83D\uDC65 Clientes', path: '/clientes' },
-  { id: 'proveedores', label: '\uD83C\uDFE2 Proveedores', path: '/proveedores' },
-  { id: 'inventario', label: '\uD83D\uDCCB Inventario', path: '/inventario' },
-  { id: 'caja', label: '\uD83D\uDCB5 Caja', path: '/caja' },
-  { id: 'cuentas-cobrar', label: '\uD83D\uDCB0 CXC', path: '/cuentas-cobrar' },
-  { id: 'deudas', label: '\uD83D\uDCB8 CXP', path: '/deudas' },
-  { id: 'proformas', label: '\uD83D\uDCDD Proformas', path: '/proformas' },
-  { id: 'reportes', label: '\uD83D\uDCCA Reportes', path: '/reportes' },
-  { id: 'configuracion', label: '\u2699\uFE0F Configuración', path: '/configuracion' },
-  { id: 'usuarios', label: '\uD83D\uDC64 Usuarios', path: '/usuarios' },
+  { id: 'inicio', label: 'Inicio', path: '/', icono: 'Home' },
+  { id: 'pos', label: 'POS', path: '/pos', icono: 'ShoppingCart' },
+  { id: 'facturas', label: 'Facturas', path: '/facturas', icono: 'FileText' },
+  { id: 'compras', label: 'Compras', path: '/compras', icono: 'Package' },
+  { id: 'productos', label: 'Productos', path: '/productos', icono: 'Tags' },
+  { id: 'clientes', label: 'Clientes', path: '/clientes', icono: 'Users' },
+  { id: 'proveedores', label: 'Proveedores', path: '/proveedores', icono: 'Building2' },
+  { id: 'inventario', label: 'Inventario', path: '/inventario', icono: 'ClipboardList' },
+  { id: 'caja', label: 'Caja', path: '/caja', icono: 'DollarSign' },
+  { id: 'cuentas-cobrar', label: 'CXC', path: '/cuentas-cobrar', icono: 'Wallet' },
+  { id: 'deudas', label: 'CXP', path: '/deudas', icono: 'CreditCard' },
+  { id: 'proformas', label: 'Proformas', path: '/proformas', icono: 'FileEdit' },
+  { id: 'gastos', label: 'Gastos', path: '/gastos', icono: 'Wallet' },
+  { id: 'reportes', label: 'Reportes', path: '/reportes', icono: 'BarChart3' },
+  { id: 'configuracion', label: 'Configuración', path: '/configuracion', icono: 'Settings' },
+  { id: 'usuarios', label: 'Usuarios', path: '/usuarios', icono: 'User' },
 ]
 
 export function AuthProvider({ children }) {
@@ -64,11 +65,11 @@ export function AuthProvider({ children }) {
     }
   }, [user])
 
-  async function login(username, password) {
+  async function login(username, password, recordar = true) {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, recordar }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión')

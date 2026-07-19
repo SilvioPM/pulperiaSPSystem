@@ -15,7 +15,7 @@ export async function GET(req) {
     const hasta = searchParams.get('hasta')
 
     const where = {}
-    if (usuario) where.usuario = { contains: usuario }
+    if (usuario) where.usuario = { contains: usuario, mode: 'insensitive' }
     if (accion) where.accion = accion
     if (entidad) where.entidad = entidad
     if (desde || hasta) {

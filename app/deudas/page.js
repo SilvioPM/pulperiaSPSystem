@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import * as Icons from 'lucide-react'
 
 export default function Deudas() {
   const [compras, setCompras]       = useState([])
@@ -14,11 +15,32 @@ export default function Deudas() {
 
   async function cargarCompras() {
     try {
-      const res  = await fetch('/api/compras')
-      const data = await res.json()
-      const comprasArr = Array.isArray(data) ? data : (data.data || [])
-      const creditos = comprasArr.filter(f => f.esCredito)
-      setCompras(creditos)
+      const [resCompras, resProveedores] = await Promise.all([
+        fetch('/api/compras'),
+        fetch('/api/proveedores')
+      ])
+      const dataCompras = await resCompras.json()
+      const dataProv = await resProveedores.json()
+      const comprasArr = Array.isArray(dataCompras) ? dataCompras : (dataCompras.data || [])
+      const creditos = comprasArr.filter(f => f.esCredito && f.estado !== 'anulada')
+
+      const provArr = Array.isArray(dataProv) ? dataProv : []
+      const saldoInicialArr = provArr
+        .filter(p => (p.saldoInicialCxp || 0) > (p.saldoInicialCxpPagado || 0))
+        .map(p => ({
+          id: `saldo-${p.id}`,
+          tipo: 'saldo_inicial',
+          proveedor: p,
+          numero: 'Saldo anterior',
+          total: p.saldoInicialCxp || 0,
+          saldoPendiente: (p.saldoInicialCxp || 0) - (p.saldoInicialCxpPagado || 0),
+          abonos: [],
+          creadoEn: null,
+          esCredito: true,
+          fechaVencimiento: null
+        }))
+
+      setCompras([...creditos, ...saldoInicialArr])
     } catch {
       setCompras([])
     }
@@ -29,23 +51,31 @@ export default function Deudas() {
     if (!compraSeleccionada) return
     setGuardando(true)
     try {
-      const res  = await fetch('/api/abonos-compra', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          compraId: compraSeleccionada.id,
-          monto:     parseFloat(formAbono.monto),
-          nota:      formAbono.nota
+      const esSaldoInicial = compraSeleccionada.tipo === 'saldo_inicial'
+      const monto = parseFloat(formAbono.monto)
+      let res
+      if (esSaldoInicial) {
+        res = await fetch(`/api/proveedores/${compraSeleccionada.proveedor.id}/abonar-inicial`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ monto, nota: formAbono.nota })
         })
-      })
-      
+      } else {
+        res = await fetch('/api/abonos-compra', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ compraId: compraSeleccionada.id, monto, nota: formAbono.nota })
+        })
+      }
+
       if (res.ok) {
         setMostrarAbono(false)
         setFormAbono({ monto: '', nota: '' })
         setCompraSeleccionada(null)
         cargarCompras()
       } else {
-        alert('Error al registrar abono')
+        const data = await res.json()
+        alert(data.error || 'Error al registrar abono')
       }
     } catch {
       alert('Error de red al registrar abono')
@@ -71,8 +101,8 @@ export default function Deudas() {
     <div>
       {/* Encabezado */}
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>
-          🏭 Cuentas por Pagar (CXP)
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Icons.CreditCard size={24} /> Cuentas por Pagar (CXP)
         </h1>
         <p style={{ color: '#64748b', fontSize: '14px' }}>
           Deudas con proveedores y historial de pagos
@@ -93,8 +123,8 @@ export default function Deudas() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
         {[
-          { key: 'pendientes', label: `📋 Pendientes (${pendientes.length})` },
-          { key: 'pagadas',    label: `✅ Pagadas (${pagadas.length})`      },
+          { key: 'pendientes', label: `Pendientes (${pendientes.length})` },
+          { key: 'pagadas',    label: `Pagadas (${pagadas.length})`      },
         ].map(t => (
           <button key={t.key} onClick={() => setFiltro(t.key)}
             style={{
@@ -105,13 +135,16 @@ export default function Deudas() {
               boxShadow: filtro === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               transition: 'all 0.2s'
             }}>
-            {t.label}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {t.key === 'pendientes' ? <Icons.ClipboardList size={16} /> : <Icons.CheckCircle size={16} />}
+              {t.label}
+            </span>
           </button>
         ))}
       </div>
 
       {/* Lista de deudas */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
@@ -132,16 +165,21 @@ export default function Deudas() {
             ) : (
               mostradas.map((f, i) => {
                 const abonado = f.abonos?.reduce((sum, a) => sum + a.monto, 0) || 0
+                const esSaldoInicial = f.tipo === 'saldo_inicial'
                 return (
-                <tr key={f.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563eb', fontSize: '14px' }}>
-                    {f.numero}
+                <tr key={f.id} style={{
+                  borderBottom: '1px solid #f1f5f9',
+                  background: i % 2 === 0 ? 'white' : '#fafafa',
+                  opacity: esSaldoInicial ? 0.85 : 1
+                }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 700, color: esSaldoInicial ? '#ca8a04' : '#2563eb', fontSize: '14px' }}>
+                    {esSaldoInicial ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.ClipboardList size={14} /> Saldo anterior</span> : f.numero}
                   </td>
                   <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: '14px' }}>
                     {f.proveedor?.nombre}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
-                    {formatearFecha(f.creadoEn)}
+                    {esSaldoInicial ? '—' : formatearFecha(f.creadoEn)}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                     {f.fechaVencimiento ? formatearFecha(f.fechaVencimiento) : '—'}
@@ -166,7 +204,7 @@ export default function Deudas() {
                           background: '#16a34a', color: 'white',
                           cursor: 'pointer', fontSize: '13px', fontWeight: 600
                         }}>
-                        💸 Abonar
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.ArrowUpRight size={16} /> Abonar</span>
                       </button>
                     )}
                   </td>
@@ -186,7 +224,7 @@ export default function Deudas() {
         }}>
           <div className="card" style={{ width: '400px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>💸 Abonar a Proveedor</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.ArrowUpRight size={16} /> Abonar a Proveedor</span></h2>
               <button onClick={() => { setMostrarAbono(false); setFormAbono({ monto: '', nota: '' }) }}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
@@ -196,6 +234,12 @@ export default function Deudas() {
                 <span style={{ fontSize: '13px', color: '#64748b' }}>Proveedor: </span>
                 <span style={{ fontWeight: 700 }}>{compraSeleccionada.proveedor?.nombre}</span>
               </div>
+              {compraSeleccionada.tipo === 'saldo_inicial' && (
+                <div style={{ marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', color: '#64748b' }}>Concepto: </span>
+                  <span style={{ fontWeight: 700, color: '#ca8a04' }}>Saldo anterior</span>
+                </div>
+              )}
               <div>
                 <span style={{ fontSize: '13px', color: '#64748b' }}>Pendiente: </span>
                 <span style={{ fontWeight: 700, color: '#dc2626' }}>C$ {compraSeleccionada.saldoPendiente.toFixed(2)}</span>
@@ -240,7 +284,7 @@ export default function Deudas() {
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button type="button" onClick={() => setMostrarAbono(false)} style={{ flex: 1, padding: '12px', border: '1px solid #e2e8f0', background: 'white', borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={guardando} className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  {guardando ? '⏳ Guardando...' : '💰 Registrar Pago'}
+                  {guardando ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Loader size={16} /> Guardando...</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.DollarSign size={16} /> Registrar Pago</span>}
                 </button>
               </div>
             </form>

@@ -19,6 +19,10 @@ export async function GET(req) {
         where.creadoEn.lte = h
       }
     }
+    const buscarFactura = searchParams.get('factura')
+    if (buscarFactura) {
+      where.facturaProveedor = { contains: buscarFactura, mode: 'insensitive' }
+    }
 
     const [compras, total] = await Promise.all([
       prisma.compra.findMany({
@@ -61,8 +65,8 @@ export async function POST(request) {
       const creada = await tx.compra.create({
         data: {
           numero,
+          facturaProveedor: body.facturaProveedor || null,
           proveedorId: parseInt(body.proveedorId),
-          subtotal: parseFloat(body.subtotal),
           iva: parseFloat(body.iva || 0),
           total: parseFloat(body.total),
           esCredito,
@@ -102,9 +106,17 @@ export async function POST(request) {
             ? parseFloat(detalle.costo) / (producto.factorConversion || 1)
             : parseFloat(detalle.costo)
         }
-        // Si la unidad de compra coincide con unidadVenta2, actualizar costoVenta2
         if (producto.unidadVenta2 && detalle.unidad === producto.unidadVenta2) {
           updateData.costoVenta2 = parseFloat(detalle.costo)
+        }
+        if (producto.unidadVenta3 && detalle.unidad === producto.unidadVenta3) {
+          updateData.costoVenta3 = parseFloat(detalle.costo)
+        }
+        if (producto.unidadVenta4 && detalle.unidad === producto.unidadVenta4) {
+          updateData.costoVenta4 = parseFloat(detalle.costo)
+        }
+        if (detalle.fechaVencimiento) {
+          updateData.fechaVencimiento = new Date(detalle.fechaVencimiento)
         }
         await tx.producto.update({
           where: { id: parseInt(detalle.productoId) },

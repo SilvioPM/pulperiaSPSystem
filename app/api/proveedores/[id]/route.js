@@ -13,6 +13,7 @@ export async function PUT(request, { params }) {
         contacto:  body.contacto  || null,
         direccion: body.direccion || null,
         email:     body.email     || null,
+        ...(body.saldoInicialCxp !== undefined && { saldoInicialCxp: parseFloat(body.saldoInicialCxp || 0) })
       }
     })
     return NextResponse.json(proveedor)

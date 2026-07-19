@@ -1,0 +1,7 @@
+{
+  "port": 5123,
+  "printer": {
+    "type": "usb",
+    "interface": "USB001"
+  }
+}

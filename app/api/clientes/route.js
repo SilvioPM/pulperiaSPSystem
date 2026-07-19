@@ -8,14 +8,17 @@ export async function GET(request) {
     const page = Math.max(1, parseInt(searchParams.get('page') || 1))
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || 30)))
 
-    const where = buscar ? { nombre: { contains: buscar } } : {}
+    const where = buscar ? { nombre: { contains: buscar, mode: 'insensitive' } } : {}
 
     const [clientes, total] = await Promise.all([
       prisma.cliente.findMany({
         where,
         orderBy: { nombre: 'asc' },
         skip: (page - 1) * limit,
-        take: limit
+        take: limit,
+        include: {
+          _count: { select: { facturas: true } }
+        }
       }),
       prisma.cliente.count({ where })
     ])
@@ -40,7 +43,8 @@ export async function POST(request) {
         telefono: body.telefono || null,
         cedula: body.cedula || null,
         direccion: body.direccion || null,
-        limiteCredito: parseFloat(body.limiteCredito || 0)
+        limiteCredito: parseFloat(body.limiteCredito || 0),
+        saldoInicial: parseFloat(body.saldoInicial || 0)
       }
     })
     return NextResponse.json(cliente, { status: 201 })

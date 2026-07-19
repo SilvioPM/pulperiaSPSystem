@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
+import ImportarCSV from '../components/ImportarCSV'
+import * as Icons from 'lucide-react'
 
 export default function Clientes() {
   const [clientes, setClientes]       = useState([])
@@ -12,8 +14,9 @@ export default function Clientes() {
   const [totalClientes, setTotalClientes] = useState(0)
   const [cargando, setCargando] = useState(true)
   const [form, setForm] = useState({
-    nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: ''
+    nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: ''
   })
+  const [mostrarImportar, setMostrarImportar] = useState(false)
 
   useEffect(() => { cargarClientes(1).finally(() => setCargando(false)) }, [])
 
@@ -36,7 +39,7 @@ export default function Clientes() {
     })
     if (res.ok) {
       setMostrarForm(false)
-      setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '' })
+      setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' })
       cargarClientes(1)
     } else {
       alert('Error al guardar cliente')
@@ -65,19 +68,28 @@ export default function Clientes() {
       {/* Encabezado */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>👥 Clientes</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}><Icons.Users size={24} /> Clientes</h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>{totalClientes} clientes registrados</p>
         </div>
-        <button className="btn-verde" onClick={() => setMostrarForm(true)}>
-          + Nuevo Cliente
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => setMostrarImportar(true)}
+            style={{
+              padding: '10px 18px', borderRadius: '8px', border: '2px dashed #3b82f6',
+              background: '#eff6ff', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: '#2563eb'
+            }}>
+            <Icons.Download size={16} /> Importar CSV
+          </button>
+          <button className="btn-verde" onClick={() => setMostrarForm(true)}>
+            + Nuevo Cliente
+          </button>
+        </div>
       </div>
 
       {/* Buscador */}
       <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
         <input
           type="text"
-          placeholder="🔍 Buscar por nombre, teléfono o cédula..."
+          placeholder="Buscar por nombre, teléfono o cédula..."
           value={buscando}
           onChange={e => { setBuscando(e.target.value); if (e.target.value.length >= 2 || !e.target.value) cargarClientes(1) }}
           style={{
@@ -88,7 +100,7 @@ export default function Clientes() {
       </div>
 
       {/* Tabla de clientes */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
@@ -103,7 +115,7 @@ export default function Clientes() {
             {clientesFiltrados.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '8px' }}>👥</div>
+                  <div style={{ fontSize: '40px', marginBottom: '8px' }}><Icons.Users size={40} /></div>
                   No hay clientes aún. ¡Agregá el primero!
                 </td>
               </tr>
@@ -144,11 +156,11 @@ export default function Clientes() {
                           padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0',
                           background: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600
                         }}>
-                        🧾
+                        <Icons.FileText size={16} />
                       </button>
                       <button onClick={() => {
                       setClienteEditando(c)
-                      setForm({ nombre: c.nombre, telefono: c.telefono || '', cedula: c.cedula || '', direccion: c.direccion || '', limiteCredito: c.limiteCredito || '' })
+                      setForm({ nombre: c.nombre, telefono: c.telefono || '', cedula: c.cedula || '', direccion: c.direccion || '', limiteCredito: c.limiteCredito || '', saldoInicial: c.saldoInicial || '' })
                       }}
                         style={{
                           padding: '6px 10px', borderRadius: '6px', border: '1px solid #dbeafe',
@@ -187,7 +199,7 @@ export default function Clientes() {
         }}>
           <div className="card" style={{ width: '460px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>👤 Nuevo Cliente</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}><Icons.User size={16} /> Nuevo Cliente</h2>
               <button onClick={() => setMostrarForm(false)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
@@ -238,12 +250,22 @@ export default function Clientes() {
                 />
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Límite de Crédito (C$)
                 </label>
                 <input type="number" step="0.01" min="0" value={form.limiteCredito}
                   onChange={e => setForm({...form, limiteCredito: e.target.value})}
+                  placeholder="0.00"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Saldo inicial (C$) — <span style={{ fontWeight: 400 }}>adeudo anterior del cliente</span>
+                </label>
+                <input type="number" step="0.01" min="0" value={form.saldoInicial}
+                  onChange={e => setForm({...form, saldoInicial: e.target.value})}
                   placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
@@ -255,7 +277,7 @@ export default function Clientes() {
                   Cancelar
                 </button>
                 <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  💾 Guardar Cliente
+                  <Icons.Save size={16} /> Guardar Cliente
                 </button>
               </div>
             </form>
@@ -272,7 +294,7 @@ export default function Clientes() {
           <div className="card" style={{ width: '460px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700 }}>✏️ Editar Cliente</h2>
-              <button onClick={() => { setClienteEditando(null);                   setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '' }) }}
+              <button onClick={() => { setClienteEditando(null);                   setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' }) }}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
             <form onSubmit={async (e) => {
@@ -284,7 +306,7 @@ export default function Clientes() {
               })
               if (res.ok) {
                 setClienteEditando(null)
-                setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '' })
+                setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' })
                 cargarClientes(1)
               } else {
                 alert('Error al actualizar cliente')
@@ -320,7 +342,7 @@ export default function Clientes() {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
               </div>
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Límite de Crédito (C$)</label>
                 <input type="number" step="0.01" min="0" value={form.limiteCredito}
                   onChange={e => setForm({...form, limiteCredito: e.target.value})}
@@ -328,13 +350,23 @@ export default function Clientes() {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
               </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Saldo inicial (C$) — <span style={{ fontWeight: 400 }}>adeudo anterior del cliente</span>
+                </label>
+                <input type="number" step="0.01" min="0" value={form.saldoInicial}
+                  onChange={e => setForm({...form, saldoInicial: e.target.value})}
+                  placeholder="0.00"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => { setClienteEditando(null); setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '' }) }}
+                <button type="button" onClick={() => { setClienteEditando(null); setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' }) }}
                   style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
                   Cancelar
                 </button>
                 <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  💾 Guardar cambios
+                  <Icons.Save size={16} /> Guardar cambios
                 </button>
               </div>
             </form>
@@ -351,7 +383,7 @@ export default function Clientes() {
           <div className="card" style={{ width: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 700 }}>🧾 Historial de {clienteVer.nombre}</h2>
+                <h2 style={{ fontSize: '18px', fontWeight: 700 }}><Icons.FileText size={16} /> Historial de {clienteVer.nombre}</h2>
                 <p style={{ fontSize: '13px', color: '#64748b' }}>{clienteVer.facturas.length} compras realizadas</p>
               </div>
               <button onClick={() => setClienteVer(null)}
@@ -401,6 +433,23 @@ export default function Clientes() {
             </button>
           </div>
         </div>
+      )}
+
+      {mostrarImportar && (
+        <ImportarCSV
+          onCerrar={() => setMostrarImportar(false)}
+          onImportados={() => { setMostrarImportar(false); cargarClientes(1) }}
+          endpoint="/api/clientes/importar"
+          titulo="Importar Clientes desde CSV"
+          columnas={[
+            { clave: 'nombre', label: 'Nombre *' },
+            { clave: 'telefono', label: 'Teléfono' },
+            { clave: 'cedula', label: 'Cédula' },
+            { clave: 'direccion', label: 'Dirección' },
+            { clave: 'limiteCredito', label: 'Límite Crédito' },
+            { clave: 'saldoInicial', label: 'Saldo Inicial' },
+          ]}
+        />
       )}
     </div>
   )

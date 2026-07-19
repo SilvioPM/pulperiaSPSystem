@@ -1,5 +1,6 @@
 'use client'
 import { forwardRef } from 'react'
+import * as Icons from 'lucide-react'
 
 const ProformaRecibo = forwardRef(({ proforma, config }, ref) => {
   function formatearFecha(fecha) {
@@ -38,8 +39,8 @@ const ProformaRecibo = forwardRef(({ proforma, config }, ref) => {
             {config?.nombre || 'Mi Pulpería'}
           </div>
           {config?.slogan && <div style={{ fontSize: '11px', fontStyle: 'italic' }}>{config.slogan}</div>}
-          {config?.direccion && <div style={{ fontSize: '11px' }}>📍 {config.direccion}</div>}
-          {config?.telefono && <div style={{ fontSize: '11px' }}>📞 {config.telefono}</div>}
+          {config?.direccion && <div style={{ fontSize: '11px' }}><Icons.MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.direccion}</div>}
+          {config?.telefono && <div style={{ fontSize: '11px' }}><Icons.Phone size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.telefono}</div>}
           {config?.ruc && <div style={{ fontSize: '11px' }}>RUC: {config.ruc}</div>}
         </div>
         {/* Título PROFORMA */}

@@ -4,6 +4,9 @@ import { useAuth } from '@/app/context/AuthContext'
 import { auditar } from '@/lib/auditarClient'
 import Toast from '@/app/components/Toast'
 import { useToast } from '@/app/hooks/useToast'
+import StockAlerta from '@/app/components/StockAlerta'
+import BarcodeLabel, { PrintBarcodeLabel } from '@/app/components/BarcodeLabel'
+import * as Icons from 'lucide-react'
 
 export default function Productos() {
   const { puedeEditar, user } = useAuth()
@@ -13,6 +16,10 @@ export default function Productos() {
   const [tab, setTab]         = useState('productos')
   const [productos, setProductos]   = useState([])
   const [categorias, setCategorias] = useState([])
+  const [unidades, setUnidades] = useState([])
+  const [mostrarGestionUnidades, setMostrarGestionUnidades] = useState(false)
+  const [formUnidad, setFormUnidad] = useState({ nombre: '' })
+  const [editandoUnidad, setEditandoUnidad] = useState(null)
   const [mostrarFormProd, setMostrarFormProd] = useState(false)
   const [mostrarFormCat, setMostrarFormCat]   = useState(false)
   const [buscando, setBuscando]     = useState('')
@@ -20,23 +27,35 @@ export default function Productos() {
     nombre: '', codigo: '', precio: '', costo: '',
     stock: '', stockMinimo: '5', unidad: 'unidad',
     unidadVenta2: '', precioVenta2: '', costoVenta2: '', factorVenta2: '',
-    categoriaId: ''
+    unidadVenta3: '', precioVenta3: '', costoVenta3: '', factorVenta3: '',
+    unidadVenta4: '', precioVenta4: '', costoVenta4: '', factorVenta4: '',
+    categoriaId: '',
+    esGenerico: false,
+    precioMayor: '', cantidadMinimaMayor: '',
   })
   const [productoEditar, setProductoEditar] = useState(null)
+
   const [formCat, setFormCat]       = useState({ nombre: '' })
   const [mostrarImport, setMostrarImport] = useState(false)
   const [importando, setImportando]       = useState(false)
   const [resultImport, setResultImport]   = useState(null)
   const inputExcel                        = useRef(null) 
   const [cargando, setCargando]           = useState(true)
+  const [mostrarInactivos, setMostrarInactivos] = useState(false)
+
+  function generarCodigo(productosExistentes) {
+    const maxId = productosExistentes.reduce((m, p) => Math.max(m, p.id || 0), 0)
+    const sig = maxId + 1
+    return `PUL${String(sig).padStart(6, '0')}`
+  }
 
   useEffect(() => {
-    Promise.all([cargarProductos(), cargarCategorias()])
+    Promise.all([cargarProductos(), cargarCategorias(), cargarUnidades()])
       .finally(() => setCargando(false))
-  }, [])
+  }, [mostrarInactivos])
 
   async function cargarProductos() {
-    const res  = await fetch('/api/productos')
+    const res  = await fetch(`/api/productos?incluirInactivos=${mostrarInactivos}`)
     const data = await res.json()
     setProductos(data.data || data)
   }
@@ -45,6 +64,35 @@ export default function Productos() {
     const res  = await fetch('/api/categorias')
     const data = await res.json()
     setCategorias(data)
+  }
+
+  async function cargarUnidades() {
+    const res  = await fetch('/api/unidades-medida')
+    const data = await res.json()
+    setUnidades(data)
+  }
+
+  async function guardarUnidad(e) {
+    e.preventDefault()
+    const metodo = editandoUnidad ? 'PUT' : 'POST'
+    const body   = editandoUnidad ? { ...formUnidad, id: editandoUnidad.id } : formUnidad
+    const res = await fetch('/api/unidades-medida', {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    if (res.ok) {
+      setFormUnidad({ nombre: '' })
+      setEditandoUnidad(null)
+      setMostrarGestionUnidades(false)
+      cargarUnidades()
+    }
+  }
+
+  async function eliminarUnidad(id) {
+    if (!confirm('¿Desactivar esta unidad de medida?')) return
+    await fetch(`/api/unidades-medida?id=${id}`, { method: 'DELETE' })
+    cargarUnidades()
   }
 
   async function guardarProducto(e) {
@@ -59,7 +107,9 @@ export default function Productos() {
       setFormProd({ nombre: '', codigo: '', precio: '', costo: '',
                     stock: '', stockMinimo: '5', unidad: 'unidad',
                     unidadVenta2: '', precioVenta2: '', costoVenta2: '', factorVenta2: '',
-                    categoriaId: '' })
+                    unidadVenta3: '', precioVenta3: '', costoVenta3: '', factorVenta3: '',
+                    unidadVenta4: '', precioVenta4: '', costoVenta4: '', factorVenta4: '',
+                    categoriaId: '', esGenerico: false, precioMayor: '', cantidadMinimaMayor: '' })
       auditar(user?.username || user?.nombre, 'crear', 'producto', `Producto "${formProd.nombre}" creado`)
       cargarProductos()
     } else {
@@ -123,6 +173,10 @@ async function eliminarProducto(id) {
       const data = text ? JSON.parse(text) : {}
       if (!res.ok) {
         mostrar(data.error || 'Error al eliminar', 'error')
+      } else if (data.inactivado) {
+        mostrar(data.motivo || 'Producto marcado como inactivo (tiene movimientos)', 'exito')
+        auditar(user?.username || user?.nombre, 'inactivar', 'producto', `Producto ID ${id} marcado inactivo por tener movimientos`)
+        cargarProductos()
       } else {
         auditar(user?.username || user?.nombre, 'eliminar', 'producto', `Producto ID ${id} eliminado`)
         cargarProductos()
@@ -133,8 +187,8 @@ async function eliminarProducto(id) {
   }})
 }
 // Descargar plantilla Excel de ejemplo
-function descargarPlantilla() {
-  const XLSX = require('xlsx')
+async function descargarPlantilla() {
+  const XLSX = await import('xlsx')
   const datos = [
     {
       Nombre: 'Arroz Diana 1lb',
@@ -148,7 +202,18 @@ function descargarPlantilla() {
       UnidadVenta2: 'quintal',
       PrecioVenta2: 2800,
       CostoVenta2: 2200,
-      FactorVenta2: 100
+      FactorVenta2: 100,
+      UnidadVenta3: 'docena',
+      PrecioVenta3: 336,
+      CostoVenta3: 264,
+      FactorVenta3: 12,
+      UnidadVenta4: 'caja',
+      PrecioVenta4: 560,
+      CostoVenta4: 440,
+      FactorVenta4: 20,
+      PrecioMayor: 26,
+      CantidadMinimaMayor: 12,
+      FechaVencimiento: '2026-12-31'
     },
     {
       Nombre: 'Coca Cola 500ml',
@@ -158,7 +223,13 @@ function descargarPlantilla() {
       Stock: 24,
       StockMinimo: 6,
       Unidad: 'unidad',
-      Categoria: 'Bebidas'
+      Categoria: 'Bebidas',
+      UnidadVenta2: 'caja',
+      PrecioVenta2: 288,
+      CostoVenta2: 200,
+      FactorVenta2: 12,
+      PrecioMayor: 22,
+      CantidadMinimaMayor: 24
     },
     {
       Nombre: 'Chiverías surtidas',
@@ -260,8 +331,8 @@ async function importarExcel(e) {
       {/* Encabezado */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>
-            {tab === 'productos' ? '📦 Productos' : '🏷️ Categorías'}
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {tab === 'productos' ? <><Icons.Package size={24} /> Productos</> : <><Icons.Tags size={24} /> Categorías</>}
           </h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>
             {tab === 'productos'
@@ -269,7 +340,8 @@ async function importarExcel(e) {
               : `${categorias.length} categorías registradas`}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <StockAlerta />
                 {tab === 'productos' && editable && (
                 <>
             <input
@@ -286,7 +358,7 @@ async function importarExcel(e) {
                     border: '1px solid #e2e8f0', background: 'white',
                     cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#475569'
                 }}>
-                📥 Plantilla Excel
+                <Icons.Download size={16} /> Plantilla Excel
             </button>
             <button
                 onClick={() => inputExcel.current.click()}
@@ -296,7 +368,7 @@ async function importarExcel(e) {
                     border: '1px solid #2563eb', background: '#dbeafe',
                     cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#2563eb'
                 }}>
-                {importando ? '⏳ Importando...' : '📤 Importar Excel'}
+                {importando ? <><Icons.Loader size={16} /> Importando...</> : <><Icons.Upload size={16} /> Importar Excel</>}
             </button>
         </>
     )}
@@ -312,8 +384,8 @@ async function importarExcel(e) {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
         {[
-          { key: 'productos',  label: '📦 Productos'  },
-          { key: 'categorias', label: '🏷️ Categorías' },
+          { key: 'productos',  label: <><Icons.Package size={16} /> Productos</>  },
+          { key: 'categorias', label: <><Icons.Tags size={16} /> Categorías</> },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             style={{
@@ -374,18 +446,29 @@ async function importarExcel(e) {
 )}
 
           <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
-            <input type="text"
-              placeholder="🔍 Buscar producto..."
-              value={buscando}
-              onChange={e => setBuscando(e.target.value)}
-              style={{
-                width: '100%', padding: '10px 14px', borderRadius: '8px',
-                border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
-              }}
-            />
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input type="text"
+                placeholder="Buscar producto..."
+                value={buscando}
+                onChange={e => setBuscando(e.target.value)}
+                style={{
+                  flex: 1, padding: '10px 14px', borderRadius: '8px',
+                  border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
+                }}
+              />
+              <button onClick={() => { setMostrarInactivos(!mostrarInactivos); setBuscando('') }}
+                style={{
+                  padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1',
+                  background: mostrarInactivos ? '#fef3c7' : 'white',
+                  cursor: 'pointer', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap',
+                  color: mostrarInactivos ? '#92400e' : '#64748b'
+                }}>
+                {mostrarInactivos ? '✓ Mostrando inactivos' : 'Mostrar inactivos'}
+              </button>
+            </div>
           </div>
 
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
@@ -407,8 +490,13 @@ async function importarExcel(e) {
                   productosFiltrados.map((p, i) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.nombre}</div>
-                        {p.codigo && <div style={{ fontSize: '12px', color: '#94a3b8' }}>#{p.codigo}</div>}
+                        <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.nombre} {p.esGenerico && <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', marginLeft: 4 }}>Genérico</span>} {!p.activo && <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', marginLeft: 4 }}>Inactivo</span>}</div>
+                        {p.codigo && (
+                          <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                            <Icons.ScanBarcode size={12} /> #{p.codigo}
+                            <PrintBarcodeLabel codigo={p.codigo} nombre={p.nombre} precio={p.precio} />
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
@@ -419,10 +507,10 @@ async function importarExcel(e) {
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: '#16a34a' }}>
-                        C$ {p.precio.toFixed(2)}
+                        C$ {(p.precio || 0).toFixed(2)}
                       </td>
                       <td style={{ padding: '12px 16px', color: '#64748b' }}>
-                        C$ {p.costo.toFixed(2)}
+                        C$ {(p.costo || 0).toFixed(2)}
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: p.stock <= p.stockMinimo ? '#dc2626' : '#1e293b' }}>
                         {p.stock}
@@ -441,14 +529,16 @@ async function importarExcel(e) {
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
-                            onClick={() => setProductoEditar({
-                              ...p,
-                              categoriaId: p.categoriaId,
-                              precio: p.precio,
-                              costo: p.costo,
-                              stock: p.stock,
-                              stockMinimo: p.stockMinimo
-                            })}
+                            onClick={async () => {
+                              setProductoEditar({
+                                ...p,
+                                categoriaId: p.categoriaId,
+                                precio: p.precio,
+                                costo: p.costo,
+                                stock: p.stock,
+                                stockMinimo: p.stockMinimo
+                              })
+                            }}
                             style={{
                               padding: '6px 10px', borderRadius: '6px',
                               border: '1px solid #dbeafe', background: '#dbeafe',
@@ -456,6 +546,23 @@ async function importarExcel(e) {
                             }}>
                             ✏️
                           </button>
+                          {mostrarInactivos && !p.activo && (
+                            <button onClick={async () => {
+                              await fetch(`/api/productos/${p.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ...p, activo: true })
+                              })
+                              cargarProductos()
+                            }}
+                              style={{
+                                padding: '6px 10px', borderRadius: '6px',
+                                border: '1px solid #bbf7d0', background: '#dcfce7',
+                                cursor: 'pointer', fontSize: '12px', color: '#16a34a', fontWeight: 700
+                              }}>
+                              Reactivar
+                            </button>
+                          )}
                           <button
                             onClick={() => eliminarProducto(p.id)}
                             style={{
@@ -463,7 +570,7 @@ async function importarExcel(e) {
                               border: '1px solid #fee2e2', background: '#fee2e2',
                               cursor: 'pointer', fontSize: '13px', color: '#dc2626', fontWeight: 600
                             }}>
-                            🗑️
+                            <Icons.Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -482,7 +589,7 @@ async function importarExcel(e) {
         <>
           {categorias.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '60px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🏷️</div>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}><Icons.Tags size={48} /></div>
               <p style={{ color: '#94a3b8', marginBottom: '16px' }}>No hay categorías aún</p>
               <button className="btn-verde" onClick={() => setMostrarFormCat(true)}
                 style={{ display: editable ? undefined : 'none' }}>
@@ -500,9 +607,9 @@ async function importarExcel(e) {
                     <div style={{
                       width: '48px', height: '48px', borderRadius: '12px',
                       background: colorBg, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', fontSize: '24px', marginBottom: '12px'
+                      justifyContent: 'center', marginBottom: '12px'
                     }}>
-                      🏷️
+                      <Icons.Tags size={24} />
                     </div>
                     <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '4px' }}>
                       {cat.nombre}
@@ -518,7 +625,7 @@ async function importarExcel(e) {
                         border: '1px solid #fee2e2', background: '#fff5f5',
                         color: '#dc2626', cursor: 'pointer', fontSize: '13px', fontWeight: 600
                       }}>
-                      🗑️ Eliminar
+                      <Icons.Trash2 size={16} /> Eliminar
                     </button>
                     )}
                   </div>
@@ -555,8 +662,20 @@ async function importarExcel(e) {
                     placeholder={campo.placeholder}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                   />
+                  {campo.key === 'codigo' && (
+                    <button type="button" onClick={() => setFormProd({...formProd, codigo: generarCodigo(productos)})}
+                      style={{ marginTop: 6, padding: '6px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Icons.ScanBarcode size={14} /> Generar código
+                    </button>
+                  )}
                 </div>
               ))}
+              {formProd.codigo && (
+                <div style={{ marginBottom: 16, padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <BarcodeLabel codigo={formProd.codigo} nombre={formProd.nombre} precio={formProd.precio} tamano="chico" />
+                  <div style={{ marginTop: 8 }}><PrintBarcodeLabel codigo={formProd.codigo} nombre={formProd.nombre} precio={formProd.precio} /></div>
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 {[
                   { key: 'precio', label: 'Precio venta (C$) *', required: true },
@@ -582,12 +701,13 @@ async function importarExcel(e) {
                   <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Unidad</label>
                   <select value={formProd.unidad} onChange={e => setFormProd({...formProd, unidad: e.target.value})}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}>
-                    <option value="unidad">Unidad</option>
-                    <option value="libra">Libra</option>
-                    <option value="kilo">Kilo</option>
-                    <option value="litro">Litro</option>
-                    <option value="docena">Docena</option>
+                    <option value="">Seleccioná...</option>
+                    {unidades.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
                   </select>
+                  <button type="button" onClick={() => setMostrarGestionUnidades(true)}
+                    style={{ marginTop: 4, fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+                    Gestionar unidades
+                  </button>
                 </div>
                 <div>
                   <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Categoría *</label>
@@ -598,21 +718,50 @@ async function importarExcel(e) {
                   </select>
                 </div>
               </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                  <input type="checkbox" checked={formProd.esGenerico}
+                    onChange={e => setFormProd({...formProd, esGenerico: e.target.checked})}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                  Producto genérico (precio variable, no afecta inventario)
+                </label>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                  Fecha de vencimiento <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcional)</span>
+                </label>
+                <input type="date" value={formProd.fechaVencimiento || ''}
+                  onChange={e => setFormProd({...formProd, fechaVencimiento: e.target.value || null})}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
+              </div>
+              {/* Precio Mayorista */}
+              <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}><Icons.TrendingUp size={14} /> Precio mayorista (opcional)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio mayorista (C$)</label>
+                    <input type="number" step="0.01" min="0" value={formProd.precioMayor || ''}
+                      onChange={e => setFormProd({...formProd, precioMayor: e.target.value})}
+                      placeholder="0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Cantidad mínima</label>
+                    <input type="number" step="0.5" min="0" value={formProd.cantidadMinimaMayor || ''}
+                      onChange={e => setFormProd({...formProd, cantidadMinimaMayor: e.target.value})}
+                      placeholder="Ej: 12" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
+                  </div>
+                </div>
+              </div>
               {/* Segunda presentación */}
               <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>📦 Segunda presentación (opcional)</div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}><Icons.Package size={14} /> Segunda presentación (opcional)</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
                     <select value={formProd.unidadVenta2 || ''} onChange={e => setFormProd({...formProd, unidadVenta2: e.target.value})}
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
                       <option value="">Ninguna</option>
-                      <option value="quintal">Quintal</option>
-                      <option value="kilo">Kilo</option>
-                      <option value="libra">Libra</option>
-                      <option value="docena">Docena</option>
-                      <option value="caja">Caja</option>
-                      <option value="paquete">Paquete</option>
+                      {unidades.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
                     </select>
                   </div>
                   <div>
@@ -644,13 +793,89 @@ async function importarExcel(e) {
                   Ejemplo: si la unidad base es &quot;libra&quot; y vendés por &quot;quintal&quot;, el factor es 100
                 </div>
               </div>
+              {/* Tercera presentación */}
+              <div style={{ marginBottom: '20px', padding: '12px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#92400e', marginBottom: '10px' }}><Icons.Package size={14} /> Tercera presentación (opcional)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
+                    <select value={formProd.unidadVenta3 || ''} onChange={e => setFormProd({...formProd, unidadVenta3: e.target.value})}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
+                      <option value="">Ninguna</option>
+                      {unidades.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
+                    <input type="number" step="0.01" value={formProd.precioVenta3 || ''}
+                      onChange={e => setFormProd({...formProd, precioVenta3: e.target.value})}
+                      placeholder="0"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
+                    <input type="number" step="0.01" value={formProd.costoVenta3 || ''}
+                      onChange={e => setFormProd({...formProd, costoVenta3: e.target.value})}
+                      placeholder="0"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
+                    <input type="number" step="1" value={formProd.factorVenta3 || ''}
+                      onChange={e => setFormProd({...formProd, factorVenta3: e.target.value})}
+                      placeholder="100"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* Cuarta presentación */}
+              <div style={{ marginBottom: '20px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#166534', marginBottom: '10px' }}><Icons.Package size={14} /> Cuarta presentación (opcional)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
+                    <select value={formProd.unidadVenta4 || ''} onChange={e => setFormProd({...formProd, unidadVenta4: e.target.value})}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
+                      <option value="">Ninguna</option>
+                      {unidades.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
+                    <input type="number" step="0.01" value={formProd.precioVenta4 || ''}
+                      onChange={e => setFormProd({...formProd, precioVenta4: e.target.value})}
+                      placeholder="0"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
+                    <input type="number" step="0.01" value={formProd.costoVenta4 || ''}
+                      onChange={e => setFormProd({...formProd, costoVenta4: e.target.value})}
+                      placeholder="0"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
+                    <input type="number" step="1" value={formProd.factorVenta4 || ''}
+                      onChange={e => setFormProd({...formProd, factorVenta4: e.target.value})}
+                      placeholder="100"
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button type="button" onClick={() => setMostrarFormProd(false)}
                   style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
                   Cancelar
                 </button>
                 <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  💾 Guardar Producto
+                  <Icons.Save size={16} /> Guardar Producto
                 </button>
               </div>
             </form>
@@ -666,7 +891,7 @@ async function importarExcel(e) {
         }}>
           <div className="card" style={{ width: '400px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>🏷️ Nueva Categoría</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}><Icons.Tags size={16} /> Nueva Categoría</h2>
               <button onClick={() => setMostrarFormCat(false)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
@@ -687,7 +912,7 @@ async function importarExcel(e) {
                   Cancelar
                 </button>
                 <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  💾 Guardar Categoría
+                  <Icons.Save size={16} /> Guardar Categoría
                 </button>
               </div>
             </form>
@@ -726,6 +951,18 @@ async function importarExcel(e) {
             onChange={e => setProductoEditar({...productoEditar, codigo: e.target.value})}
             style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
           />
+          {!productoEditar.codigo && (
+            <button type="button" onClick={() => setProductoEditar({...productoEditar, codigo: generarCodigo(productos)})}
+              style={{ marginTop: 6, padding: '6px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Icons.ScanBarcode size={14} /> Generar código
+            </button>
+          )}
+          {productoEditar.codigo && (
+            <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', textAlign: 'center' }}>
+              <BarcodeLabel codigo={productoEditar.codigo} nombre={productoEditar.nombre} precio={productoEditar.precio} tamano="chico" />
+              <div style={{ marginTop: 8 }}><PrintBarcodeLabel codigo={productoEditar.codigo} nombre={productoEditar.nombre} precio={productoEditar.precio} /></div>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
@@ -754,12 +991,13 @@ async function importarExcel(e) {
             <select value={productoEditar.unidad}
               onChange={e => setProductoEditar({...productoEditar, unidad: e.target.value})}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}>
-              <option value="unidad">Unidad</option>
-              <option value="libra">Libra</option>
-              <option value="kilo">Kilo</option>
-              <option value="litro">Litro</option>
-              <option value="docena">Docena</option>
+              <option value="">Seleccioná...</option>
+              {unidades.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
             </select>
+            <button type="button" onClick={() => setMostrarGestionUnidades(true)}
+              style={{ marginTop: 4, fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+              Gestionar unidades
+            </button>
           </div>
           <div>
             <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Categoría</label>
@@ -767,70 +1005,227 @@ async function importarExcel(e) {
               onChange={e => setProductoEditar({...productoEditar, categoriaId: e.target.value})}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}>
               {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Segunda presentación */}
-        <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>📦 Segunda presentación (opcional)</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
-              <select value={productoEditar.unidadVenta2 || ''} onChange={e => setProductoEditar({...productoEditar, unidadVenta2: e.target.value})}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
-                <option value="">Ninguna</option>
-                <option value="quintal">Quintal</option>
-                <option value="kilo">Kilo</option>
-                <option value="libra">Libra</option>
-                <option value="docena">Docena</option>
-                <option value="caja">Caja</option>
-                <option value="paquete">Paquete</option>
               </select>
             </div>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
-              <input type="number" step="0.01" value={productoEditar.precioVenta2 || ''}
-                onChange={e => setProductoEditar({...productoEditar, precioVenta2: e.target.value})}
-                placeholder="0"
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
-              <input type="number" step="0.01" value={productoEditar.costoVenta2 || ''}
-                onChange={e => setProductoEditar({...productoEditar, costoVenta2: e.target.value})}
-                placeholder="0"
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
-              <input type="number" step="1" value={productoEditar.factorVenta2 || ''}
-                onChange={e => setProductoEditar({...productoEditar, factorVenta2: e.target.value})}
-                placeholder="100"
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
-              />
+          </div>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+              <input type="checkbox" checked={productoEditar.esGenerico || false}
+                onChange={e => setProductoEditar({...productoEditar, esGenerico: e.target.checked})}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+              Producto genérico (precio variable, no afecta inventario)
+            </label>
+          </div>
+
+          {/* Precio Mayorista */}
+          <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}><Icons.TrendingUp size={14} /> Precio mayorista (opcional)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio mayorista (C$)</label>
+                <input type="number" step="0.01" min="0" value={productoEditar.precioMayor || ''}
+                  onChange={e => setProductoEditar({...productoEditar, precioMayor: e.target.value})}
+                  placeholder="0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Cantidad mínima</label>
+                <input type="number" step="0.5" min="0" value={productoEditar.cantidadMinimaMayor || ''}
+                  onChange={e => setProductoEditar({...productoEditar, cantidadMinimaMayor: e.target.value})}
+                  placeholder="Ej: 12" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
+              </div>
             </div>
           </div>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
-            Ejemplo: si la unidad base es &quot;libra&quot; y vendés por &quot;quintal&quot;, el factor es 100
+
+          {/* Segunda presentación */}
+        <div style={{ marginBottom: '20px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}><Icons.Package size={14} /> Segunda presentación (opcional)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
+            <select value={productoEditar.unidadVenta2 || ''} onChange={e => setProductoEditar({...productoEditar, unidadVenta2: e.target.value})}
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
+              <option value="">Ninguna</option>
+              {unidades.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
+            <input type="number" step="0.01" value={productoEditar.precioVenta2 || ''}
+              onChange={e => setProductoEditar({...productoEditar, precioVenta2: e.target.value})}
+              placeholder="0"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
+            <input type="number" step="0.01" value={productoEditar.costoVenta2 || ''}
+              onChange={e => setProductoEditar({...productoEditar, costoVenta2: e.target.value})}
+              placeholder="0"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
+            <input type="number" step="1" value={productoEditar.factorVenta2 || ''}
+              onChange={e => setProductoEditar({...productoEditar, factorVenta2: e.target.value})}
+              placeholder="100"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
           </div>
         </div>
+        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+          Ejemplo: si la unidad base es &quot;libra&quot; y vendés por &quot;quintal&quot;, el factor es 100
+        </div>
+      </div>
+      {/* Tercera presentación */}
+      <div style={{ marginBottom: '20px', padding: '12px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a' }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#92400e', marginBottom: '10px' }}><Icons.Package size={14} /> Tercera presentación (opcional)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
+            <select value={productoEditar.unidadVenta3 || ''} onChange={e => setProductoEditar({...productoEditar, unidadVenta3: e.target.value})}
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
+              <option value="">Ninguna</option>
+              {unidades.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
+            <input type="number" step="0.01" value={productoEditar.precioVenta3 || ''}
+              onChange={e => setProductoEditar({...productoEditar, precioVenta3: e.target.value})}
+              placeholder="0"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
+            <input type="number" step="0.01" value={productoEditar.costoVenta3 || ''}
+              onChange={e => setProductoEditar({...productoEditar, costoVenta3: e.target.value})}
+              placeholder="0"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
+            <input type="number" step="1" value={productoEditar.factorVenta3 || ''}
+              onChange={e => setProductoEditar({...productoEditar, factorVenta3: e.target.value})}
+              placeholder="100"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+        </div>
+      </div>
+      {/* Cuarta presentación */}
+      <div style={{ marginBottom: '20px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#166534', marginBottom: '10px' }}><Icons.Package size={14} /> Cuarta presentación (opcional)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Unidad</label>
+            <select value={productoEditar.unidadVenta4 || ''} onChange={e => setProductoEditar({...productoEditar, unidadVenta4: e.target.value})}
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
+              <option value="">Ninguna</option>
+              {unidades.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
+            <input type="number" step="0.01" value={productoEditar.precioVenta4 || ''}
+              onChange={e => setProductoEditar({...productoEditar, precioVenta4: e.target.value})}
+              placeholder="0"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
+            <input type="number" step="0.01" value={productoEditar.costoVenta4 || ''}
+              onChange={e => setProductoEditar({...productoEditar, costoVenta4: e.target.value})}
+              placeholder="0"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
+            <input type="number" step="1" value={productoEditar.factorVenta4 || ''}
+              onChange={e => setProductoEditar({...productoEditar, factorVenta4: e.target.value})}
+              placeholder="100"
+              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+            />
+          </div>
+        </div>
+      </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button type="button" onClick={() => setProductoEditar(null)}
-            style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
-            Cancelar
-          </button>
-          <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-            💾 Guardar cambios
+      <div style={{ marginTop: 8 }}>
+        <label style={{ fontSize: '12px', color: 'var(--texto-secundario)', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+          Fecha de vencimiento
+        </label>
+        <input type="date" value={productoEditar.fechaVencimiento ? productoEditar.fechaVencimiento.slice(0,10) : ''}
+          onChange={e => setProductoEditar({...productoEditar, fechaVencimiento: e.target.value || null})}
+          style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
+      </div>
+
+      <div style={{ display: 'flex', gap: '12px', marginTop: 16 }}>
+        <button type="button" onClick={() => { setProductoEditar(null) }}
+          style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
+          Cancelar
+        </button>
+        <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
+          <Icons.Save size={16} /> Guardar cambios
           </button>
         </div>
       </form>
     </div>
   </div>
   )}
+      {/* Modal Gestionar Unidades */}
+      {mostrarGestionUnidades && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+        }}>
+          <div className="card" style={{ width: '480px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}><Icons.Ruler size={16} /> Gestionar Unidades de Medida</h2>
+              <button onClick={() => { setMostrarGestionUnidades(false); setFormUnidad({ nombre: '' }); setEditandoUnidad(null) }}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+            </div>
+            <form onSubmit={guardarUnidad} style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
+              <input required value={formUnidad.nombre}
+                onChange={e => setFormUnidad({ nombre: e.target.value })}
+                placeholder={editandoUnidad ? 'Editar unidad...' : 'Nueva unidad (ej: docena, quintal...)'}
+                style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
+              <button type="submit" className="btn-verde" style={{ padding: '8px 16px', fontSize: 13 }}>
+                {editandoUnidad ? 'Guardar' : 'Agregar'}
+              </button>
+              {editandoUnidad && (
+                <button type="button" onClick={() => { setEditandoUnidad(null); setFormUnidad({ nombre: '' }) }}
+                  style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13 }}>
+                  Cancelar
+                </button>
+              )}
+            </form>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {unidades.filter(u => u.activo !== false).map(u => (
+                <div key={u.id} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '8px 12px', borderBottom: '1px solid #f1f5f9', fontSize: '14px'
+                }}>
+                  <span>{u.nombre.charAt(0).toUpperCase() + u.nombre.slice(1)}</span>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button type="button" onClick={() => { setEditandoUnidad(u); setFormUnidad({ nombre: u.nombre }) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontSize: 13 }}>
+                      Editar
+                    </button>
+                    <button type="button" onClick={() => eliminarUnidad(u.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 13 }}>
+                      Desactivar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

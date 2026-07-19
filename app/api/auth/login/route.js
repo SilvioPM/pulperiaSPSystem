@@ -33,7 +33,7 @@ export async function POST(req) {
       return Response.json({ error: `Demasiadas solicitudes. Intente de nuevo en ${rateCheck.retryAfter} segundos` }, { status: 429 })
     }
 
-    const { username, password } = await req.json()
+    const { username, password, recordar } = await req.json()
     if (!username || !password) {
       return Response.json({ error: 'Usuario y contraseña requeridos' }, { status: 400 })
     }
@@ -84,9 +84,10 @@ export async function POST(req) {
       modulos: JSON.parse(usuario.modulos || '[]'),
     })
 
+    const maxAge = recordar ? 'Max-Age=86400' : ''
     res.headers.set(
       'Set-Cookie',
-      `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400`
+      `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; ${maxAge}`
     )
 
     return res

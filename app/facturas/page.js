@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import { useAuth } from '@/app/context/AuthContext'
 import FacturaRecibo from '../components/FacturaRecibo'
+import * as Icons from 'lucide-react'
 
 export default function Facturas() {
   const { user, puedeEditar } = useAuth()
@@ -20,7 +21,7 @@ export default function Facturas() {
   const [authError, setAuthError]   = useState('')
   const [anulando, setAnulando]     = useState(false)
   const [cargando, setCargando]     = useState(true)
-  const reciboRef                   = useRef(null)
+  const reciboRef = useRef(null)
 
   useEffect(() => {
     Promise.all([
@@ -57,6 +58,7 @@ export default function Facturas() {
   const imprimirTicket = useReactToPrint({
     contentRef: reciboRef,
     documentTitle: facturaVer?.numero || 'Factura',
+    pageStyle: '@page { size: 80mm auto; margin: 0mm; }',
   })
 
   function compartirWhatsApp(factura) {
@@ -133,7 +135,7 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
   return (
     <div>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>🧾 Facturas</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}><Icons.FileText size={24} /> Facturas</h1>
         <p style={{ color: '#64748b', fontSize: '14px' }}>Historial de todas las ventas</p>
       </div>
 
@@ -156,18 +158,21 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
       </div>
 
       <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
-        <input type="text"
-          placeholder="🔍 Buscar por número de factura o cliente..."
-          value={buscando}
-          onChange={e => setBuscando(e.target.value)}
-          style={{
-            width: '100%', padding: '10px 14px', borderRadius: '8px',
-            border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
-          }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icons.Search size={16} color="#94a3b8" />
+          <input type="text"
+            placeholder="Buscar por número de factura o cliente..."
+            value={buscando}
+            onChange={e => setBuscando(e.target.value)}
+            style={{
+              width: '100%', padding: '10px 14px', borderRadius: '8px',
+              border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
+            }}
+          />
+        </div>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
@@ -204,39 +209,43 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
                       let dp = null
                       try { dp = f.detallesPago ? (typeof f.detallesPago === 'string' ? JSON.parse(f.detallesPago) : f.detallesPago) : null } catch {}
                       if (dp && dp.length > 1) {
-                        return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#f3e8ff', color: '#7c3aed' }}>🔄 Mixto ({dp.length})</span>
+                        return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#f3e8ff', color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.RefreshCw size={14} /> Mixto ({dp.length})</span>
                       }
-                      const colores = { efectivo: { bg: '#dcfce7', fg: '#16a34a', icon: '💵' }, tarjeta: { bg: '#dbeafe', fg: '#2563eb', icon: '💳' }, transferencia: { bg: '#f3e8ff', fg: '#7c3aed', icon: '📱' }, dolares: { bg: '#fef9c3', fg: '#ca8a04', icon: '🇺🇸' }, credito: { bg: '#fef9c3', fg: '#ca8a04', icon: '📋' }, mixto: { bg: '#f3e8ff', fg: '#7c3aed', icon: '🔄' } }
-                      const c = colores[f.metodoPago] || { bg: '#f1f5f9', fg: '#475569', icon: '' }
-                      return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: c.bg, color: c.fg }}>{c.icon} {f.metodoPago}</span>
+                      const colores = { efectivo: { bg: '#dcfce7', fg: '#16a34a', icono: 'DollarSign' }, tarjeta: { bg: '#dbeafe', fg: '#2563eb', icono: 'CreditCard' }, transferencia: { bg: '#f3e8ff', fg: '#7c3aed', icono: 'Smartphone' }, dolares: { bg: '#fef9c3', fg: '#ca8a04', icono: 'DollarSign' }, credito: { bg: '#fef9c3', fg: '#ca8a04', icono: 'ClipboardList' }, mixto: { bg: '#f3e8ff', fg: '#7c3aed', icono: 'RefreshCw' } }
+                      const c = colores[f.metodoPago] || { bg: '#f1f5f9', fg: '#475569', icono: '' }
+                      const IconPago = c.icono ? Icons[c.icono] : null
+                      return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: c.bg, color: c.fg, display: 'inline-flex', alignItems: 'center', gap: 4 }}>{IconPago && <IconPago size={14} />} {f.metodoPago}</span>
                     })()}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     {f.estado === 'anulada' ? (
                       <span style={{
                         padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                        background: '#fee2e2', color: '#dc2626'
+                        background: '#fee2e2', color: '#dc2626',
+                        display: 'inline-flex', alignItems: 'center', gap: 4
                       }}>
-                        ❌ Anulada
+                        <Icons.XCircle size={14} /> Anulada
                       </span>
                     ) : f.estado === 'credito' ? (
                       <span style={{
                         padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                        background: '#fef9c3', color: '#ca8a04'
+                        background: '#fef9c3', color: '#ca8a04',
+                        display: 'inline-flex', alignItems: 'center', gap: 4
                       }}>
-                        📋 Crédito
+                        <Icons.ClipboardList size={14} /> Crédito
                       </span>
                     ) : (
                       <span style={{
                         padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                        background: '#dcfce7', color: '#16a34a'
+                        background: '#dcfce7', color: '#16a34a',
+                        display: 'inline-flex', alignItems: 'center', gap: 4
                       }}>
-                        ✅ Pagada
+                        <Icons.CheckCircle size={14} /> Pagada
                       </span>
                     )}
                   </td>
                   <td style={{ padding: '12px 16px', fontWeight: 700, color: '#16a34a' }}>
-                    C$ {f.total.toFixed(2)}
+                    C$ {(f.total || 0).toFixed(2)}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: '6px' }}>
@@ -245,29 +254,32 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
                           padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0',
                           background: 'white', cursor: 'pointer', fontSize: '13px'
                         }}>
-                        👁️
+                        <Icons.Eye size={16} />
                       </button>
                       <button onClick={() => { setFacturaVer(f); setTimeout(imprimirTicket, 300) }}
                         style={{
                           padding: '6px 10px', borderRadius: '6px', border: '1px solid #dbeafe',
-                          background: '#dbeafe', cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: 600
+                          background: '#dbeafe', cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: 600,
+                          display: 'inline-flex', alignItems: 'center', gap: 4
                         }}>
-                        🖨️
+                        <Icons.Printer size={16} />
                       </button>
                       <button onClick={() => compartirWhatsApp(f)}
                         style={{
                           padding: '6px 10px', borderRadius: '6px', border: '1px solid #dcfce7',
-                          background: '#dcfce7', cursor: 'pointer', fontSize: '13px', color: '#16a34a', fontWeight: 600
+                          background: '#dcfce7', cursor: 'pointer', fontSize: '13px', color: '#16a34a', fontWeight: 600,
+                          display: 'inline-flex', alignItems: 'center', gap: 4
                         }}>
-                        📱
+                        <Icons.Smartphone size={16} />
                       </button>
                       {f.estado !== 'anulada' && (
                         <button onClick={() => { setShowAnular(f); setAuthUser(''); setAuthPass(''); setAuthError('') }}
                           style={{
                             padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2',
-                            background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626', fontWeight: 600
+                            background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626', fontWeight: 600,
+                            display: 'inline-flex', alignItems: 'center', gap: 4
                           }}>
-                          🚫
+                          <Icons.Ban size={16} />
                         </button>
                       )}
                     </div>
@@ -309,14 +321,14 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
                     padding: '8px 16px', borderRadius: '8px', border: 'none',
                     background: '#2563eb', color: 'white', cursor: 'pointer', fontWeight: 600
                   }}>
-                  🖨️ Imprimir / PDF
+                  <Icons.Printer size={16} /> Imprimir / PDF
                 </button>
                 <button onClick={() => compartirWhatsApp(facturaVer)}
                   style={{
                     padding: '8px 16px', borderRadius: '8px', border: 'none',
                     background: '#16a34a', color: 'white', cursor: 'pointer', fontWeight: 600
                   }}>
-                  📱 WhatsApp
+                  <Icons.Smartphone size={16} /> WhatsApp
                 </button>
                 <button onClick={() => setFacturaVer(null)}
                   style={{
@@ -345,7 +357,7 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
         }}>
           <div className="card" style={{ width: '400px', padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#dc2626' }}>🚫 Anular Factura</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#dc2626', display: 'flex', alignItems: 'center', gap: 8 }}><Icons.Ban size={20} /> Anular Factura</h2>
               <button onClick={() => setShowAnular(null)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
@@ -389,7 +401,7 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
                   background: anulando ? '#fca5a5' : '#dc2626', color: 'white',
                   cursor: 'pointer', fontWeight: 600
                 }}>
-                {anulando ? 'Anulando...' : '🚫 Confirmar Anulación'}
+                {anulando ? 'Anulando...' : <><Icons.Ban size={16} /> Confirmar Anulación</>}
               </button>
             </div>
           </div>

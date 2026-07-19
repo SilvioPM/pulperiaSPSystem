@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
 import { auditar } from '@/lib/auditarClient'
+import * as Icons from 'lucide-react'
 
 export default function Configuracion() {
   const { user } = useAuth()
@@ -9,7 +10,8 @@ export default function Configuracion() {
     nombre: '', slogan: '', direccion: '',
     telefono: '', ruc: '', ciudad: '', mensajePie: '', logo: '',
     tasaCambio: '', ivaActivo: 'false', tasaIva: '15',
-    dgiActivo: 'false', nrc: '', cai: '', rangoInicio: '', rangoFin: ''
+    dgiActivo: 'false', nrc: '', cai: '', rangoInicio: '', rangoFin: '',
+    permiteGenericos: 'true'
   })
   const [guardado, setGuardado] = useState(false)
   const inputLogo = useRef(null)
@@ -54,7 +56,7 @@ export default function Configuracion() {
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#1e293b' }}>⚙️ Configuración</h1>
+        <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}><Icons.Settings size={24} /> Configuración</h1>
         <p style={{ color: '#64748b', fontSize: '14px' }}>Personalizá los datos del negocio y los impuestos</p>
       </div>
 
@@ -62,7 +64,7 @@ export default function Configuracion() {
         {/* ── Datos del negocio ── */}
         <div className="card" style={{ marginBottom: '20px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #f1f5f9' }}>
-            <span style={{ fontSize: '24px' }}>🏪</span>
+            <Icons.Store size={16} />
             <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Datos del negocio</h2>
           </div>
 
@@ -83,7 +85,7 @@ export default function Configuracion() {
             <input ref={inputLogo} type="file" accept="image/*" onChange={subirLogo} style={{ display: 'none' }} />
             <button type="button" onClick={() => inputLogo.current.click()}
               style={{ padding: '7px 18px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#374151' }}>
-              📷 Subir logo
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Camera size={16} /> Subir logo</span>
             </button>
           </div>
 
@@ -110,7 +112,7 @@ export default function Configuracion() {
         {/* ── IVA ── */}
         <div className="card" style={{ marginBottom: '20px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #f1f5f9' }}>
-            <span style={{ fontSize: '24px' }}>🧾</span>
+            <Icons.FileText size={16} />
             <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Impuestos</h2>
           </div>
 
@@ -148,10 +150,36 @@ export default function Configuracion() {
           )}
         </div>
 
+        {/* ── Productos Genéricos ── */}
+        <div className="card" style={{ marginBottom: '20px', padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#f9fafb', borderRadius: '10px' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '14px', color: '#374151' }}><Icons.Star size={14} /> Productos genéricos</div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>{config.permiteGenericos !== 'false' ? 'Los genéricos aparecen en el POS con precio variable' : 'Ocultos del POS (desactivados)'}</div>
+            </div>
+            <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={config.permiteGenericos !== 'false'}
+                onChange={e => setConfig({ ...config, permiteGenericos: e.target.checked ? 'true' : 'false' })}
+                style={{ opacity: 0, width: 0, height: 0 }} />
+              <span style={{
+                position: 'absolute', inset: 0, borderRadius: '26px',
+                background: config.permiteGenericos !== 'false' ? '#16a34a' : '#d1d5db',
+                transition: '0.3s', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.15)'
+              }}>
+                <span style={{
+                  position: 'absolute', top: '3px', left: config.permiteGenericos !== 'false' ? '25px' : '3px',
+                  width: '20px', height: '20px', borderRadius: '50%', background: '#fff',
+                  transition: '0.3s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                }} />
+              </span>
+            </label>
+          </div>
+        </div>
+
         {/* ── e-Factura DGI ── */}
         <div className="card" style={{ marginBottom: '20px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #f1f5f9' }}>
-            <span style={{ fontSize: '24px' }}>📄</span>
+            <Icons.File size={16} />
             <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>e-Factura DGI (Nicaragua)</h2>
           </div>
 
@@ -209,7 +237,7 @@ export default function Configuracion() {
 
         <button type="submit" className="btn-verde"
           style={{ width: '100%', padding: '14px', fontSize: '15px', borderRadius: '10px' }}>
-          {guardado ? '✅ ¡Guardado!' : '💾 Guardar configuración'}
+          {guardado ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.CheckCircle size={16} /> ¡Guardado!</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Save size={16} /> Guardar configuración</span>}
         </button>
       </form>
     </div>

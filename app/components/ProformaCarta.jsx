@@ -1,5 +1,6 @@
 'use client'
 import { forwardRef } from 'react'
+import * as Icons from 'lucide-react'
 
 const ProformaCarta = forwardRef(({ proforma, config }, ref) => {
 
@@ -63,8 +64,8 @@ const ProformaCarta = forwardRef(({ proforma, config }, ref) => {
                   {config.slogan}
                 </div>
               )}
-              {config?.direccion && <div style={{ fontSize: '11px', color: '#475569' }}>📍 {config.direccion}</div>}
-              {config?.telefono && <div style={{ fontSize: '11px', color: '#475569' }}>📞 {config.telefono}</div>}
+              {config?.direccion && <div style={{ fontSize: '11px', color: '#475569' }}><Icons.MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.direccion}</div>}
+              {config?.telefono && <div style={{ fontSize: '11px', color: '#475569' }}><Icons.Phone size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {config.telefono}</div>}
               {config?.ruc && <div style={{ fontSize: '11px', color: '#475569' }}>RUC: {config.ruc}</div>}
             </div>
           </div>
@@ -115,17 +116,17 @@ const ProformaCarta = forwardRef(({ proforma, config }, ref) => {
             </div>
             {proforma?.cliente?.telefono && (
               <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
-                📞 {proforma.cliente.telefono}
+                <Icons.Phone size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {proforma.cliente.telefono}
               </div>
             )}
             {proforma?.cliente?.cedula && (
               <div style={{ fontSize: '12px', color: '#475569' }}>
-                🪪 {proforma.cliente.cedula}
+                <Icons.IdCard size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {proforma.cliente.cedula}
               </div>
             )}
             {proforma?.cliente?.direccion && (
               <div style={{ fontSize: '12px', color: '#475569' }}>
-                📍 {proforma.cliente.direccion}
+                <Icons.MapPin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {proforma.cliente.direccion}
               </div>
             )}
           </div>
@@ -251,7 +252,7 @@ const ProformaCarta = forwardRef(({ proforma, config }, ref) => {
             border: '1px solid #fde047'
           }}>
             <div style={{ fontSize: '12px', fontWeight: 700, color: '#ca8a04', marginBottom: '4px' }}>
-              📝 Observaciones:
+              <Icons.Edit size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Observaciones:
             </div>
             <div style={{ fontSize: '12px', color: '#1e293b' }}>{proforma.nota}</div>
           </div>

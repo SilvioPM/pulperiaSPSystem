@@ -44,6 +44,10 @@ export async function POST(req, { params }) {
         const factor = detalle.factorConversion || 1
         const cantidadBase = detalle.cantidad * factor
 
+        const prod = await tx.producto.findUnique({ where: { id: detalle.productoId }, select: { esGenerico: true } })
+        // Si es genérico, no afecta inventario
+        if (prod?.esGenerico) continue
+
         await tx.producto.update({
           where: { id: detalle.productoId },
           data: { stock: { increment: cantidadBase } },

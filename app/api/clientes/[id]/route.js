@@ -12,7 +12,8 @@ export async function PUT(request, { params }) {
         telefono: body.telefono || null,
         cedula: body.cedula || null,
         direccion: body.direccion || null,
-        limiteCredito: parseFloat(body.limiteCredito || 0)
+        limiteCredito: parseFloat(body.limiteCredito || 0),
+        ...(body.saldoInicial !== undefined && { saldoInicial: parseFloat(body.saldoInicial || 0) })
       }
     })
     return NextResponse.json(cliente)

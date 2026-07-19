@@ -96,7 +96,7 @@ export async function POST(request) {
           cambio: parseFloat(body.cambio || 0),
           metodoPago: body.metodoPago || 'efectivo',
           esCredito,
-          saldoPendiente: esCredito ? totalVal : 0,
+          saldoPendiente,
           estado: esCredito ? 'credito' : 'pagada',
           fechaVencimiento: body.fechaVencimiento ? new Date(body.fechaVencimiento) : null,
           detallesPago: body.detallesPago ? JSON.stringify(body.detallesPago) : null,
@@ -125,6 +125,10 @@ export async function POST(request) {
 
         const prod = await tx.producto.findUnique({ where: { id: parseInt(detalle.productoId) } })
         if (!prod) throw new Error(`Producto ID ${detalle.productoId} no encontrado`)
+
+        // Si es genérico, no afecta inventario
+        if (prod.esGenerico) continue
+
         if (prod.stock < cantidadBase) {
           throw new Error(`Stock insuficiente para "${prod.nombre}". Disponible: ${prod.stock}`)
         }

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
+import * as Icons from 'lucide-react'
 
 const styles = {
   container: {
@@ -47,10 +48,12 @@ const secciones = [
   { id: 'cxc', titulo: 'Cuentas por cobrar' },
   { id: 'cxp', titulo: 'Cuentas por pagar' },
   { id: 'caja', titulo: 'Caja' },
+  { id: 'gastos', titulo: 'Gastos' },
   { id: 'proformas', titulo: 'Proformas' },
   { id: 'reportes', titulo: 'Reportes' },
   { id: 'configuracion', titulo: 'Configuración' },
   { id: 'accesos', titulo: 'Accesos directos' },
+  { id: 'teclado-virtual', titulo: 'Teclado virtual' },
 ]
 
 export default function ManualPage() {
@@ -79,7 +82,7 @@ export default function ManualPage() {
             background: '#2563eb', color: '#fff', fontSize: 14,
             fontWeight: 600, cursor: 'pointer'
           }}>
-          📄 Guardar como PDF
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.FileText size={16} /> Guardar como PDF</span>
         </button>
         <span style={{ marginLeft: 12, fontSize: 13, color: '#64748b' }}>
           Haz clic y luego seleccioná &quot;Guardar como PDF&quot;
@@ -87,7 +90,7 @@ export default function ManualPage() {
       </div>
 
       <div style={styles.header}>
-        <h1 style={styles.h1}>Manual de usuario — SPSystem</h1>
+        <h1 style={{ ...styles.h1, display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><Icons.BookOpen size={24} /> Manual de usuario — SPSystem</h1>
         <p style={{ ...styles.p, color: '#64748b', fontSize: 15 }}>
           Sistema de punto de venta, inventario y facturación
         </p>
@@ -179,8 +182,9 @@ export default function ManualPage() {
         <ul style={styles.ul}>
           <li style={styles.li}>Escribí el nombre o código del producto en el campo de búsqueda.</li>
           <li style={styles.li}>Seleccioná el producto de la lista desplegable.</li>
-          <li style={styles.li}>Si el producto tiene <strong>unidadVenta2</strong> (ej. quintal → libras), podés cambiar entre presentaciones con el botón <strong>⟳</strong>.</li>
+          <li style={styles.li}>Si el producto tiene <strong>presentaciones alternas</strong> (venta2, venta3, venta4), podés cambiar entre ellas con el botón <strong>⟳</strong>. Cada presentación tiene su propia unidad, precio y factor de conversión.</li>
           <li style={styles.li}>Ingresá la cantidad (permité decimales para productos por peso: 0.5, 1.5).</li>
+          <li style={styles.li}>Los <strong>productos genéricos</strong> (precio variable) muestran &ldquo;Precio variable&rdquo; en vez del precio fijo. Al tocarlos se abre un modal para ingresar precio unitario y cantidad manualmente.</li>
         </ul>
 
         <h3 style={styles.h3}>4.2 Código de barras</h3>
@@ -231,8 +235,8 @@ export default function ManualPage() {
           en formato de ticket térmico de 80mm. Desde allí podés:
         </p>
         <ul style={styles.ul}>
-          <li style={styles.li}><strong>🖨 Imprimir</strong> — envía el ticket a la impresora térmica.</li>
-          <li style={styles.li}><strong>📱 Compartir</strong> — abre WhatsApp con el resumen de la venta.</li>
+          <li style={styles.li}><strong><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Printer size={16} /> Imprimir</span></strong> — envía el ticket a la impresora térmica.</li>
+          <li style={styles.li}><strong><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Smartphone size={16} /> Compartir</span></strong> — abre WhatsApp con el resumen de la venta.</li>
           <li style={styles.li}><strong>Nueva venta</strong> — limpia el carrito para empezar otra.</li>
         </ul>
       </section>
@@ -253,14 +257,15 @@ export default function ManualPage() {
         <h3 style={styles.h3}>5.2 Crear y editar</h3>
         <ul style={styles.ul}>
           <li style={styles.li}><strong>Campos principales:</strong> código, nombre, categoría, existencias actuales, precio de costo y venta, unidad de medida.</li>
-          <li style={styles.li}><strong>Segunda presentación:</strong> podés configurar una unidad alterna (ej. quintal además de libra) con su propio precio de venta, costo y factor de conversión.</li>
+          <li style={styles.li}><strong>4 presentaciones de precio:</strong> además de la unidad base, podés configurar hasta 3 presentaciones alternas (venta2, venta3, venta4), cada una con su unidad, precio, costo y factor de conversión.</li>
           <li style={styles.li}>Marcar como <strong>inactivo</strong> oculta el producto del POS sin eliminarlo.</li>
+          <li style={styles.li}><strong>Producto genérico:</strong> podés marcar un producto como genérico (precio variable). Al venderlo en el POS, el cajero ingresa el precio y cantidad manualmente. No afecta inventario ni stock. Ideal para verduras sueltas, artículos sin código de barras, o productos de precio cambiante.</li>
         </ul>
 
         <h3 style={styles.h3}>5.3 Importar desde Excel</h3>
         <ul style={styles.li}>
           <li style={styles.li}>Descargá la plantilla desde el botón <strong>Descargar plantilla</strong>.</li>
-          <li style={styles.li}>Completá los datos requeridos: Código, Nombre, Categoría, Existencia, PrecioCosto, PrecioVenta, Unidad, UnidadVenta2, PrecioVenta2, CostoVenta2, FactorVenta2.</li>
+          <li style={styles.li}>Columnas disponibles: <strong>Nombre</strong>, Codigo, Precio, Costo, Stock, StockMinimo, Unidad, Categoria, UnidadVenta2/3/4, PrecioVenta2/3/4, CostoVenta2/3/4, FactorVenta2/3/4, EsGenerico, PrecioMayor, CantidadMinimaMayor, FechaVencimiento.</li>
           <li style={styles.li}>Guardá el archivo y subilo con <strong>Importar Excel</strong>.</li>
         </ul>
 
@@ -269,6 +274,15 @@ export default function ManualPage() {
           Solo se puede eliminar un producto si no tiene movimientos (compras o proformas asociadas).
           Si tiene movimientos, deberás marcarlo como inactivo en lugar de eliminarlo.
         </p>
+
+        <h3 style={styles.h3}>5.5 Control de Vencimientos</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}><strong>Cada producto</strong> puede tener una <strong>fecha de vencimiento</strong> asignada directamente.</li>
+          <li style={styles.li}>Al <strong>crear o editar</strong> un producto, hay un campo <em>Fecha de vencimiento</em> en el formulario.</li>
+          <li style={styles.li}>Al <strong>comprar</strong> productos, se puede asignar la fecha de vencimiento por cada detalle.</li>
+          <li style={styles.li}>En el <strong>Dashboard</strong> se muestra una alerta de productos próximos a vencer.</li>
+          <li style={styles.li}>En <strong>Inventario</strong> hay un panel de alertas con filtros de 15, 30, 60 y 90 días.</li>
+        </ul>
       </section>
 
       <section id="compras">
@@ -278,9 +292,10 @@ export default function ManualPage() {
         </p>
         <ul style={styles.ul}>
           <li style={styles.li}><strong>Nueva compra:</strong> seleccioná el proveedor, fecha, número de factura del proveedor, y los productos comprados.</li>
-          <li style={styles.li}>Si la unidad de compra coincide con la <strong>unidadVenta2</strong> del producto, el sistema actualiza automáticamente el <strong>costoVenta2</strong>.</li>
+          <li style={styles.li}>Si la unidad de compra coincide con alguna presentación del producto (venta2, venta3, venta4), el sistema actualiza automáticamente el costo de esa presentación.</li>
           <li style={styles.li}>Si la unidad de compra es diferente a la base, el sistema calcula el costo por unidad base dividiendo por el factor de conversión.</li>
           <li style={styles.li}>Podés registrar la <strong>fecha de vencimiento</strong> de la factura de compra (para control de cuentas por pagar).</li>
+          <li style={styles.li}>Por cada producto podés ingresar <strong>fecha de vencimiento</strong>; al guardar la compra se actualiza el vencimiento del producto y se incrementa el stock automáticamente.</li>
           <li style={styles.li}>La lista de compras está paginada para mejor navegación.</li>
         </ul>
       </section>
@@ -294,7 +309,7 @@ export default function ManualPage() {
           <li style={styles.li}>Vista paginada con búsqueda por número de factura o nombre de cliente.</li>
           <li style={styles.li}>Cada factura muestra: número, cliente, fecha, total, método de pago, estado (vigente/anulada).</li>
           <li style={styles.li}>Podés imprimir o compartir por WhatsApp cualquier factura desde la lista.</li>
-          <li style={styles.li}>Las facturas a crédito tienen un icono 💳 y muestran el saldo pendiente.</li>
+          <li style={styles.li}>Las facturas a crédito tienen un icono <Icons.CreditCard size={14} /> y muestran el saldo pendiente.</li>
         </ul>
 
         <h3 style={styles.h3}>7.1 Anular factura</h3>
@@ -318,7 +333,7 @@ export default function ManualPage() {
         <ul style={styles.ul}>
           <li style={styles.li}>Muestra las facturas con saldo pendiente mayor a cero.</li>
           <li style={styles.li}>Cada fila muestra: factura, cliente, fecha, total, <strong>abonado</strong>, saldo pendiente, vencimiento.</li>
-          <li style={styles.li}><strong>Registrar abono:</strong> hacé clic en el botón verde 💰 de la factura. Ingresá el monto y una nota opcional.</li>
+          <li style={styles.li}><strong>Registrar abono:</strong> hacé clic en el botón verde <Icons.DollarSign size={14} /> de la factura. Ingresá el monto y una nota opcional.</li>
           <li style={styles.li}>Al registrar un abono, se imprime automáticamente un <strong>comprobante de abono</strong> (formato ticket térmico).</li>
           <li style={styles.li}>En el detalle de la factura podés ver el historial completo de abonos con fechas.</li>
         </ul>
@@ -354,20 +369,64 @@ export default function ManualPage() {
           <li style={styles.li}><strong>Entrada:</strong> registrá dinero que ingresa a caja (ej. retiro de abono, préstamo).</li>
           <li style={styles.li}><strong>Salida:</strong> registrá dinero que sale (ej. pago a proveedor, gasto menor).</li>
           <li style={styles.li}>Estos movimientos son independientes de las ventas y se registran por separado.</li>
+          <li style={styles.li}>Los gastos registrados desde el módulo <strong>Gastos</strong> con método de pago <strong>Efectivo</strong> aparecen automáticamente como salidas en la caja abierta, identificados con el badge <span style={{background:'#fef3c7',padding:'1px 6px',borderRadius:4,fontSize:11,fontWeight:600,color:'#92400e'}}>Gasto</span>.</li>
         </ul>
 
         <h3 style={styles.h3}>10.3 Arqueo y cierre</h3>
         <ul style={styles.ul}>
           <li style={styles.li}>Al final del día, el supervisor debe hacer el <strong>arqueo</strong>.</li>
           <li style={styles.li}>Se muestra un desglose por método de pago: Efectivo C$, Efectivo USD, Abonos de clientes, Tarjeta, Transferencia.</li>
-          <li style={styles.li}>El sistema calcula el &quot;Esperado&quot; (lo que debería haber según ventas + abonos) y la diferencia con el &quot;Ingresado&quot; real.</li>
+          <li style={styles.li}>El sistema calcula el &quot;Esperado&quot; = Inicial + Efectivo ventas + Abonos + Ingresos extra − <strong>Egresos (incluye gastos)</strong>.</li>
+          <li style={styles.li}>Los gastos registrados como <strong>Efectivo</strong> en el módulo Gastos se descuentan automáticamente del esperado.</li>
+          <li style={styles.li}>Los gastos pagados por transferencia, tarjeta u otro método <strong>no afectan</strong> el arqueo.</li>
           <li style={styles.li}>El arqueo incluye un desglose de billetes y monedas en C$ y USD.</li>
           <li style={styles.li}>Al cerrar la caja, no se pueden registrar más ventas hasta que se abra nuevamente.</li>
         </ul>
       </section>
 
+      <section id="gastos">
+        <h2 style={styles.h2}>11. Gastos</h2>
+        <p style={styles.p}>
+          El módulo de Gastos permite registrar y controlar los egresos operativos del negocio
+          (servicios, alquiler, salarios, etc.) de forma independiente a las ventas.
+        </p>
+
+        <h3 style={styles.h3}>11.1 Registrar un gasto</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}>Seleccioná el <strong>mes</strong> en el filtro superior para ver gastos de ese período.</li>
+          <li style={styles.li}>Hacé clic en <strong>Nuevo gasto</strong> y completá: concepto, categoría, método de pago, monto, fecha y nota opcional.</li>
+          <li style={styles.li}><strong>Método de pago:</strong> define si el gasto descuenta o no de la caja:</li>
+          <ul style={{ paddingLeft: 20, marginTop: 4 }}>
+            <li style={styles.li}><strong>Efectivo</strong> — el gasto sale de la caja física del día. Se descuenta automáticamente del efectivo esperado en el arqueo. Aparece como egreso en Movimientos de Caja con el badge <span style={{background:'#fef3c7',padding:'1px 6px',borderRadius:4,fontSize:11,fontWeight:600,color:'#92400e'}}>Gasto</span>.</li>
+            <li style={styles.li}><strong>Transferencia / Tarjeta / Otro</strong> — el gasto se registra para contabilidad y el reporte de ganancias/pérdidas, pero <strong>no afecta</strong> la caja ni el arqueo. Ideal para gastos pagados desde una cuenta bancaria o tarjeta personal del dueño.</li>
+          </ul>
+          <li style={styles.li}>Si hay una caja abierta y seleccionás <strong>Efectivo</strong>, verás un aviso amarillo: &ldquo;Se descontará de la caja abierta automáticamente&rdquo;.</li>
+        </ul>
+
+        <h3 style={styles.h3}>11.2 Categorías de gasto</h3>
+        <p style={styles.p}>
+          Los gastos se clasifican en 9 categorías predefinidas:
+          Operativos, Salarios, Servicios, Alquiler, Impuestos, Mantenimiento, Publicidad, Transporte y Otros.
+          Cada categoría se muestra con un badge en la tabla para fácil identificación.
+        </p>
+
+        <h3 style={styles.h3}>11.3 Gastos y reporte de ganancias</h3>
+        <p style={styles.p}>
+          Todos los gastos registrados (sin importar el método de pago) se incluyen en el
+          <strong> reporte de Ganancias y Pérdidas</strong> (ver sección 13.11), permitiendo calcular
+          la ganancia neta real del negocio: <code>Ventas − Costo de mercancía − Gastos</code>.
+        </p>
+
+        <h3 style={styles.h3}>11.4 Eliminar un gasto</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}>Hacé clic en el icono <Icons.Trash2 size={14} /> de la fila correspondiente.</li>
+          <li style={styles.li}>Si el gasto fue registrado como <strong>Efectivo</strong>, también se revierte el egreso de caja automáticamente.</li>
+          <li style={styles.li}>Los gastos de transferencia/tarjeta/otro solo se eliminan del registro contable.</li>
+        </ul>
+      </section>
+
       <section id="proformas">
-        <h2 style={styles.h2}>11. Proformas</h2>
+        <h2 style={styles.h2}>12. Proformas</h2>
         <p style={styles.p}>
           Las proformas son cotizaciones o presupuestos que se entregan al cliente antes de la venta final.
         </p>
@@ -381,45 +440,148 @@ export default function ManualPage() {
       </section>
 
       <section id="reportes">
-        <h2 style={styles.h2}>12. Reportes</h2>
+        <h2 style={styles.h2}>13. Reportes</h2>
         <p style={styles.p}>
-          Reportes de ventas para análisis del negocio.
+          El módulo de reportes ofrece <strong>18 tipos de consultas</strong> para analizar el negocio.
+          Seleccioná un módulo en el desplegable, ajustá el rango de fechas si aplica y hacé clic en Buscar.
+          Todos los reportes se pueden exportar a Excel o imprimir/guardar como PDF.
+        </p>
+
+        <h3 style={styles.h3}>13.1 Resumen general</h3>
+        <p style={styles.p}>
+          Panel principal con indicadores globales del negocio en el período seleccionado:
+          ventas totales, ticket promedio, ganancia, margen, stock bajo, cuentas por cobrar (CxC) y por pagar (CxP).
+          Incluye gráfica de ventas por día/mes, top 5 productos más vendidos, métodos de pago,
+          e inventario valorizado (stock × costo de cada producto).
+        </p>
+
+        <h3 style={styles.h3}>13.2 Facturas / Ventas / Ganancias / Compras</h3>
+        <p style={styles.p}>
+          Listados detallados con todas las transacciones del período. Incluyen totales al final de la tabla.
+          <strong>Ganancias</strong> calcula utilidad por producto (precio − costo) × cantidad.
+        </p>
+
+        <h3 style={styles.h3}>13.3 Productos / Clientes / Proveedores / Inventario / Proformas</h3>
+        <p style={styles.p}>
+          Listados maestros de cada módulo. <strong>Inventario</strong> muestra existencias actuales con
+          valor total por producto (stock × costo).
+        </p>
+
+        <h3 style={styles.h3}>13.4 Rentabilidad por producto</h3>
+        <p style={styles.p}>
+          Analiza la rentabilidad de cada producto y categoría. Muestra ventas, costo total, ganancia
+          y margen porcentual. Incluye un toggle para ver los datos agrupados por categoría.
+          El margen se colorea: <strong style={{color:'#16a34a'}}>verde</strong> (&gt;30%),
+          <strong style={{color:'#ca8a04'}}> amarillo</strong> (&gt;10%),
+          <strong style={{color:'#dc2626'}}> rojo</strong> (≤10%).
+        </p>
+
+        <h3 style={styles.h3}>13.5 Clientes morosos</h3>
+        <p style={styles.p}>
+          Lista los clientes con saldo pendiente, ordenados por días de deuda (mayor a menor).
+          Agrupa la cartera vencida en rangos: 0–30, 31–60, 61–90 y más de 90 días.
+          Muestra teléfono, factura, total, saldo pendiente y si la factura está vencida.
+        </p>
+
+        <h3 style={styles.h3}>13.6 Rotación de inventario</h3>
+        <p style={styles.p}>
+          Calcula la rotación anualizada de cada producto: <code>vendido / stock × (12 / meses del período)</code>.
+          Clasifica productos en:
         </p>
         <ul style={styles.ul}>
-          <li style={styles.li}>Seleccioná un rango de fechas (por defecto: últimos 30 días).</li>
-          <li style={styles.li}>El reporte muestra: facturas emitidas, totales, métodos de pago usados, productos más vendidos.</li>
-          <li style={styles.li}>Cada factura en el reporte indica su estado (Vigente / Anulada).</li>
-          <li style={styles.li}>Se puede descargar o imprimir el reporte.</li>
+          <li style={styles.li}><strong>Sin movimiento</strong> — no se vendió ninguna unidad. Capital estancado.</li>
+          <li style={styles.li}><strong>Rotación lenta</strong> — rotación &lt;1 (menos de una vez al año).</li>
+          <li style={styles.li}><strong>Rotación normal</strong> — rotación ≥1.</li>
+        </ul>
+        <p style={styles.p}>
+          Incluye el valor total del inventario sin movimiento para identificar capital inmovilizado.
+          Se puede filtrar por categoría de rotación.
+        </p>
+
+        <h3 style={styles.h3}>13.7 Comparativo de períodos</h3>
+        <p style={styles.p}>
+          Compara dos períodos de fechas (actual vs anterior). Muestra ventas, costos, ganancia,
+          margen, número de facturas y compras de cada período, junto con la diferencia absoluta
+          y porcentual entre ambos.
+        </p>
+
+        <h3 style={styles.h3}>13.8 Flujo de caja proyectado</h3>
+        <p style={styles.p}>
+          Proyecta el flujo de caja a N días (7, 15, 30 o 60) basado en las cuentas por cobrar
+          y por pagar con fecha de vencimiento dentro del período. Muestra:
+        </p>
+        <ul style={styles.ul}>
+          <li style={styles.li}><strong>Por cobrar</strong> — facturas a crédito cuyo vencimiento cae en los próximos N días.</li>
+          <li style={styles.li}><strong>Por pagar</strong> — compras a crédito cuyo vencimiento cae en los próximos N días.</li>
+          <li style={styles.li}><strong>Saldo neto</strong> — total por cobrar − total por pagar.</li>
+        </ul>
+
+        <h3 style={styles.h3}>13.9 Mermas y ajustes</h3>
+        <p style={styles.p}>
+          Lista los movimientos de inventario por merma, vencimiento, robo, pérdida, daño o ajuste.
+          Agrupa por producto para identificar cuáles generan más pérdida.
+          También incluye salidas manuales sin motivo ni asociación a venta.
+        </p>
+
+        <h3 style={styles.h3}>13.10 Reporte fiscal</h3>
+        <p style={styles.p}>
+          Resumen tributario con desglose mensual de: ventas totales, IVA generado, descuentos,
+          facturas exentas, y el detalle de contado vs crédito por mes.
+          Incluye totales globales del período: número de facturas, clientes atendidos,
+          total IVA y descuentos.
+        </p>
+
+        <h3 style={styles.h3}>13.11 Ganancias y Pérdidas (P&amp;L)</h3>
+        <p style={styles.p}>
+          Reporte que muestra la rentabilidad real del negocio combinando ventas, costos y gastos.
+          Agrupa los datos en tres vistas seleccionables:
+        </p>
+        <ul style={styles.ul}>
+          <li style={styles.li}><strong>Por día</strong> — cada fila es un día del período.</li>
+          <li style={styles.li}><strong>Por quincena</strong> — agrupa en dos bloques mensuales (días 1–15 y 16–fin).</li>
+          <li style={styles.li}><strong>Por mes</strong> — cada fila es un mes completo.</li>
+        </ul>
+        <p style={styles.p}>
+          Cada fila muestra: ventas, costo de mercancía, ganancia bruta con margen, gastos operativos del período,
+          ganancia neta y margen neto. Las tarjetas de resumen muestran los totales generales con colores
+          indicadores (verde = ganancia positiva, rojo = pérdida).
+          Los gastos se toman del módulo <strong>Gastos</strong> sin importar su método de pago.
+        </p>
+
+        <h3 style={styles.h3}>13.12 Exportar e imprimir</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}><strong>PDF</strong> — generá un archivo PDF del reporte actual listo para imprimir.</li>
+          <li style={styles.li}><strong>Excel</strong> — descargá los datos en formato .xlsx. Para el resumen general, genera varias pestañas (Resumen, Ventas por día, Top productos, Métodos de pago, Inventario).</li>
         </ul>
       </section>
 
       <section id="configuracion">
-        <h2 style={styles.h2}>13. Configuración</h2>
+        <h2 style={styles.h2}>14. Configuración</h2>
         <p style={styles.p}>
           Accesible solo para administradores.
         </p>
 
-        <h3 style={styles.h3}>13.1 General</h3>
+        <h3 style={styles.h3}>14.1 General</h3>
         <ul style={styles.ul}>
           <li style={styles.li}><strong>Nombre del negocio</strong> — aparece en tickets, reportes y dashboard.</li>
           <li style={styles.li}><strong>Teléfono, dirección, slogan</strong> — datos de contacto en los comprobantes.</li>
           <li style={styles.li}><strong>Logo</strong> — imagen que aparece en tickets y dashboard.</li>
         </ul>
 
-        <h3 style={styles.h3}>13.2 IVA</h3>
+        <h3 style={styles.h3}>14.2 IVA</h3>
         <ul style={styles.ul}>
           <li style={styles.li}>Podés activar o desactivar el IVA desde el interruptor en Configuración.</li>
           <li style={styles.li}>Cuando está desactivado, el POS, las proformas y los tickets no muestran ni calculan IVA.</li>
           <li style={styles.li}>Cuando está activado, se aplica el porcentaje configurado (ej. 15%).</li>
         </ul>
 
-        <h3 style={styles.h3}>13.3 DGI — e-Factura Nicaragua</h3>
+        <h3 style={styles.h3}>14.3 DGI — e-Factura Nicaragua</h3>
         <ul style={styles.ul}>
           <li style={styles.li}>Campos disponibles: NRC, CAI, rango de facturación autorizado.</li>
           <li style={styles.li}>El sistema cuenta con un generador de XML para e-factura, pero la integración con los servicios web de DGI requiere credenciales oficiales.</li>
         </ul>
 
-        <h3 style={styles.h3}>13.4 Usuarios</h3>
+        <h3 style={styles.h3}>14.4 Usuarios</h3>
         <ul style={styles.ul}>
           <li style={styles.li}>Crear, editar y desactivar usuarios del sistema.</li>
           <li style={styles.li}>Asignar rol: admin, supervisor, encargado, cajero.</li>
@@ -427,7 +589,7 @@ export default function ManualPage() {
           <li style={styles.li}>El nombre de usuario se recorta automáticamente (sin espacios al inicio/final).</li>
         </ul>
 
-        <h3 style={styles.h3}>13.5 Licencia</h3>
+        <h3 style={styles.h3}>14.5 Licencia</h3>
         <ul style={styles.ul}>
           <li style={styles.li}>El sistema requiere una licencia para funcionar.</li>
           <li style={styles.li}>La licencia está vinculada al hardware del servidor (machine-id).</li>
@@ -435,7 +597,7 @@ export default function ManualPage() {
           <li style={styles.li}>Si la licencia vence o es inválida, el sistema muestra una pantalla de advertencia.</li>
         </ul>
 
-        <h3 style={styles.h3}>13.6 Respaldos</h3>
+        <h3 style={styles.h3}>14.6 Respaldos</h3>
         <ul style={styles.ul}>
           <li style={styles.li}><strong>Descargar respaldo:</strong> genera un archivo .sql con toda la base de datos.</li>
           <li style={styles.li}><strong>Restaurar respaldo:</strong> permite subir un archivo .sql previo para recuperar el sistema.</li>
@@ -446,7 +608,7 @@ export default function ManualPage() {
       </section>
 
       <section id="accesos">
-        <h2 style={styles.h2}>14. Accesos directos — Atajos de teclado</h2>
+        <h2 style={styles.h2}>15. Accesos directos — Atajos de teclado</h2>
         <p style={styles.p}>Dentro del POS, los siguientes atajos están disponibles:</p>
         <table style={styles.table}>
           <thead>
@@ -466,6 +628,72 @@ export default function ManualPage() {
             <tr><td style={styles.td}><span style={styles.shortcut}>F8</span></td><td style={styles.td}>Retirar venta estacionada</td></tr>
           </tbody>
         </table>
+      </section>
+
+      <section id="teclado-virtual">
+        <h2 style={styles.h2}>16. Teclado virtual</h2>
+        <p style={styles.p}>
+          El sistema incluye un teclado virtual en pantalla para dispositivos táctiles
+          (monitores táctiles HP Engage, tablets Android, iPad, etc.).
+        </p>
+
+        <h3 style={styles.h3}>16.1 Activación</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}>El teclado se activa <strong>automáticamente</strong> al tocar cualquier campo de texto o número en cualquier pantalla del sistema.</li>
+          <li style={styles.li}><strong>No requiere configuración</strong> — funciona desde la primera vez que se abre el sistema en un dispositivo táctil.</li>
+          <li style={styles.li}>Se cierra al presionar <strong>Listo</strong> o al tocar fuera del campo de texto.</li>
+        </ul>
+
+        <h3 style={styles.h3}>16.2 Layouts disponibles</h3>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Layout</th>
+              <th style={styles.th}>Cuándo aparece</th>
+              <th style={styles.th}>Teclas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{...styles.td, fontWeight: 600}}>QWERTY español</td>
+              <td style={styles.td}>Campos de texto (nombre, dirección, búsqueda, etc.)</td>
+              <td style={styles.td}>a–z, ñ, Ñ, punto, coma</td>
+            </tr>
+            <tr>
+              <td style={{...styles.td, fontWeight: 600}}>Numérico</td>
+              <td style={styles.td}>Campos numéricos (precio, cantidad, teléfono)</td>
+              <td style={styles.td}>0–9, . , - / : ; ( ) @ &amp;</td>
+            </tr>
+            <tr>
+              <td style={{...styles.td, fontWeight: 600}}>Símbolos</td>
+              <td style={styles.td}>Se accede desde el botón <strong>#+=</strong></td>
+              <td style={styles.td}>? ! &apos; % * + = y símbolos adicionales</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style={styles.h3}>16.3 Botones de control</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}><strong>⇧ (Shift)</strong> — activa mayúsculas. Se desactiva al presionar otra tecla.</li>
+          <li style={styles.li}><strong>⌫ (Borrar)</strong> — elimina el último carácter.</li>
+          <li style={styles.li}><strong>ABC / 123</strong> — alterna entre el teclado de letras y el numérico.</li>
+          <li style={styles.li}><strong>#+=</strong> — muestra símbolos y caracteres especiales.</li>
+          <li style={styles.li}><strong>Espacio</strong> — inserta un espacio.</li>
+          <li style={styles.li}><strong>Listo</strong> — cierra el teclado y quita el foco del campo.</li>
+        </ul>
+
+        <h3 style={styles.h3}>16.4 Diseño adaptable</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}><strong>Tema claro/oscuro:</strong> el teclado se adapta automáticamente al tema del sistema (configurable en la barra lateral).</li>
+          <li style={styles.li}><strong>Efecto glass:</strong> el fondo del teclado tiene un efecto semitransparente con blur, dejando ver el contenido detrás.</li>
+          <li style={styles.li}><strong>Responsivo:</strong> en pantallas pequeñas (&le;600px), las teclas se reducen de tamaño para aprovechar mejor el espacio.</li>
+        </ul>
+
+        <h3 style={styles.h3}>16.5 Campos excluidos</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}>El campo de búsqueda por código de barras en el POS está excluido del teclado virtual, ya que recibe entrada del escáner (no táctil).</li>
+          <li style={styles.li}>Los campos que ya tienen su propio teclado numérico integrado tampoco activan el teclado virtual.</li>
+        </ul>
       </section>
 
       <div className="no-print" style={{ textAlign: 'center', marginTop: 40, paddingTop: 20, borderTop: '1px solid #e2e8f0', fontSize: 12, color: '#94a3b8' }}>

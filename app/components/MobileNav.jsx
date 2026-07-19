@@ -2,14 +2,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
+import * as Icons from 'lucide-react'
 
 export default function MobileNav() {
   const pathname = usePathname()
   const { modulosPermitidos } = useAuth()
 
-  const items = modulosPermitidos().filter(m => ['inicio','facturas','productos','reportes','clientes'].includes(m.id)).map(m => ({
-    href: m.path, icono: m.label.split(' ')[0], label: m.label.replace(/^[^\s]+\s/, '')
-  }))
+  const items = modulosPermitidos().filter(m => ['inicio','facturas','productos','reportes','clientes'].includes(m.id)).map(m => ({ href: m.path, icono: m.icono, label: m.label }))
 
   return (
     <nav style={{
@@ -21,6 +20,7 @@ export default function MobileNav() {
     className="mobile-nav">
       {items.map(item => {
         const activo = pathname === item.href
+        const IconComp = Icons[item.icono]
         return (
           <Link key={item.href} href={item.href} style={{
             flex: 1, display: 'flex', flexDirection: 'column',
@@ -30,7 +30,7 @@ export default function MobileNav() {
             borderTop: activo ? '2px solid #16a34a' : '2px solid transparent',
             fontSize: '10px', fontWeight: activo ? 700 : 400, gap: '2px'
           }}>
-            <span style={{ fontSize: '20px' }}>{item.icono}</span>
+            {IconComp && <IconComp size={20} />}
             {item.label}
           </Link>
         )

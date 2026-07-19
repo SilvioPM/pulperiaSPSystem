@@ -1,0 +1,13 @@
+{
+  "name": "spsystem-print-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agente de impresión para SP System — imprime tickets directamente a impresora térmica con corte automático",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "node-thermal-printer": "^4.1.2"
+  }
+}

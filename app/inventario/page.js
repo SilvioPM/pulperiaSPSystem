@@ -1,24 +1,52 @@
 'use client'
 import { useState, useEffect } from 'react'
 
+import StockAlerta from '@/app/components/StockAlerta'
+import * as Icons from 'lucide-react'
+
 export default function Inventario() {
   const [movimientos, setMovimientos] = useState([])
   const [productos, setProductos]     = useState([])
   const [mostrarForm, setMostrarForm] = useState(false)
   const [alertas, setAlertas]         = useState([])
+  const [prodsVencer, setProdsVencer] = useState([])
+  const [filtroVenc, setFiltroVenc]   = useState(15)
   const [cargando, setCargando] = useState(true)
+  const [buscar, setBuscar]     = useState('')
   const [form, setForm] = useState({
     productoId: '', tipo: 'entrada', cantidad: '', motivo: ''
   })
 
+  const filtrados = buscar
+    ? movimientos.filter(m => m.producto?.nombre?.toLowerCase().includes(buscar.toLowerCase()))
+    : movimientos
+
+  const saldos = (() => {
+    if (filtrados.length === 0) return []
+    const ordenado = [...filtrados].sort((a, b) => new Date(a.creadoEn) - new Date(b.creadoEn))
+    const balanceMap = {}
+    const porProducto = {}
+    for (const m of ordenado) {
+      const pid = m.productoId || m.producto?.id
+      if (!porProducto[pid]) porProducto[pid] = 0
+      if (m.tipo === 'entrada') porProducto[pid] += m.cantidad
+      else porProducto[pid] -= m.cantidad
+      balanceMap[m.id] = porProducto[pid]
+    }
+    return filtrados.map(m => balanceMap[m.id])
+  })()
+
   useEffect(() => {
-    Promise.all([cargarMovimientos(), cargarProductos()])
+    Promise.all([cargarMovimientos(), cargarProductos(), cargarVencer()])
       .finally(() => setCargando(false))
   }, [])
 
-  // Cada vez que cargan los productos, filtramos los de stock bajo
   useEffect(() => {
-    const bajos = productos.filter(p => p.stock <= p.stockMinimo)
+    cargarVencer()
+  }, [filtroVenc])
+
+  useEffect(() => {
+    const bajos = productos.filter(p => p.stock <= p.stockMinimo).sort((a, b) => a.stock - b.stock)
     setAlertas(bajos)
   }, [productos])
 
@@ -32,6 +60,12 @@ export default function Inventario() {
     const res  = await fetch('/api/productos')
     const data = await res.json()
     setProductos(data.data || data)
+  }
+
+  async function cargarVencer() {
+    const res  = await fetch(`/api/productos?vencer=${filtroVenc}&limit=200`)
+    const data = await res.json()
+    setProdsVencer(data.data || [])
   }
 
   async function guardarMovimiento(e) {
@@ -65,32 +99,74 @@ export default function Inventario() {
       {/* Encabezado */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>🏬 Inventario</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}><Icons.ClipboardList size={24} /> Inventario</h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>Control de entradas y salidas de stock</p>
         </div>
-        <button className="btn-verde" onClick={() => setMostrarForm(true)}>
-          + Registrar Movimiento
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <StockAlerta />
+          <button className="btn-verde" onClick={() => setMostrarForm(true)}>
+            + Registrar Movimiento
+          </button>
+        </div>
       </div>
 
-      {/* Alertas de stock bajo */}
       {alertas.length > 0 && (
         <div style={{
-          background: '#fef9c3', border: '1px solid #fde047',
-          borderRadius: '12px', padding: '16px', marginBottom: '20px'
+          background: '#fef2f2', border: '1px solid #fecaca',
+          borderRadius: '12px', padding: '12px 16px', marginBottom: '20px',
+          display: 'flex', alignItems: 'center', gap: '10px',
         }}>
-          <div style={{ fontWeight: 700, color: '#854d0e', marginBottom: '10px', fontSize: '15px' }}>
-            ⚠️ {alertas.length} producto(s) con stock bajo
+          <Icons.Ban size={14} />
+          <span style={{ fontWeight: 600, fontSize: '14px', color: '#dc2626' }}>
+            {alertas.filter(p => p.stock === 0).length} producto(s) sin stock
+          </span>
+          <span style={{ color: '#d97706', fontSize: '14px' }}>
+            · {alertas.filter(p => p.stock > 0).length} con stock bajo
+          </span>
+        </div>
+      )}
+
+      {prodsVencer.length > 0 && (
+        <div style={{
+          background: '#fffbeb', border: '1px solid #fde68a',
+          borderRadius: '12px', padding: '12px 16px', marginBottom: '20px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <Icons.Clock size={16} color="#d97706" />
+            <span style={{ fontWeight: 700, fontSize: '14px', color: '#92400e' }}>
+              {prodsVencer.length} producto(s) próximos a vencer
+            </span>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+              {[15, 30, 60, 90].map(d => (
+                <button key={d} onClick={() => setFiltroVenc(d)}
+                  style={{
+                    padding: '2px 8px', borderRadius: 4, border: '1px solid #fde68a',
+                    background: filtroVenc === d ? '#d97706' : 'transparent',
+                    color: filtroVenc === d ? 'white' : '#92400e',
+                    cursor: 'pointer', fontSize: 11, fontWeight: 600
+                  }}>{d}d</button>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {alertas.map(p => (
-              <span key={p.id} style={{
-                background: 'white', border: '1px solid #fde047',
-                borderRadius: '8px', padding: '6px 12px', fontSize: '13px'
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {prodsVencer.slice(0, 10).map(p => (
+              <div key={p.id} style={{
+                padding: '4px 10px', borderRadius: 6, background: 'white',
+                border: '1px solid #fde68a', fontSize: 12,
+                display: 'flex', alignItems: 'center', gap: 6
               }}>
-                <strong>{p.nombre}</strong> — quedan {p.stock} {p.unidad}(s)
-              </span>
+                <span style={{ fontWeight: 600 }}>{p.nombre}</span>
+                <span style={{ color: '#d97706' }}>
+                  Vence: {new Date(p.fechaVencimiento).toLocaleDateString('es-NI')}
+                </span>
+                <span style={{ color: '#64748b' }}>Stock: {p.stock}</span>
+              </div>
             ))}
+            {prodsVencer.length > 10 && (
+              <span style={{ fontSize: 11, color: '#64748b', padding: '4px 8px' }}>
+                +{prodsVencer.length - 10} más
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -120,15 +196,28 @@ export default function Inventario() {
         </div>
       </div>
 
-      {/* Tabla de movimientos */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0' }}>
-          <h2 style={{ fontWeight: 700, fontSize: '16px' }}>📋 Historial de movimientos</h2>
+      {/* Buscador de producto para kardex */}
+      <div className="card" style={{ marginBottom: '16px', padding: '12px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icons.Search size={18} color="#94a3b8" />
+          <input type="text" placeholder="Buscá un producto para ver su kardex (movimientos)..." value={buscar}
+            onChange={e => setBuscar(e.target.value)}
+            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }} />
+          {buscar && <button onClick={() => setBuscar('')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '18px' }}>✕</button>}
+        </div>
+      </div>
+
+      {/* Tabla de movimientos (kardex) */}
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontWeight: 700, fontSize: '16px' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.ClipboardList size={16} /> {buscar ? `Kardex: ${buscar}` : 'Historial de movimientos'}</span></h2>
+          {buscar && <span style={{ fontSize: '13px', color: '#64748b' }}>Filtrando por: <strong>{buscar}</strong></span>}
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['Fecha', 'Producto', 'Tipo', 'Cantidad', 'Motivo'].map(h => (
+              {['Fecha', 'Producto', 'Tipo', 'Cantidad', 'Saldo', 'Motivo'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
                   {h}
                 </th>
@@ -136,14 +225,16 @@ export default function Inventario() {
             </tr>
           </thead>
           <tbody>
-            {movimientos.length === 0 ? (
+            {filtrados.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  No hay movimientos aún
+                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                  {buscar ? `No hay movimientos para "${buscar}"` : 'No hay movimientos aún'}
                 </td>
               </tr>
             ) : (
-              movimientos.map((m, i) => (
+              filtrados.map((m, i) => {
+                const saldo = saldos[i]
+                return (
                 <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                     {formatearFecha(m.creadoEn)}
@@ -157,17 +248,21 @@ export default function Inventario() {
                       background: m.tipo === 'entrada' ? '#dcfce7' : '#fee2e2',
                       color: m.tipo === 'entrada' ? '#16a34a' : '#dc2626'
                     }}>
-                      {m.tipo === 'entrada' ? '📥 Entrada' : '📤 Salida'}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{m.tipo === 'entrada' ? <><Icons.Download size={14} /> Entrada</> : <><Icons.Upload size={14} /> Salida</>}</span>
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '15px' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '15px', color: m.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>
                     {m.tipo === 'entrada' ? '+' : '-'}{m.cantidad}
+                  </td>
+                  <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '15px' }}>
+                    {saldo}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
                     {m.motivo || '—'}
                   </td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>
@@ -181,7 +276,7 @@ export default function Inventario() {
         }}>
           <div className="card" style={{ width: '440px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>📦 Registrar Movimiento</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Package size={16} /> Registrar Movimiento</span></h2>
               <button onClick={() => setMostrarForm(false)}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>
                 ✕
@@ -205,7 +300,7 @@ export default function Inventario() {
                         color: form.tipo === tipo ? (tipo === 'entrada' ? '#16a34a' : '#dc2626') : '#64748b',
                         cursor: 'pointer', fontWeight: 700, fontSize: '14px'
                       }}>
-                      {tipo === 'entrada' ? '📥 Entrada' : '📤 Salida'}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{tipo === 'entrada' ? <><Icons.Download size={14} /> Entrada</> : <><Icons.Upload size={14} /> Salida</>}</span>
                     </button>
                   ))}
                 </div>
@@ -258,7 +353,7 @@ export default function Inventario() {
                   Cancelar
                 </button>
                 <button type="submit" className="btn-verde" style={{ flex: 2, padding: '12px' }}>
-                  💾 Guardar
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Save size={16} /> Guardar</span>
                 </button>
               </div>
             </form>

@@ -31,7 +31,7 @@ export async function GET() {
           }
         } else {
           if (f.metodoPago === 'credito') continue
-          const monto = f.metodoPago === 'dolares' ? (f.pagoEnUsd || f.pagoCon || 0) : f.total
+          const monto = f.metodoPago === 'dolares' ? (f.pagoEnUsd ?? f.pagoCon ?? 0) : f.total
           if (f.metodoPago === 'efectivo') ventasEfectivoCs += monto
           else if (f.metodoPago === 'dolares') ventasEfectivoUs += monto
           else if (f.metodoPago === 'tarjeta') ventasTarjeta += monto

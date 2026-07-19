@@ -5,6 +5,7 @@ import ProformaRecibo from '../components/ProformaRecibo'
 import ProformaCarta from '../components/ProformaCarta'
 import Toast from '../components/Toast'
 import { useToast } from '../hooks/useToast'
+import * as Icons from 'lucide-react'
 
 export default function Proformas() {
   const [proformas, setProformas]       = useState([])
@@ -16,6 +17,7 @@ export default function Proformas() {
   const [proformaVer, setProformaVer]   = useState(null)
   const [convirtiendo, setConvirtiendo] = useState(false)
   const [buscar, setBuscar]             = useState('')
+  const [buscarProd, setBuscarProd]     = useState('')
   const cartaRef = useRef(null)
   const { toast, mostrar, cerrar } = useToast()
 
@@ -236,7 +238,7 @@ _Esta es una cotización, no una factura oficial._
       {/* Encabezado */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>📄 Proformas / Cotizaciones</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}><Icons.FileEdit size={24} /> Proformas / Cotizaciones</h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>{proformas.length} proformas registradas</p>
         </div>
         <button className="btn-verde" onClick={() => setMostrarForm(true)}>
@@ -260,16 +262,19 @@ _Esta es una cotización, no una factura oficial._
 
       {/* Buscador */}
       <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
-        <input type="text"
-          placeholder="🔍 Buscar por número o cliente..."
-          value={buscar}
-          onChange={e => setBuscar(e.target.value)}
-          style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none' }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icons.Search size={16} color="#94a3b8" />
+          <input type="text"
+            placeholder="Buscar por número o cliente..."
+            value={buscar}
+            onChange={e => setBuscar(e.target.value)}
+            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none' }}
+          />
+        </div>
       </div>
 
       {/* Tabla */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
@@ -282,7 +287,7 @@ _Esta es una cotización, no una factura oficial._
             {proformasFiltradas.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '8px' }}>📄</div>
+                  <Icons.FileText size={40} style={{ margin: '0 auto 8px', opacity: 0.4, display: 'block' }} />
                   No hay proformas aún
                 </td>
               </tr>
@@ -315,22 +320,22 @@ _Esta es una cotización, no una factura oficial._
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button onClick={() => setProformaVer(p)}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '13px' }}>
-                          👁️
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icons.Eye size={16} />
                         </button>
                         <button onClick={() => compartirWhatsApp(p)}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #dcfce7', background: '#dcfce7', cursor: 'pointer', fontSize: '13px', color: '#16a34a', fontWeight: 600 }}>
-                          📱
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #dcfce7', background: '#dcfce7', cursor: 'pointer', fontSize: '13px', color: '#16a34a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icons.Smartphone size={16} />
                         </button>
                         {p.estado === 'pendiente' && (
                           <button onClick={() => convertirAFactura(p)} disabled={convirtiendo}
-                            style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: '#7c3aed', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                            🧾 Facturar
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: '#7c3aed', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Icons.FileText size={16} /> Facturar
                           </button>
                         )}
                         <button onClick={() => eliminarProforma(p.id)}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
-                          🗑️
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icons.Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -349,12 +354,15 @@ _Esta es una cotización, no una factura oficial._
 
             {/* Panel izquierdo — productos */}
             <div style={{ flex: 1 }}>
-              <h3 style={{ fontWeight: 700, marginBottom: '16px' }}>📦 Seleccioná productos</h3>
-              <input type="text" placeholder="🔍 Buscar..."
-                style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px', outline: 'none' }}
+              <h3 style={{ fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 8 }}><Icons.Package size={20} /> Seleccioná productos</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '12px' }}>
+                <Icons.Search size={14} color="#94a3b8" />
+              <input type="text" placeholder="Buscar..." value={buscarProd} onChange={e => setBuscarProd(e.target.value)}
+                style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}
               />
+              </div>
               <div style={{ maxHeight: '400px', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {productos.map(p => (
+                {productos.filter(p => !buscarProd || p.nombre?.toLowerCase().includes(buscarProd.toLowerCase())).map(p => (
                   <div key={p.id} onClick={() => agregarProducto(p)}
                     style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer', background: 'white' }}>
                     <div style={{ fontSize: '13px', fontWeight: 600 }}>{p.nombre}</div>
@@ -367,15 +375,15 @@ _Esta es una cotización, no una factura oficial._
             {/* Panel derecho — detalle */}
             <div style={{ width: '340px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ fontWeight: 700 }}>📄 Detalle</h3>
+                <h3 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><Icons.FileText size={18} /> Detalle</h3>
                 <button onClick={() => { setMostrarForm(false); setCarrito([]) }}
-                  style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                  style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', fontSize: '16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
 
               {/* Cliente */}
               <select value={clienteId} onChange={e => setClienteId(e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}>
-                <option value="">👤 Cliente general</option>
+                <option value="">Cliente general</option>
                 {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
 
@@ -439,7 +447,7 @@ _Esta es una cotización, no una factura oficial._
 
               {/* Nota */}
               <input value={nota} onChange={e => setNota(e.target.value)}
-                placeholder="📝 Nota u observaciones..."
+                placeholder="Nota u observaciones..."
                 style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
               />
 
@@ -449,7 +457,7 @@ _Esta es una cotización, no una factura oficial._
                   background: '#7c3aed', color: 'white', cursor: 'pointer',
                   fontWeight: 700, fontSize: '15px'
                 }}>
-                💾 Guardar Proforma
+                <Icons.Save size={16} /> Guardar Proforma
               </button>
             </div>
           </div>
@@ -459,38 +467,40 @@ _Esta es una cotización, no una factura oficial._
       {/* Modal ver proforma */}
       {proformaVer && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div className="card" style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card" style={{ width: '90vw', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#7c3aed' }}>{proformaVer.numero}</h2>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <button onClick={imprimirProforma}
   style={{
     padding: '8px 14px', borderRadius: '8px', border: 'none',
     background: '#dbeafe', color: '#2563eb',
-    cursor: 'pointer', fontWeight: 600, fontSize: '13px'
+    cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+    display: 'inline-flex', alignItems: 'center', gap: 6
   }}>
-  🖨️ Ticket 80mm
+  <Icons.Printer size={16} /> Ticket 80mm
 </button>
 <button onClick={imprimirCarta}
   style={{
     padding: '8px 14px', borderRadius: '8px', border: 'none',
     background: '#f3e8ff', color: '#7c3aed',
-    cursor: 'pointer', fontWeight: 600, fontSize: '13px'
+    cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+    display: 'inline-flex', alignItems: 'center', gap: 6
   }}>
-  📄 Carta / PDF
+  <Icons.File size={16} /> Carta / PDF
 </button>
                 <button onClick={() => compartirWhatsApp(proformaVer)}
-                  style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#dcfce7', color: '#16a34a', cursor: 'pointer', fontWeight: 600 }}>
-                  📱 WhatsApp
+                  style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#dcfce7', color: '#16a34a', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Icons.Smartphone size={16} /> WhatsApp
                 </button>
                 {proformaVer.estado === 'pendiente' && (
                   <button onClick={() => convertirAFactura(proformaVer)} disabled={convirtiendo}
                     style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                    🧾 Convertir a Factura
+                    <Icons.FileText size={16} /> Convertir a Factura
                   </button>
                 )}
                 <button onClick={() => setProformaVer(null)}
-                  style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                  style={{ marginLeft: 4, width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', fontSize: '16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
             </div>
 
@@ -524,10 +534,10 @@ _Esta es una cotización, no una factura oficial._
             </table>
 
             <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '12px' }}>
-              {iva > 0 && (
+              {(proformaVer.iva || 0) > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
                   <span style={{ color: '#64748b' }}>IVA</span>
-                  <span>C$ {proformaVer.iva.toFixed(2)}</span>
+                  <span>C$ {(proformaVer.iva || 0).toFixed(2)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 700, color: '#7c3aed' }}>
@@ -541,11 +551,11 @@ _Esta es una cotización, no una factura oficial._
               <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
                 <button onClick={() => { cambiarEstado(proformaVer.id, 'aprobada'); setProformaVer(null) }}
                   style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#dcfce7', color: '#16a34a', cursor: 'pointer', fontWeight: 700 }}>
-                  ✅ Aprobar
+                  <Icons.CheckCircle size={16} /> Aprobar
                 </button>
                 <button onClick={() => { cambiarEstado(proformaVer.id, 'rechazada'); setProformaVer(null) }}
                   style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#dc2626', cursor: 'pointer', fontWeight: 700 }}>
-                  ❌ Rechazar
+                  <Icons.XCircle size={16} /> Rechazar
                 </button>
               </div>
             )}

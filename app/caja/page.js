@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
 import AuthGuard from '@/app/components/AuthGuard'
 import { auditar } from '@/lib/auditarClient'
+import * as Icons from 'lucide-react'
 
 const DENOMINACIONES_CS = [1000, 500, 200, 100, 50, 25, 20, 10, 5]
 const DENOMINACIONES_US = [100, 50, 20, 10, 5, 2, 1]
@@ -137,7 +138,7 @@ export default function CajaPage() {
     cargar()
   }
 
-  const labelCaja = caja ? '🔴 Caja abierta' : '🟢 Caja cerrada'
+  const IconoCaja = caja ? <Icons.Circle fill="#dc2626" color="#dc2626" size={12} /> : <Icons.Circle fill="#16a34a" color="#16a34a" size={12} />
 
   if (cargando) return <AuthGuard modulos={['caja']}><div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div></AuthGuard>
 
@@ -147,7 +148,7 @@ export default function CajaPage() {
         <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
           Caja
         </h1>
-        <div style={{ color: caja ? '#dc2626' : '#16a34a', fontWeight: 600, marginBottom: '24px' }}>{labelCaja}</div>
+        <div style={{ color: caja ? '#dc2626' : '#16a34a', fontWeight: 600, marginBottom: '24px' }}>{IconoCaja} {caja ? 'Caja abierta' : 'Caja cerrada'}</div>
 
         {msg && <div style={{ padding: '10px 16px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, color: '#166534', marginBottom: 16 }}>{msg}</div>}
         {error && <div style={{ padding: '10px 16px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, color: '#991b1b', marginBottom: 16 }}>{error}</div>}
@@ -254,6 +255,9 @@ export default function CajaPage() {
                           color: m.tipo === 'entrada' ? '#16a34a' : '#dc2626'
                         }}>{m.tipo === 'entrada' ? '+ Entrada' : '- Salida'}</span>
                         <span style={{ color: '#475569' }}>{m.concepto}</span>
+                        {m.concepto?.startsWith('Gasto #') && (
+                          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: '#fef3c7', color: '#92400e', fontWeight: 600 }}>Gasto</span>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <span style={{ fontWeight: 600, color: m.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>
