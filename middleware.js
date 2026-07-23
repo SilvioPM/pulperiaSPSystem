@@ -23,12 +23,26 @@ export default async function middleware(req) {
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
     const origin = req.headers.get('origin')
     const referer = req.headers.get('referer')
-    const host = req.headers.get('host')
-    if (origin && host && !origin.includes(host)) {
-      return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
-    }
-    if (referer && host && !referer.includes(host)) {
-      return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
+    const url = new URL(req.url)
+    const allowed = [url.origin, `${url.protocol}//${url.host}`]
+    if (origin) {
+      try {
+        const o = new URL(origin)
+        if (!allowed.some(a => o.origin === new URL(a).origin)) {
+          return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
+        }
+      } catch {
+        return NextResponse.json({ error: 'Origen inválido' }, { status: 400 })
+      }
+    } else if (referer) {
+      try {
+        const r = new URL(referer)
+        if (!allowed.some(a => r.origin === new URL(a).origin)) {
+          return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
+        }
+      } catch {
+        return NextResponse.json({ error: 'Referer inválido' }, { status: 400 })
+      }
     }
   }
 

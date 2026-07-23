@@ -41,9 +41,21 @@ export async function PUT(request, { params }) {
     Object.keys(data).forEach(k => data[k] === undefined && delete data[k])
     if (body.activo !== undefined) data.activo = body.activo
 
+    // Manejar códigos alias: eliminar existentes, crear nuevos
+    const codigosAlias = Array.isArray(body.codigosAlias) ? body.codigosAlias.filter(c => c?.trim()) : []
+    if (body.codigosAlias !== undefined) {
+      await prisma.productoCodigo.deleteMany({ where: { productoId: id } })
+      if (codigosAlias.length > 0) {
+        await prisma.productoCodigo.createMany({
+          data: codigosAlias.map(c => ({ codigo: c, productoId: id }))
+        })
+      }
+    }
+
     const producto = await prisma.producto.update({
       where: { id },
-      data
+      data,
+      include: { codigosAlias: true }
     })
     return NextResponse.json(producto)
   } catch (error) {

@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-// Actualizar estado de proforma
 export async function PUT(request, { params }) {
   try {
     const id   = parseInt(params.id)
@@ -17,9 +16,13 @@ export async function PUT(request, { params }) {
   }
 }
 
-// Convertir proforma a factura
 export async function POST(request, { params }) {
   try {
+    const cajaAbierta = await prisma.caja.findFirst({ where: { estado: 'abierta' } })
+    if (!cajaAbierta) {
+      return NextResponse.json({ error: 'No hay caja abierta. Abrí una caja antes de facturar.' }, { status: 400 })
+    }
+
     const id       = parseInt(params.id)
     const proforma = await prisma.proforma.findUnique({
       where:   { id },
@@ -30,7 +33,18 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Proforma no encontrada' }, { status: 404 })
     }
 
-    // Creamos la factura
+    if (proforma.estado !== 'pendiente') {
+      return NextResponse.json({ error: `La proforma ya está "${proforma.estado}". No se puede convertir.` }, { status: 400 })
+    }
+
+    for (const detalle of proforma.detalles) {
+      if (detalle.producto.stock < detalle.cantidad) {
+        return NextResponse.json({
+          error: `Stock insuficiente para "${detalle.producto.nombre}". Disponible: ${detalle.producto.stock}, necesario: ${detalle.cantidad}`
+        }, { status: 400 })
+      }
+    }
+
     const totalFacturas = await prisma.factura.count()
     const numero        = `FAC-${String(totalFacturas + 1).padStart(5, '0')}`
 
@@ -50,6 +64,7 @@ export async function POST(request, { params }) {
             productoId: d.productoId,
             cantidad:   d.cantidad,
             precio:     d.precio,
+            costo:      d.producto.costo || 0,
             subtotal:   d.subtotal
           }))
         }
@@ -60,7 +75,6 @@ export async function POST(request, { params }) {
       }
     })
 
-    // Descontamos stock
     for (const detalle of proforma.detalles) {
       await prisma.producto.update({
         where: { id: detalle.productoId },
@@ -78,7 +92,14 @@ export async function POST(request, { params }) {
       })
     }
 
-    // Marcamos la proforma como aprobada
+    await prisma.caja.update({
+      where: { id: cajaAbierta.id },
+      data: {
+        totalVendido:     { increment: proforma.total },
+        ventasEfectivoCs: { increment: proforma.total },
+      }
+    })
+
     await prisma.proforma.update({
       where: { id },
       data:  { estado: 'aprobada' }

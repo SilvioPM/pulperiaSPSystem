@@ -23,6 +23,10 @@ export async function GET(req) {
     if (buscarFactura) {
       where.facturaProveedor = { contains: buscarFactura, mode: 'insensitive' }
     }
+    const estado = searchParams.get('estado')
+    if (estado) {
+      where.estado = estado
+    }
 
     const [compras, total] = await Promise.all([
       prisma.compra.findMany({
@@ -52,6 +56,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'La compra debe tener al menos un detalle' }, { status: 400 })
     }
 
+    const esBorrador = body.esBorrador === true
+
     const compra = await prisma.$transaction(async (tx) => {
       const ultima = await tx.compra.findFirst({ orderBy: { id: 'desc' }, select: { numero: true } })
       let secuencia = 1
@@ -70,8 +76,8 @@ export async function POST(request) {
           iva: parseFloat(body.iva || 0),
           total: parseFloat(body.total),
           esCredito,
-          saldoPendiente: esCredito ? parseFloat(body.total) : 0,
-          estado: esCredito ? 'credito' : 'pagada',
+          saldoPendiente: esBorrador ? 0 : (esCredito ? parseFloat(body.total) : 0),
+          estado: esBorrador ? 'borrador' : (esCredito ? 'credito' : 'pagada'),
           fechaVencimiento: body.fechaVencimiento ? new Date(body.fechaVencimiento) : null,
           nota: body.nota || null,
           detalles: {
@@ -91,48 +97,50 @@ export async function POST(request) {
         }
       })
 
-      for (const detalle of body.detalles) {
-        const producto = await tx.producto.findUnique({ where: { id: parseInt(detalle.productoId) } })
-        if (!producto) throw new Error(`Producto ID ${detalle.productoId} no encontrado`)
+      if (!esBorrador) {
+        for (const detalle of body.detalles) {
+          const producto = await tx.producto.findUnique({ where: { id: parseInt(detalle.productoId) } })
+          if (!producto) throw new Error(`Producto ID ${detalle.productoId} no encontrado`)
 
-        const esUnidadCompra = detalle.unidad === producto.unidadCompra
-        const cantidadBase = esUnidadCompra
-          ? parseFloat(detalle.cantidad) * (producto.factorConversion || 1)
-          : parseFloat(detalle.cantidad)
+          const esUnidadCompra = detalle.unidad === producto.unidadCompra
+          const cantidadBase = esUnidadCompra
+            ? parseFloat(detalle.cantidad) * (producto.factorConversion || 1)
+            : parseFloat(detalle.cantidad)
 
-        const updateData = {
-          stock: { increment: cantidadBase },
-          costo: esUnidadCompra
-            ? parseFloat(detalle.costo) / (producto.factorConversion || 1)
-            : parseFloat(detalle.costo)
-        }
-        if (producto.unidadVenta2 && detalle.unidad === producto.unidadVenta2) {
-          updateData.costoVenta2 = parseFloat(detalle.costo)
-        }
-        if (producto.unidadVenta3 && detalle.unidad === producto.unidadVenta3) {
-          updateData.costoVenta3 = parseFloat(detalle.costo)
-        }
-        if (producto.unidadVenta4 && detalle.unidad === producto.unidadVenta4) {
-          updateData.costoVenta4 = parseFloat(detalle.costo)
-        }
-        if (detalle.fechaVencimiento) {
-          updateData.fechaVencimiento = new Date(detalle.fechaVencimiento)
-        }
-        await tx.producto.update({
-          where: { id: parseInt(detalle.productoId) },
-          data: updateData
-        })
-
-        await tx.movInventario.create({
-          data: {
-            productoId: parseInt(detalle.productoId),
-            tipo: 'entrada',
-            cantidad: cantidadBase,
-            cantidadOriginal: parseFloat(detalle.cantidad),
-            unidadOriginal: detalle.unidad || 'unidad',
-            motivo: `Compra ${numero}`
+          const updateData = {
+            stock: { increment: cantidadBase },
+            costo: esUnidadCompra
+              ? parseFloat(detalle.costo) / (producto.factorConversion || 1)
+              : parseFloat(detalle.costo)
           }
-        })
+          if (producto.unidadVenta2 && detalle.unidad === producto.unidadVenta2) {
+            updateData.costoVenta2 = parseFloat(detalle.costo)
+          }
+          if (producto.unidadVenta3 && detalle.unidad === producto.unidadVenta3) {
+            updateData.costoVenta3 = parseFloat(detalle.costo)
+          }
+          if (producto.unidadVenta4 && detalle.unidad === producto.unidadVenta4) {
+            updateData.costoVenta4 = parseFloat(detalle.costo)
+          }
+          if (detalle.fechaVencimiento) {
+            updateData.fechaVencimiento = new Date(detalle.fechaVencimiento)
+          }
+          await tx.producto.update({
+            where: { id: parseInt(detalle.productoId) },
+            data: updateData
+          })
+
+          await tx.movInventario.create({
+            data: {
+              productoId: parseInt(detalle.productoId),
+              tipo: 'entrada',
+              cantidad: cantidadBase,
+              cantidadOriginal: parseFloat(detalle.cantidad),
+              unidadOriginal: detalle.unidad || 'unidad',
+              motivo: `Compra ${numero}`
+            }
+          })
+        }
       }
 
       return creada

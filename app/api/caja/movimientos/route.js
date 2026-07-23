@@ -28,7 +28,6 @@ export async function POST(req) {
 
     // Actualizar totales en caja
     const esEntrada = tipo === 'entrada'
-    const campo = moneda === 'C$' ? 'ingresosExtra' : 'ingresosExtra' // same field, diferentiated by moneda
     await prisma.caja.update({
       where: { id: caja.id },
       data: esEntrada

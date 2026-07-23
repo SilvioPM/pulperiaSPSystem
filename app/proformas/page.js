@@ -143,6 +143,8 @@ export default function Proformas() {
     setValidoHasta('')
     cargarTodo()
     mostrar(`Proforma ${data.numero} guardada exitosamente`, 'exito')
+    setProformaVer(data)
+    setTimeout(() => imprimirProforma(), 500)
   } catch (error) {
     mostrar(`Error al guardar proforma: ${error.message}`, 'error')
   }

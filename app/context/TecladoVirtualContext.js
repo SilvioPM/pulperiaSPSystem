@@ -10,6 +10,7 @@ export function useTecladoVirtual() {
 
 export function TecladoVirtualProvider({ children }) {
   const [visible, setVisible] = useState(false)
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
   const [inputActivo, setInputActivo] = useState('')
   const [tipo, setTipo] = useState('letras')
   const [ultimoTipo, setUltimoTipo] = useState('letras')
@@ -71,18 +72,22 @@ export function TecladoVirtualProvider({ children }) {
       const related = e.relatedTarget
       if (related && (related.closest('.teclado-virtual-container') || related.hasAttribute('data-tecla'))) return
       setTimeout(() => {
-        if (!document.activeElement || document.activeElement === document.body) {
+        if (!document.activeElement || document.activeElement === document.body || !document.body.contains(inputRef.current)) {
           setVisible(false)
           inputRef.current = null
         }
       }, 150)
     }
 
+    function handleVisibility() { if (document.hidden) { setVisible(false); inputRef.current = null } }
+
     document.addEventListener('focusin', handleFocus)
     document.addEventListener('focusout', handleBlur)
+    document.addEventListener('visibilitychange', handleVisibility)
     return () => {
       document.removeEventListener('focusin', handleFocus)
       document.removeEventListener('focusout', handleBlur)
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [ultimoTipo])
 
@@ -101,16 +106,17 @@ export function TecladoVirtualProvider({ children }) {
   }
 
   return (
-    <TecladoVirtualContext.Provider value={{ cerrar }}>
+    <TecladoVirtualContext.Provider value={{ cerrar, visible, keyboardHeight }}>
       {children}
       {visible && (
         <TecladoVirtual
-          inputActivo={inputActivo}
+          inputRef={inputRef}
           onChange={onChange}
           onCerrar={cerrar}
           tipo={tipo}
           cambiarTipo={cambiarTipo}
           posY={posY}
+          onHeightChange={setKeyboardHeight}
         />
       )}
     </TecladoVirtualContext.Provider>

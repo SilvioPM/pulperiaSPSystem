@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 import { Search, Shirt, Coffee, Wheat, Candy, ShoppingBag, AlertTriangle, ShoppingCart, FileText, User, CheckCircle, Loader, Trash2, PauseCircle, ClipboardList, DollarSign, CreditCard, Smartphone, Star, Package, UserPlus, Play, XCircle, Save, Printer } from 'lucide-react'
 import Toast from '../components/Toast'
 
@@ -10,6 +11,8 @@ import { useToast } from '../hooks/useToast'
 
 export default function POS() {
   const { user } = useAuth()
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [productos, setProductos]     = useState([])
   const [categorias, setCategorias]   = useState([])
   const [carrito, setCarrito]         = useState([])
@@ -41,6 +44,20 @@ export default function POS() {
   const [mostrarFormCliente, setMostrarFormCliente]   = useState(false)
   const [nuevoCliente, setNuevoCliente]               = useState({ nombre: '', telefono: '', direccion: '' })
   const [infoCliente, setInfoCliente]                 = useState(null)
+  const [mostrarProformas, setMostrarProformas]       = useState(false)
+  const [proformasPendientes, setProformasPendientes] = useState([])
+  const [proformaActiva, setProformaActiva]           = useState(null)
+  const [cargandoProformas, setCargandoProformas]     = useState(false)
+  const [esPhone, setEsPhone]                         = useState(false)
+  const [mostrarCats, setMostrarCats]                 = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    setEsPhone(mq.matches)
+    const handler = e => setEsPhone(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   const reciboRef = useRef(null)
   const imprimirTicket = useReactToPrint({
@@ -66,14 +83,20 @@ export default function POS() {
   const barcodeTimer = useRef(null)
   const barcodeRef = useRef(null)
 
+  const agregarAlCarritoRef = useRef(null)
+  agregarAlCarritoRef.current = agregarAlCarrito
+
   const buscarProducto = useCallback(async (codigo) => {
     try {
       const res = await fetch(`/api/productos?buscar=${encodeURIComponent(codigo)}`)
       const data = await res.json()
-      const productos = data.data || data || []
-      const prod = productos.find(p => p.codigo === codigo) || productos[0]
+      const prods = data.data || data || []
+      const prod = prods.find(p =>
+        p.codigo === codigo ||
+        (p.codigosAlias && p.codigosAlias.some(a => a.codigo === codigo))
+      ) || prods[0]
       if (prod) {
-        agregarAlCarrito(prod)
+        agregarAlCarritoRef.current(prod)
       } else {
         console.warn(`Producto con código "${codigo}" no encontrado`)
       }
@@ -154,6 +177,31 @@ export default function POS() {
 
   async function cargarConfig() {
     try { const res = await fetch('/api/config'); const data = await res.json(); setConfig(data) } catch (e) { console.error('Error cargando config:', e) }
+  }
+
+  async function cargarProformas() {
+    setCargandoProformas(true)
+    try {
+      const res = await fetch('/api/proformas?page=1&limit=999')
+      const data = await res.json()
+      setProformasPendientes((data.data || []).filter(p => p.estado === 'pendiente'))
+    } catch (e) {
+      console.error('Error cargando proformas:', e)
+    }
+    setCargandoProformas(false)
+  }
+
+  function cargarProformaEnPOS(proforma) {
+    setCarrito(proforma.detalles.map(d => ({
+      ...d.producto,
+      cantidad: d.cantidad,
+      precio: d.precio,
+      subtotal: d.subtotal,
+      _proformaDetalleId: d.id
+    })))
+    if (proforma.cliente) setClienteSeleccionado(proforma.cliente)
+    setProformaActiva(proforma.id)
+    setMostrarProformas(false)
   }
 
   async function cargarParked() {
@@ -238,6 +286,7 @@ export default function POS() {
     setPagoCon('')
     setFacturaExitosa(null)
     setClienteSeleccionado(null)
+    setProformaActiva(null)
     setBuscarCliente('')
     setInfoCliente(null)
   }
@@ -343,6 +392,14 @@ export default function POS() {
         })
       })
       const factura = await res.json()
+      if (proformaActiva) {
+        await fetch(`/api/proformas/${proformaActiva}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'aprobada' })
+        }).catch(() => {})
+        setProformaActiva(null)
+      }
       setFacturaExitosa(factura)
       setCarrito([])
       setPagoCon('')
@@ -401,33 +458,80 @@ export default function POS() {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setCategoriaActiva(null)}
-              style={{
-                padding: '10px 18px', borderRadius: '24px', border: 'none',
-                cursor: 'pointer', fontSize: '14px', fontWeight: 600, minHeight: '40px',
-                background: !categoriaActiva ? '#16a34a' : '#f1f5f9',
-                color: !categoriaActiva ? 'white' : 'var(--texto-secundario)'
-              }}>
-              Todos
-            </button>
-            {categorias.map(cat => (
-              <button key={cat.id}
-                onClick={() => setCategoriaActiva(cat.id)}
+          {esPhone && buscar ? null : esPhone ? (
+            <div style={{ marginTop: '6px' }}>
+              <button onClick={() => setMostrarCats(!mostrarCats)}
                 style={{
-                  padding: '10px 20px', borderRadius: '24px', border: 'none',
-                  cursor: 'pointer', fontSize: '14px', fontWeight: 600, minHeight: '40px',
-                  background: categoriaActiva === cat.id ? '#16a34a' : '#f1f5f9',
-                  color: categoriaActiva === cat.id ? 'white' : 'var(--texto-secundario)'
+                  padding: '8px 16px', borderRadius: '20px', border: '1px solid #cbd5e1',
+                  background: categoriaActiva ? '#16a34a' : '#f1f5f9',
+                  color: categoriaActiva ? 'white' : '#475569',
+                  cursor: 'pointer', fontSize: '13px', fontWeight: 600,
                 }}>
-                {cat.nombre}
+                {categoriaActiva ? categorias.find(c => c.id === categoriaActiva)?.nombre || 'Categoría' : 'Categorías'} {mostrarCats ? '▲' : '▼'}
               </button>
-            ))}
-          </div>
+              {mostrarCats && (
+                <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  <button onClick={() => { setCategoriaActiva(null); setMostrarCats(false) }}
+                    style={{ padding: '6px 12px', borderRadius: '16px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: !categoriaActiva ? '#16a34a' : '#f1f5f9', color: !categoriaActiva ? 'white' : '#64748b' }}>
+                    Todas
+                  </button>
+                  {categorias.map(cat => (
+                    <button key={cat.id} onClick={() => { setCategoriaActiva(cat.id); setMostrarCats(false) }}
+                      style={{ padding: '6px 12px', borderRadius: '16px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: categoriaActiva === cat.id ? '#16a34a' : '#f1f5f9', color: categoriaActiva === cat.id ? 'white' : '#64748b' }}>
+                      {cat.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button className="pos-cat-btn"
+                onClick={() => setCategoriaActiva(null)}
+                style={{
+                  padding: '7px 14px', borderRadius: '20px', border: 'none',
+                  cursor: 'pointer', fontSize: '13px', fontWeight: 600, minHeight: '34px',
+                  background: !categoriaActiva ? '#16a34a' : '#f1f5f9',
+                  color: !categoriaActiva ? 'white' : 'var(--texto-secundario)'
+                }}>
+                Todos
+              </button>
+              {categorias.slice(0, 3).map(cat => (
+                <button key={cat.id}
+                  onClick={() => setCategoriaActiva(cat.id)}
+                  style={{
+                    padding: '7px 14px', borderRadius: '20px', border: 'none',
+                    cursor: 'pointer', fontSize: '13px', fontWeight: 600, minHeight: '34px',
+                    background: categoriaActiva === cat.id ? '#16a34a' : '#f1f5f9',
+                    color: categoriaActiva === cat.id ? 'white' : 'var(--texto-secundario)'
+                  }}>
+                  {cat.nombre}
+                </button>
+              ))}
+              {categorias.length > 3 && (
+                <select
+                  value={categoriaActiva || ''}
+                  onChange={e => setCategoriaActiva(e.target.value ? parseInt(e.target.value) : null)}
+                  style={{
+                    padding: '7px 28px 7px 14px', borderRadius: '20px', border: 'none',
+                    cursor: 'pointer', fontSize: '13px', fontWeight: 600, minHeight: '34px',
+                    background: categoriaActiva && !categorias.slice(0, 3).some(c => c.id === categoriaActiva) ? '#16a34a' : '#f1f5f9',
+                    color: categoriaActiva && !categorias.slice(0, 3).some(c => c.id === categoriaActiva) ? 'white' : 'var(--texto-secundario)',
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '12px'
+                  }}>
+                  <option value="">Más...</option>
+                  {categorias.slice(3).map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
 
-        <div style={{
+        <div className="pos-product-grid" style={{
           flex: 1, overflowY: 'auto',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
@@ -700,7 +804,18 @@ export default function POS() {
             </div>
           )}
           {mostrarClientes && (
-            <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '90vw', maxWidth: '400px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)', zIndex: 1000, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              position: 'fixed',
+              left: '50%',
+              transform: tecladoVisible ? 'translateX(-50%)' : 'translate(-50%, -50%)',
+              top: tecladoVisible ? 60 : '50%',
+              bottom: tecladoVisible ? tecladoAltura + 20 : 'auto',
+              width: '90vw', maxWidth: '400px',
+              background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)', zIndex: 1000,
+              maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 80}px)` : '65vh',
+              display: 'flex', flexDirection: 'column'
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #e2e8f0' }}>
                 <span style={{ fontWeight: 700, fontSize: '15px' }}>Seleccionar cliente</span>
                 <button onClick={() => { setMostrarClientes(false); setBuscarCliente('') }}
@@ -785,6 +900,10 @@ export default function POS() {
           <button onClick={async () => { await cargarParked(); setMostrarParked(true) }} disabled={parkedSessions.length === 0}
             style={{ flex: 1, padding: '10px 6px', borderRadius: '8px', border: '1px solid #2563eb', background: parkedSessions.length === 0 ? '#f1f5f9' : '#dbeafe', cursor: parkedSessions.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 600, color: parkedSessions.length === 0 ? '#94a3b8' : '#2563eb', fontSize: '12px', opacity: parkedSessions.length === 0 ? 0.5 : 1, minHeight: '40px' }}>
             <ClipboardList size={14} style={{ marginRight: 2 }} /> Tickets ({parkedSessions.length})
+          </button>
+          <button onClick={async () => { await cargarProformas(); setMostrarProformas(true) }}
+            style={{ flex: 1, padding: '10px 6px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', cursor: 'pointer', fontWeight: 600, color: '#d97706', fontSize: '12px', minHeight: '40px' }}>
+            <FileText size={14} style={{ marginRight: 2 }} /> Proformas
           </button>
         </div>
 
@@ -890,12 +1009,54 @@ export default function POS() {
           </div>
         )}
 
-      {mostrarFormCliente && (
+        {mostrarProformas && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+          }}>
+            <div className="card" style={{ width: '480px', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Proformas pendientes</h2>
+                <button onClick={() => setMostrarProformas(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}><XCircle size={20} /></button>
+              </div>
+              {cargandoProformas ? (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}><Loader size={24} className="spin" /></div>
+              ) : proformasPendientes.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '13px' }}>No hay proformas pendientes</div>
+              ) : (
+                proformasPendientes.map(p => (
+                  <div key={p.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '12px', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '8px'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.numero}</div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                        {p.cliente?.nombre || 'Sin cliente'} · {p.detalles?.length || 0} prod. · C$ {p.total.toFixed(2)}
+                      </div>
+                    </div>
+                    <button onClick={() => cargarProformaEnPOS(p)}
+                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#d97706', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>
+                      Cargar en POS
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {mostrarFormCliente && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+          display: 'flex',
+          alignItems: tecladoVisible ? 'flex-start' : 'center',
+          justifyContent: 'center',
+          paddingTop: tecladoVisible ? 16 : 0,
+          zIndex: 100
         }}>
-          <div className="card" style={{ width: '380px', padding: '24px' }}>
+          <div className="card" style={{ width: '380px', padding: '24px', marginBottom: tecladoVisible ? tecladoAltura + 16 : 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700 }}>+ Nuevo cliente rápido</h2>
                 <button onClick={() => setMostrarFormCliente(false)}

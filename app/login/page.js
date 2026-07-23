@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 import { auditar } from '@/lib/auditarClient'
 
 export default function LoginPage() {
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [recordar, setRecordar] = useState(true)
   const [verPassword, setVerPassword] = useState(false)
   const { user, login } = useAuth()
+  const { visible: tecladoVisible, keyboardHeight: tecladoAltura } = useTecladoVirtual()
 
   useEffect(() => {
     if (user) window.location.replace(user.esAdmin ? '/' : '/pos')
@@ -43,9 +45,13 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', display: 'flex',
+      alignItems: tecladoVisible ? 'flex-start' : 'center',
+      justifyContent: 'center',
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-      position: 'relative', overflow: 'hidden'
+      position: 'relative', overflow: tecladoVisible ? 'auto' : 'hidden',
+      paddingTop: tecladoVisible ? 20 : 0,
+      paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
     }}>
       <div style={{
         position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',

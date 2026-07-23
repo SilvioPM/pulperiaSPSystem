@@ -193,14 +193,28 @@ export default function ManualPage() {
           al carrito. El escáner funciona como si escribiera rápidamente y presionara Enter.
         </p>
 
-        <h3 style={styles.h3}>4.3 Cliente rápido</h3>
+        <h3 style={styles.h3}>4.3 Teclado virtual táctil</h3>
+        <p style={styles.p}>
+          En dispositivos táctiles, al tocar un campo de texto (buscar producto, precio, cantidad, etc.)
+          aparece automáticamente un <strong>teclado virtual customizado</strong> con:
+        </p>
+        <ul style={styles.ul}>
+          <li style={styles.li}>Distribución <strong>QWERTY español</strong> con Ñ y teclas acentuadas.</li>
+          <li style={styles.li}><strong>Numpad lateral</strong> para ingresar números rápidamente (se oculta en teléfonos).</li>
+          <li style={styles.li}>Botón <strong>123/ABC</strong> para alternar entre números y letras.</li>
+          <li style={styles.li}>Efecto <strong>glass blur</strong> (fondo transparente con desenfoque).</li>
+          <li style={styles.li}>Se cierra automáticamente al cambiar de módulo o al presionar fuera del campo.</li>
+        </ul>
+        <p style={styles.p}>Ver <strong>sección 16</strong> para más detalles.</p>
+
+        <h3 style={styles.h3}>4.4 Cliente rápido</h3>
         <p style={styles.p}>
           Si el cliente no está registrado, escribí su nombre en el campo de cliente y hacé clic en
           <strong> &quot;+ Crear cliente rápido&quot;</strong>. Se abrirá un formulario para ingresar
           nombre, teléfono y dirección. El cliente se guarda y se selecciona automáticamente.
         </p>
 
-        <h3 style={styles.h3}>4.4 Descuentos</h3>
+        <h3 style={styles.h3}>4.5 Descuentos</h3>
         <p style={styles.p}>
           Hacé clic en <strong>Descuento</strong> en la pantalla de cobro. Podés alternar entre:
         </p>
@@ -210,7 +224,7 @@ export default function ManualPage() {
         </ul>
         <p style={styles.p}>Usá el botón <strong>C$ / %</strong> para cambiar entre los dos modos.</p>
 
-        <h3 style={styles.h3}>4.5 Pagos mixtos</h3>
+        <h3 style={styles.h3}>4.6 Pagos mixtos</h3>
         <p style={styles.p}>
           Podés dividir el pago en varios métodos en una misma venta:
         </p>
@@ -221,14 +235,14 @@ export default function ManualPage() {
           <li style={styles.li}>Si seleccionás solo crédito, se deseleccionan los demás métodos y se oculta el campo &quot;pago con&quot;.</li>
         </ul>
 
-        <h3 style={styles.h3}>4.6 Límite de crédito</h3>
+        <h3 style={styles.h3}>4.7 Límite de crédito</h3>
         <ul style={styles.ul}>
           <li style={styles.li}>Cada cliente tiene un <strong>límite de crédito</strong> configurable desde la ficha del cliente.</li>
           <li style={styles.li}>Al vender a crédito, el sistema verifica que el saldo pendiente del cliente más el nuevo crédito no supere su límite.</li>
           <li style={styles.li}>Si se excede el límite, la venta no se completa y se muestra un mensaje de advertencia.</li>
         </ul>
 
-        <h3 style={styles.h3}>4.7 Finalizar venta</h3>
+        <h3 style={styles.h3}>4.8 Finalizar venta</h3>
         <p style={styles.p}>
           Una vez seleccionados los productos, hacé clic en <strong>Cobrar</strong>.
           El sistema genera la factura, descuenta del stock, actualiza la caja y muestra el comprobante
@@ -269,6 +283,18 @@ export default function ManualPage() {
           <li style={styles.li}>Guardá el archivo y subilo con <strong>Importar Excel</strong>.</li>
         </ul>
 
+        <h3 style={styles.h3}>5.3 Códigos alias</h3>
+        <p style={styles.p}>
+          Cada producto puede tener <strong>múltiples códigos de barras (alias)</strong> además de su código principal.
+        </p>
+        <ul style={styles.ul}>
+          <li style={styles.li}>Al <strong>crear o editar</strong> un producto, hay una sección &quot;Códigos alias&quot; debajo del código de barras principal.</li>
+          <li style={styles.li}>Escribí el código y hacé clic en <strong>+ Agregar</strong>. Se muestra como un chip azul que podés eliminar con ✕.</li>
+          <li style={styles.li}>En el <strong>POS</strong>, al escanear o buscar un producto, el sistema reconoce tanto el código principal como los alias.</li>
+          <li style={styles.li}>Los alias son <strong>únicos en todo el sistema</strong> — no se puede repetir un alias entre productos ni coincidir con el código principal.</li>
+          <li style={styles.li}>Al <strong>importar desde Excel</strong>, la columna &quot;CodigosAlias&quot; acepta varios códigos separados por coma.</li>
+        </ul>
+
         <h3 style={styles.h3}>5.4 Eliminar producto</h3>
         <p style={styles.p}>
           Solo se puede eliminar un producto si no tiene movimientos (compras o proformas asociadas).
@@ -297,6 +323,7 @@ export default function ManualPage() {
           <li style={styles.li}>Podés registrar la <strong>fecha de vencimiento</strong> de la factura de compra (para control de cuentas por pagar).</li>
           <li style={styles.li}>Por cada producto podés ingresar <strong>fecha de vencimiento</strong>; al guardar la compra se actualiza el vencimiento del producto y se incrementa el stock automáticamente.</li>
           <li style={styles.li}>La lista de compras está paginada para mejor navegación.</li>
+          <li style={styles.li}><strong>Borradores:</strong> podés guardar una compra como borrador (sin afectar stock ni inventario) y continuarla después. Los borradores se muestran con un badge <span style={{background:'#fef3c7',padding:'1px 6px',borderRadius:4,fontSize:11,fontWeight:600,color:'#92400e'}}>BORRADOR</span> en la lista. Usá el botón <strong>Continuar</strong> para retomarla o <strong>Finalizar</strong> para registrarla definitivamente.</li>
         </ul>
       </section>
 
@@ -633,53 +660,62 @@ export default function ManualPage() {
       <section id="teclado-virtual">
         <h2 style={styles.h2}>16. Teclado virtual</h2>
         <p style={styles.p}>
-          El sistema incluye un teclado virtual en pantalla para dispositivos táctiles
-          (monitores táctiles HP Engage, tablets Android, iPad, etc.).
+          El sistema incluye un <strong>teclado virtual customizado</strong> (sin dependencias externas)
+          para dispositivos táctiles (monitores táctiles, tablets, iPad, etc.).
         </p>
 
         <h3 style={styles.h3}>16.1 Activación</h3>
         <ul style={styles.ul}>
-          <li style={styles.li}>El teclado se activa <strong>automáticamente</strong> al tocar cualquier campo de texto o número en cualquier pantalla del sistema.</li>
-          <li style={styles.li}><strong>No requiere configuración</strong> — funciona desde la primera vez que se abre el sistema en un dispositivo táctil.</li>
-          <li style={styles.li}>Se cierra al presionar <strong>Listo</strong> o al tocar fuera del campo de texto.</li>
+          <li style={styles.li}>El teclado se activa <strong>automáticamente</strong> al tocar cualquier campo de texto o número.</li>
+          <li style={styles.li}><strong>No requiere configuración</strong> — funciona desde la primera vez en un dispositivo táctil.</li>
+          <li style={styles.li}>Se cierra al presionar <strong>Listo</strong>, al tocar fuera del campo, al cambiar de módulo o al cambiar de pestaña.</li>
         </ul>
 
-        <h3 style={styles.h3}>16.2 Layouts disponibles</h3>
+        <h3 style={styles.h3}>16.2 Layout</h3>
         <table style={styles.table}>
           <thead>
             <tr>
               <th style={styles.th}>Layout</th>
               <th style={styles.th}>Cuándo aparece</th>
-              <th style={styles.th}>Teclas</th>
+              <th style={styles.th}>Descripción</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td style={{...styles.td, fontWeight: 600}}>QWERTY español</td>
               <td style={styles.td}>Campos de texto (nombre, dirección, búsqueda, etc.)</td>
-              <td style={styles.td}>a–z, ñ, Ñ, punto, coma</td>
+              <td style={styles.td}>a–z, ñ, Ñ, acentos, punto, coma, espacio (11-9-9 teclas)</td>
             </tr>
             <tr>
               <td style={{...styles.td, fontWeight: 600}}>Numérico</td>
-              <td style={styles.td}>Campos numéricos (precio, cantidad, teléfono)</td>
-              <td style={styles.td}>0–9, . , - / : ; ( ) @ &amp;</td>
-            </tr>
-            <tr>
-              <td style={{...styles.td, fontWeight: 600}}>Símbolos</td>
-              <td style={styles.td}>Se accede desde el botón <strong>#+=</strong></td>
-              <td style={styles.td}>? ! &apos; % * + = y símbolos adicionales</td>
+              <td style={styles.td}>Al presionar <strong>123</strong> o en campos numéricos</td>
+              <td style={styles.td}>0–9, punto decimal, teclado numérico de 3 filas</td>
             </tr>
           </tbody>
         </table>
 
-        <h3 style={styles.h3}>16.3 Botones de control</h3>
+        <h3 style={styles.h3}>16.3 Numpad lateral</h3>
         <ul style={styles.ul}>
-          <li style={styles.li}><strong>⇧ (Shift)</strong> — activa mayúsculas. Se desactiva al presionar otra tecla.</li>
+          <li style={styles.li}><strong>Numpad derecho</strong> estilo laptop 15{'"'} (7-8-9 / 4-5-6 / 1-2-3 / 0-.) para ingreso rápido de números.</li>
+          <li style={styles.li}>En <strong>teléfonos</strong> (≤640px) el numpad se oculta automáticamente para ahorrar espacio.</li>
+          <li style={styles.li}>Las teclas miden <strong>48×48px</strong> en desktop, <strong>38×44px</strong> en teléfono.</li>
+        </ul>
+
+        <h3 style={styles.h3}>16.4 Botones de control</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}><strong>⇧ (Shift)</strong> — activa mayúsculas. Toggle (se mantiene hasta presionar de nuevo).</li>
           <li style={styles.li}><strong>⌫ (Borrar)</strong> — elimina el último carácter.</li>
-          <li style={styles.li}><strong>ABC / 123</strong> — alterna entre el teclado de letras y el numérico.</li>
-          <li style={styles.li}><strong>#+=</strong> — muestra símbolos y caracteres especiales.</li>
-          <li style={styles.li}><strong>Espacio</strong> — inserta un espacio.</li>
-          <li style={styles.li}><strong>Listo</strong> — cierra el teclado y quita el foco del campo.</li>
+          <li style={styles.li}><strong>ABC / 123</strong> — alterna entre letras y números.</li>
+          <li style={styles.li}><strong>Espacio</strong> — barra espaciadora completa.</li>
+          <li style={styles.li}><strong>Listo</strong> — cierra el teclado.</li>
+        </ul>
+
+        <h3 style={styles.h3}>16.5 Diseño</h3>
+        <ul style={styles.ul}>
+          <li style={styles.li}><strong>Efecto glass blur</strong>: fondo con desenfoque 20px y opacidad 70%.</li>
+          <li style={styles.li}>Teclas con borde redondeado (8px), hover gris claro, active azul.</li>
+          <li style={styles.li}>Se posiciona automáticamente dentro del área de contenido (no tapa el sidebar).</li>
+          <li style={styles.li}>Botón <strong>123</strong> en teléfono: cambia a teclado numérico de 3 filas (0–9 + .).</li>
         </ul>
 
         <h3 style={styles.h3}>16.4 Diseño adaptable</h3>

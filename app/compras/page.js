@@ -19,6 +19,7 @@ export default function Compras() {
   const [formAnular, setFormAnular] = useState({ username: '', password: '' })
   const [carrito, setCarrito]         = useState([])
   const [filtro, setFiltro]           = useState('todas')
+  const [editandoCompraId, setEditandoCompraId] = useState(null)
   const [form, setForm] = useState({
     proveedorId: '', facturaProveedor: '', esCredito: false, fechaVencimiento: '', nota: ''
   })
@@ -117,33 +118,99 @@ async function crearProductoRapido(e) {
   const subtotal = carrito.reduce((sum, i) => sum + i.subtotal, 0)
   const total    = subtotal
 
+  function limpiarForm() {
+    setEditandoCompraId(null)
+    setCarrito([])
+    setForm({ proveedorId: '', facturaProveedor: '', esCredito: false, fechaVencimiento: '', nota: '' })
+  }
+
   async function guardarCompra() {
     if (!form.proveedorId) return mostrar('Seleccioná un proveedor', 'alerta')
     if (carrito.length === 0) return mostrar('Agregá productos a la compra', 'alerta')
 
+    const body = {
+      proveedorId: parseInt(form.proveedorId),
+      facturaProveedor: form.facturaProveedor || null,
+      esCredito: form.esCredito,
+      fechaVencimiento: form.fechaVencimiento || null,
+      subtotal, iva: 0, total,
+      nota: form.nota,
+      detalles: carrito,
+      esBorrador: false
+    }
+
     try {
-      const res  = await fetch('/api/compras', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          proveedorId: parseInt(form.proveedorId),
-          esCredito:   form.esCredito,
-          fechaVencimiento: form.fechaVencimiento || null,
-          subtotal, iva: 0, total,
-          nota:        form.nota,
-          detalles:    carrito
-        })
+      const method = editandoCompraId ? 'PUT' : 'POST'
+      const url = editandoCompraId ? `/api/compras/${editandoCompraId}` : '/api/compras'
+      const res = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       })
       const data = await res.json()
       if (res.ok) {
         mostrar(`Compra ${data.numero} registrada exitosamente`, 'exito')
         setMostrarForm(false)
-        setCarrito([])
-        setForm({ proveedorId: '', esCredito: false, nota: '' })
+        limpiarForm()
         cargarTodo()
       } else {
         mostrar(data.error, 'error')
       }
     } catch { mostrar('Error al guardar compra', 'error') }
+  }
+
+  async function guardarBorrador() {
+    if (!form.proveedorId) return mostrar('Seleccioná un proveedor', 'alerta')
+    if (carrito.length === 0) return mostrar('Agregá productos a la compra', 'alerta')
+
+    const body = {
+      proveedorId: parseInt(form.proveedorId),
+      facturaProveedor: form.facturaProveedor || null,
+      esCredito: form.esCredito,
+      fechaVencimiento: form.fechaVencimiento || null,
+      subtotal, iva: 0, total,
+      nota: form.nota,
+      detalles: carrito,
+      esBorrador: true
+    }
+
+    try {
+      const method = editandoCompraId ? 'PUT' : 'POST'
+      const url = editandoCompraId ? `/api/compras/${editandoCompraId}` : '/api/compras'
+      const res = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      const data = await res.json()
+      if (res.ok) {
+        mostrar(`Borrador ${data.numero} guardado`, 'exito')
+        setMostrarForm(false)
+        limpiarForm()
+        cargarTodo()
+      } else {
+        mostrar(data.error, 'error')
+      }
+    } catch { mostrar('Error al guardar borrador', 'error') }
+  }
+
+  function continuarBorrador(c) {
+    setEditandoCompraId(c.id)
+    setForm({
+      proveedorId: c.proveedorId,
+      facturaProveedor: c.facturaProveedor || '',
+      esCredito: c.esCredito,
+      fechaVencimiento: c.fechaVencimiento ? c.fechaVencimiento.split('T')[0] : '',
+      nota: c.nota || ''
+    })
+    setCarrito(c.detalles.map(d => ({
+      productoId: d.productoId,
+      nombre: d.producto.nombre,
+      unidad: d.unidad,
+      cantidad: d.cantidad,
+      costo: d.costo,
+      subtotal: d.subtotal,
+      fechaVencimiento: d.producto.fechaVencimiento ? d.producto.fechaVencimiento.split('T')[0] : ''
+    })))
+    setMostrarForm(true)
   }
 
   async function registrarAbono(e) {
@@ -175,10 +242,12 @@ async function crearProductoRapido(e) {
     } catch { mostrar('Error al registrar abono', 'error') }
   }
 
+  const borradores = compras.filter(c => c.estado === 'borrador')
   const comprasFiltradas = compras.filter(c =>
-    filtro === 'todas'   ? true :
-    filtro === 'credito' ? c.esCredito && c.saldoPendiente > 0 :
-    filtro === 'pagadas' ? !c.esCredito || c.saldoPendiente <= 0 : true
+    filtro === 'todas'    ? true :
+    filtro === 'borrador' ? c.estado === 'borrador' :
+    filtro === 'credito'  ? c.esCredito && c.saldoPendiente > 0 :
+    filtro === 'pagadas'  ? (!c.esCredito || c.saldoPendiente <= 0) && c.estado !== 'borrador' : true
   ).filter(c => !buscarFactura || (c.facturaProveedor || '').toLowerCase().includes(buscarFactura.toLowerCase()))
 
   const totalPendiente = compras.filter(c => c.esCredito).reduce((sum, c) => sum + c.saldoPendiente, 0)
@@ -192,7 +261,7 @@ async function crearProductoRapido(e) {
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}><Icons.ShoppingCart size={24} /> Compras</h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>Registro de compras a proveedores</p>
         </div>
-        <button className="btn-verde" onClick={() => setMostrarForm(true)}>+ Nueva Compra</button>
+        <button className="btn-verde" onClick={() => { limpiarForm(); setMostrarForm(true) }}>+ Nueva Compra</button>
       </div>
 
       {/* Resumen */}
@@ -211,12 +280,17 @@ async function crearProductoRapido(e) {
             C$ {compras.reduce((sum, c) => sum + c.total, 0).toFixed(2)}
           </div>
         </div>
+        <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Borradores</div>
+          <div style={{ fontSize: '26px', fontWeight: 700, color: '#f59e0b' }}>{borradores.length}</div>
+        </div>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
         {[
           { key: 'todas',   label: <><Icons.ClipboardList size={16} /> Todas ({compras.length})</> },
+          { key: 'borrador', label: <><Icons.Edit size={14} /> Borradores ({borradores.length})</> },
           { key: 'credito', label: `⏳ Pendientes (${compras.filter(c => c.esCredito && c.saldoPendiente > 0).length})` },
           { key: 'pagadas', label: `✅ Pagadas`                                                          },
         ].map(t => (
@@ -226,7 +300,8 @@ async function crearProductoRapido(e) {
               fontWeight: 600, fontSize: '13px',
               background: filtro === t.key ? 'white' : 'transparent',
               color: filtro === t.key ? '#1e293b' : '#64748b',
-              boxShadow: filtro === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: filtro === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              display: 'inline-flex', alignItems: 'center', gap: 4
             }}>
             {t.label}
           </button>
@@ -260,11 +335,14 @@ async function crearProductoRapido(e) {
               <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No hay compras</td></tr>
             ) : (
               comprasFiltradas.map((c, i) => (
-                <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa', opacity: c.estado === 'borrador' ? 0.7 : 1 }}>
                   <td style={{ padding: '12px 16px', fontWeight: 700, color: '#2563eb' }}>
                     {c.numero}
                     {c.estado === 'anulada' && (
                       <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: '#fee2e2', color: '#dc2626', fontSize: '11px', fontWeight: 700 }}>ANULADA</span>
+                    )}
+                    {c.estado === 'borrador' && (
+                      <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: '#fef3c7', color: '#d97706', fontSize: '11px', fontWeight: 700 }}>BORRADOR</span>
                     )}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
@@ -276,35 +354,60 @@ async function crearProductoRapido(e) {
                   <td style={{ padding: '12px 16px', fontWeight: 600 }}>{c.proveedor?.nombre}</td>
                   <td style={{ padding: '12px 16px', fontWeight: 700, color: '#16a34a' }}>C$ {c.total.toFixed(2)}</td>
                   <td style={{ padding: '12px 16px', fontWeight: 700, color: c.saldoPendiente > 0 ? '#dc2626' : '#16a34a' }}>
-                    C$ {c.saldoPendiente.toFixed(2)}
+                    {c.estado === 'borrador' ? '—' : `C$ ${c.saldoPendiente.toFixed(2)}`}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <span style={{
-                      padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                      background: c.esCredito ? '#fee2e2' : '#dcfce7',
-                      color: c.esCredito ? '#dc2626' : '#16a34a',
-                      display: 'inline-flex', alignItems: 'center', gap: 4
-                    }}>
-                      {c.esCredito ? <><Icons.ClipboardList size={14} /> Crédito</> : <><Icons.DollarSign size={14} /> Contado</>}
-                    </span>
+                    {c.estado === 'borrador' ? (
+                      <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, background: '#fef3c7', color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Icons.Edit size={14} /> Borrador
+                      </span>
+                    ) : (
+                      <span style={{
+                        padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                        background: c.esCredito ? '#fee2e2' : '#dcfce7',
+                        color: c.esCredito ? '#dc2626' : '#16a34a',
+                        display: 'inline-flex', alignItems: 'center', gap: 4
+                      }}>
+                        {c.esCredito ? <><Icons.ClipboardList size={14} /> Crédito</> : <><Icons.DollarSign size={14} /> Contado</>}
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={() => setCompraVer(c)}
-                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '13px' }}>
-                        <Icons.Eye size={16} />
-                      </button>
-                      {c.saldoPendiente > 0 && c.estado !== 'anulada' && (
-                        <button onClick={() => { setCompraVer(c); setMostrarAbono(true) }}
-                          style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                          <Icons.DollarSign size={16} /> Abonar
-                        </button>
-                      )}
-                      {c.estado !== 'anulada' && (
-                        <button onClick={() => { setCompraAnular(c); setMostrarAnular(true) }}
-                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
-                          <Icons.Ban size={16} />
-                        </button>
+                      {c.estado === 'borrador' ? (
+                        <>
+                          <button onClick={() => continuarBorrador(c)}
+                            style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#f59e0b', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Icons.Edit size={14} /> Continuar
+                          </button>
+                          <button onClick={async () => {
+                            const res = await fetch(`/api/compras/${c.id}`, { method: 'DELETE' })
+                            if (res.ok) { cargarTodo(); mostrar('Borrador eliminado', 'exito') }
+                            else { const d = await res.json(); mostrar(d.error, 'error') }
+                          }}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
+                            🗑️
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => setCompraVer(c)}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '13px' }}>
+                            <Icons.Eye size={16} />
+                          </button>
+                          {c.saldoPendiente > 0 && c.estado !== 'anulada' && (
+                            <button onClick={() => { setCompraVer(c); setMostrarAbono(true) }}
+                              style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                              <Icons.DollarSign size={16} /> Abonar
+                            </button>
+                          )}
+                          {c.estado !== 'anulada' && (
+                            <button onClick={() => { setCompraAnular(c); setMostrarAnular(true) }}
+                              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fee2e2', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
+                              <Icons.Ban size={16} />
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </td>
@@ -317,8 +420,8 @@ async function crearProductoRapido(e) {
 
       {/* Modal nueva compra */}
       {mostrarForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', width: '900px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', gap: '20px' }}>
+        <div onClick={() => { setMostrarForm(false); limpiarForm() }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '24px', width: '900px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', gap: '20px' }}>
 
             {/* Panel izquierdo — productos */}
 <div style={{ flex: 1 }}>
@@ -391,7 +494,7 @@ async function crearProductoRapido(e) {
             <div style={{ width: '360px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <h3 style={{ fontWeight: 700 }}><Icons.ShoppingCart size={16} /> Detalle de compra</h3>
-                <button onClick={() => { setMostrarForm(false); setCarrito([]) }}
+                <button onClick={() => { setMostrarForm(false); limpiarForm() }}
                   style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
               </div>
 
@@ -504,10 +607,16 @@ async function crearProductoRapido(e) {
                 style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
               />
 
-              <button onClick={guardarCompra}
-                className="btn-verde" style={{ padding: '14px', fontSize: '15px' }}>
-                <Icons.Save size={16} /> Registrar Compra
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={guardarBorrador}
+                  style={{ flex: 1, padding: '14px', fontSize: '15px', borderRadius: '10px', border: '2px solid #f59e0b', background: 'white', color: '#f59e0b', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Icons.Save size={16} /> {editandoCompraId ? 'Actualizar' : 'Guardar'} Borrador
+                </button>
+                <button onClick={guardarCompra}
+                  className="btn-verde" style={{ flex: 1, padding: '14px', fontSize: '15px' }}>
+                  <Icons.CheckCircle size={16} /> {editandoCompraId ? 'Finalizar y Registrar' : 'Registrar Compra'}
+                </button>
+              </div>
             </div>
 
             {/* Modal crear producto rápido */}

@@ -15,6 +15,10 @@ export default function Sidebar() {
     const saved = localStorage.getItem('tema') === 'oscuro'
     setDark(saved)
     document.documentElement.setAttribute('data-theme', saved ? 'dark' : 'light')
+    if (window.innerWidth <= 1024) setCollapsed(true)
+    const onResize = () => { if (window.innerWidth <= 1024) setCollapsed(true) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   function toggleTema() {

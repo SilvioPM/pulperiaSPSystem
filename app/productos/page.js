@@ -32,7 +32,10 @@ export default function Productos() {
     categoriaId: '',
     esGenerico: false,
     precioMayor: '', cantidadMinimaMayor: '',
+    codigosAlias: [],
   })
+  const [aliasInput, setAliasInput] = useState('')
+  const [aliasEditInput, setAliasEditInput] = useState('')
   const [productoEditar, setProductoEditar] = useState(null)
 
   const [formCat, setFormCat]       = useState({ nombre: '' })
@@ -42,6 +45,9 @@ export default function Productos() {
   const inputExcel                        = useRef(null) 
   const [cargando, setCargando]           = useState(true)
   const [mostrarInactivos, setMostrarInactivos] = useState(false)
+  const [page, setPage]                   = useState(1)
+  const [totalPages, setTotalPages]       = useState(1)
+  const [total, setTotal]                 = useState(0)
 
   function generarCodigo(productosExistentes) {
     const maxId = productosExistentes.reduce((m, p) => Math.max(m, p.id || 0), 0)
@@ -50,14 +56,21 @@ export default function Productos() {
   }
 
   useEffect(() => {
+    setCargando(true)
     Promise.all([cargarProductos(), cargarCategorias(), cargarUnidades()])
+      .catch(() => {})
       .finally(() => setCargando(false))
-  }, [mostrarInactivos])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mostrarInactivos, page, buscando])
 
   async function cargarProductos() {
-    const res  = await fetch(`/api/productos?incluirInactivos=${mostrarInactivos}`)
+    const params = new URLSearchParams({ page, limit: 100, incluirInactivos: mostrarInactivos })
+    if (buscando) params.set('buscar', buscando)
+    const res  = await fetch(`/api/productos?${params}`)
     const data = await res.json()
-    setProductos(data.data || data)
+    setProductos(data.data || [])
+    setTotalPages(data.totalPages || 1)
+    setTotal(data.total || 0)
   }
 
   async function cargarCategorias() {
@@ -109,7 +122,8 @@ export default function Productos() {
                     unidadVenta2: '', precioVenta2: '', costoVenta2: '', factorVenta2: '',
                     unidadVenta3: '', precioVenta3: '', costoVenta3: '', factorVenta3: '',
                     unidadVenta4: '', precioVenta4: '', costoVenta4: '', factorVenta4: '',
-                    categoriaId: '', esGenerico: false, precioMayor: '', cantidadMinimaMayor: '' })
+                    categoriaId: '', esGenerico: false, precioMayor: '', cantidadMinimaMayor: '',
+                    codigosAlias: [] })
       auditar(user?.username || user?.nombre, 'crear', 'producto', `Producto "${formProd.nombre}" creado`)
       cargarProductos()
     } else {
@@ -276,11 +290,6 @@ async function importarExcel(e) {
   // Limpiamos el input para permitir subir el mismo archivo de nuevo
   e.target.value = ''
 }
-
-  const productosFiltrados = productos.filter(p =>
-    p.nombre.toLowerCase().includes(buscando.toLowerCase()) ||
-    (p.codigo && p.codigo.toLowerCase().includes(buscando.toLowerCase()))
-  )
 
   // Colores para las categorías
   const colores = [
@@ -450,13 +459,13 @@ async function importarExcel(e) {
               <input type="text"
                 placeholder="Buscar producto..."
                 value={buscando}
-                onChange={e => setBuscando(e.target.value)}
+                onChange={e => { setBuscando(e.target.value); setPage(1) }}
                 style={{
                   flex: 1, padding: '10px 14px', borderRadius: '8px',
                   border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'
                 }}
               />
-              <button onClick={() => { setMostrarInactivos(!mostrarInactivos); setBuscando('') }}
+              <button onClick={() => { setMostrarInactivos(!mostrarInactivos); setBuscando(''); setPage(1) }}
                 style={{
                   padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1',
                   background: mostrarInactivos ? '#fef3c7' : 'white',
@@ -480,14 +489,14 @@ async function importarExcel(e) {
                 </tr>
               </thead>
               <tbody>
-                {productosFiltrados.length === 0 ? (
+                {productos.length === 0 ? (
                   <tr>
                     <td colSpan={editable ? 8 : 7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                       No hay productos aún
                     </td>
                   </tr>
                 ) : (
-                  productosFiltrados.map((p, i) => (
+                  productos.map((p, i) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.nombre} {p.esGenerico && <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', marginLeft: 4 }}>Genérico</span>} {!p.activo && <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', marginLeft: 4 }}>Inactivo</span>}</div>
@@ -536,7 +545,8 @@ async function importarExcel(e) {
                                 precio: p.precio,
                                 costo: p.costo,
                                 stock: p.stock,
-                                stockMinimo: p.stockMinimo
+                                stockMinimo: p.stockMinimo,
+                                codigosAlias: p.codigosAlias?.map(a => a.codigo) || []
                               })
                             }}
                             style={{
@@ -580,6 +590,44 @@ async function importarExcel(e) {
                 )}
               </tbody>
             </table>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>Total: {total} productos — Pág. {page} de {totalPages}</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button disabled={page <= 1} onClick={() => setPage(page - 1)}
+                    style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: page <= 1 ? '#f1f5f9' : 'white', cursor: page <= 1 ? 'default' : 'pointer', fontSize: '13px', fontWeight: 600, color: page <= 1 ? '#94a3b8' : '#475569' }}>
+                    &lt; Anterior
+                  </button>
+                  {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
+                    let pagina
+                    if (totalPages <= 10) {
+                      pagina = i + 1
+                    } else if (page <= 5) {
+                      pagina = i + 1
+                    } else if (page >= totalPages - 4) {
+                      pagina = totalPages - 9 + i
+                    } else {
+                      pagina = page - 4 + i
+                    }
+                    return (
+                      <button key={pagina} onClick={() => setPage(pagina)}
+                        style={{
+                          padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1',
+                          background: page === pagina ? '#16a34a' : 'white',
+                          color: page === pagina ? 'white' : '#475569',
+                          cursor: 'pointer', fontSize: '13px', fontWeight: page === pagina ? 700 : 500
+                        }}>
+                        {pagina}
+                      </button>
+                    )
+                  })}
+                  <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}
+                    style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: page >= totalPages ? '#f1f5f9' : 'white', cursor: page >= totalPages ? 'default' : 'pointer', fontSize: '13px', fontWeight: 600, color: page >= totalPages ? '#94a3b8' : '#475569' }}>
+                    Siguiente &gt;
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -676,6 +724,50 @@ async function importarExcel(e) {
                   <div style={{ marginTop: 8 }}><PrintBarcodeLabel codigo={formProd.codigo} nombre={formProd.nombre} precio={formProd.precio} /></div>
                 </div>
               )}
+              {/* Códigos alias (múltiples códigos de barras) */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
+                  Códigos alias <span style={{ fontWeight: 400, color: '#94a3b8' }}>(códigos de barras alternativos)</span>
+                </label>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                  <input
+                    value={aliasInput}
+                    onChange={e => setAliasInput(e.target.value)}
+                    placeholder="Ej: 7501234567890"
+                    style={{ flex: 1, padding: '8px', borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 13, outline: 'none' }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const v = aliasInput.trim()
+                        if (v && !formProd.codigosAlias.includes(v) && v !== (formProd.codigo || '')) {
+                          setFormProd({...formProd, codigosAlias: [...formProd.codigosAlias, v]})
+                        }
+                        setAliasInput('')
+                      }
+                    }}
+                  />
+                  <button type="button" onClick={() => {
+                    const v = aliasInput.trim()
+                    if (v && !formProd.codigosAlias.includes(v) && v !== (formProd.codigo || '')) {
+                      setFormProd({...formProd, codigosAlias: [...formProd.codigosAlias, v]})
+                    }
+                    setAliasInput('')
+                  }} style={{ padding: '8px 14px', borderRadius: 6, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                    + Agregar
+                  </button>
+                </div>
+                {formProd.codigosAlias.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {formProd.codigosAlias.map((c, i) => (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#dbeafe', color: '#1e40af', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                        <Icons.ScanBarcode size={12} /> {c}
+                        <button type="button" onClick={() => setFormProd({...formProd, codigosAlias: formProd.codigosAlias.filter((_, j) => j !== i)})}
+                          style={{ background: 'none', border: 'none', color: '#1e40af', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 {[
                   { key: 'precio', label: 'Precio venta (C$) *', required: true },
@@ -963,6 +1055,50 @@ async function importarExcel(e) {
               <div style={{ marginTop: 8 }}><PrintBarcodeLabel codigo={productoEditar.codigo} nombre={productoEditar.nombre} precio={productoEditar.precio} /></div>
             </div>
           )}
+          {/* Códigos alias en edición */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
+              Códigos alias <span style={{ fontWeight: 400, color: '#94a3b8' }}>(códigos de barras alternativos)</span>
+            </label>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+              <input
+                value={aliasEditInput}
+                onChange={e => setAliasEditInput(e.target.value)}
+                placeholder="Ej: 7501234567890"
+                style={{ flex: 1, padding: '8px', borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 13, outline: 'none' }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const v = aliasEditInput.trim()
+                    if (v && !productoEditar.codigosAlias.includes(v) && v !== (productoEditar.codigo || '')) {
+                      setProductoEditar({...productoEditar, codigosAlias: [...productoEditar.codigosAlias, v]})
+                    }
+                    setAliasEditInput('')
+                  }
+                }}
+              />
+              <button type="button" onClick={() => {
+                const v = aliasEditInput.trim()
+                if (v && !productoEditar.codigosAlias.includes(v) && v !== (productoEditar.codigo || '')) {
+                  setProductoEditar({...productoEditar, codigosAlias: [...productoEditar.codigosAlias, v]})
+                }
+                setAliasEditInput('')
+              }} style={{ padding: '8px 14px', borderRadius: 6, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                + Agregar
+              </button>
+            </div>
+            {productoEditar.codigosAlias?.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {productoEditar.codigosAlias.map((c, i) => (
+                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#dbeafe', color: '#1e40af', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                    <Icons.ScanBarcode size={12} /> {c}
+                    <button type="button" onClick={() => setProductoEditar({...productoEditar, codigosAlias: productoEditar.codigosAlias.filter((_, j) => j !== i)})}
+                      style={{ background: 'none', border: 'none', color: '#1e40af', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>✕</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>

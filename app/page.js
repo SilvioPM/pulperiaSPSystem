@@ -160,7 +160,7 @@ export default function Inicio() {
           </div>
 
           {/* ── FILA 3: Chart (70%) + Pie Métodos Pago (30%) ── */}
-          <div style={{
+          <div className="dashboard-2col" style={{
             display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 16, marginBottom: 24,
             minHeight: 320,
           }}>
@@ -169,7 +169,7 @@ export default function Inicio() {
           </div>
 
           {/* ── FILA 4: Tareas pendientes (65%) + Pie CxC/CxP (35%) ── */}
-          <div style={{
+          <div className="dashboard-2col" style={{
             display: 'grid', gridTemplateColumns: stats.sinProductos || stats.sinClientes || stats.sinCaja ? '7fr 5fr' : '7fr 5fr',
             gap: 16, marginBottom: 24, minHeight: 280,
           }}>

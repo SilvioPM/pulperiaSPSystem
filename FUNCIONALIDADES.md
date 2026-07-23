@@ -155,7 +155,19 @@ El botón **⟳** en el POS permite alternar entre presentaciones. La función `
 - Un mismo producto puede aparecer dos veces con diferentes presentaciones (usa `_pres` como discriminator)
 - **Teclado numérico** virtual para entradas táctiles
 
-### 4.6 Productos genéricos
+### 4.6 Teclado virtual táctil (custom)
+- Teclado **100% custom** (sin dependencia `react-simple-keyboard`)
+- **QWERTY español** con Ñ + teclas acentuadas (11-9-9 layout)
+- **Numpad lateral** estilo laptop (7-8-9 / 4-5-6 / 1-2-3 / 0-.)
+- Efecto **glass blur** (blur 20px + opacidad 70%)
+- Se posiciona automáticamente dentro del área de contenido (usa `ResizeObserver` en `#main-content-area`)
+- **Responsive:**
+  - En teléfono (≤640px): numpad oculto, teclas 38×44px, layout compacto
+  - Botón "123/ABC" para alternar entre modo números y letras
+- Se cierra automáticamente al navegar a otra página o cambiar de pestaña
+- No interfiere con el sidebar (posicionado correctamente)
+
+### 4.7 Productos genéricos
 - Productos con `esGenerico = true` (ej. verduras sueltas, artículos sin código)
 - Al tocarlos: modal especial con campos **cantidad** y **total a cobrar (C$)**
 - No tienen precio fijo — el cajero define cuánto cobrar
@@ -273,14 +285,24 @@ El botón **⟳** en el POS permite alternar entre presentaciones. La función `
 - **Si tiene movimientos** → se marca como `activo = false` (inactivo) en lugar de eliminar
 - Botón **Reactivar** disponible para restaurar productos inactivos
 
-### 5.5 Control de lotes y vencimientos
-- Al editar un producto: sección **Lotes / Vencimientos**
-- Tabla de lotes con: código de lote, cantidad, fecha de vencimiento, días restantes (color rojo si vencido, amarillo si próximo)
-- Acciones: agregar lote, editar, eliminar
-- El stock total del producto es la **suma de todos los lotes**
-- Alertas en Dashboard: lotes que vencen en ≤30 días (tarjeta roja)
+### 5.5 Control de vencimientos
+- Cada producto tiene un campo **`fechaVencimiento`** directo (sin modelo Lote)
+- Se puede establecer al crear o editar el producto
+- Si se importa desde Excel con `FechaVencimiento`, se aplica automáticamente
+- Al registrar una compra, se puede actualizar la fecha de vencimiento del producto
+- **Alertas en Dashboard**: productos próximos a vencer en 15/30/60/90 días
+- Vista rápida en inventario con filtros por días a vencer y ya vencidos
 
-### 5.6 StockAlerta en página Productos
+### 5.6 Códigos alias (múltiples códigos de barras)
+- Cada producto puede tener **múltiples códigos de barras** (alias)
+- Tabla separada `ProductoCodigo` con código único a nivel de sistema
+- **No se permiten duplicados**: un código alias no puede repetirse entre productos ni coincidir con el código principal
+- **En POS**: al escanear o buscar, encuentra el producto con cualquiera de sus códigos (principales o alias)
+- **En CRUD**: sección "Códigos alias" en crear/editar producto con chips removibles
+- **Importación Excel**: columna `CodigosAlias` con códigos separados por coma o punto y coma
+- **Búsqueda**: la API busca también en `codigosAlias.codigo` con `contains` case-insensitive
+
+### 5.7 StockAlerta en página Productos
 - Badge flotante "Stock bajo" que abre modal con detalle de productos con stock crítico
 
 ---
@@ -311,7 +333,21 @@ El botón **⟳** en el POS permite alternar entre presentaciones. La función `
   4. Si es crédito → establece `saldoPendiente = total`
 - Auditoría: registra en log
 
-### 6.3 Anular compra
+### 6.3 Borradores (compras en proceso)
+- Al crear o editar una compra, hay dos botones:
+  - **"Guardar Borrador"** (amarillo) → guarda con `estado: 'borrador'`, **NO afecta stock ni inventario**
+  - **"Registrar Compra"** (verde) → comportamiento normal (actualiza stock, costo, movimientos)
+- Los borradores aparecen en una pestaña **"Borradores"** con contador
+- En la tabla: badge `BORRADOR` (ambar) + opacidad reducida
+- Botón **"Continuar"** → carga todos los datos (proveedor, items, notas) de vuelta al formulario
+- Botón **🗑️** → elimina el borrador definitivamente
+- Al finalizar un borrador → `PUT /api/compras/[id]` con `esBorrador: false` → actualiza stock y crea movimientos de inventario
+- El número de compra (`COM-XXXXX`) se mantiene igual al finalizar
+- API:
+  - `PUT /api/compras/[id]` → edita solo si `estado === 'borrador'`
+  - `DELETE /api/compras/[id]` → elimina solo si `estado === 'borrador'`
+
+### 6.4 Anular compra
 - Similar a anular factura:
   - Revierte stock y lotes
   - Marca como anulada
@@ -719,7 +755,7 @@ Colores: verde si ganancia ≥ 0, rojo si pérdida
 │   └── */page.js       → 21 páginas (dashboard, POS, módulos, etc.)
 ├── lib/                → 6 módulos de utilidades (auth, prisma, auditoría, DGI, backup)
 ├── prisma/
-│   ├── schema.prisma   → 22 modelos de datos
+│   ├── schema.prisma   → 23 modelos de datos
 │   ├── migrations/     → 5 migraciones SQL
 │   └── seed.js         → datos de prueba
 ├── print-agent/        → Servidor de impresión térmica (Node.js, puerto 5123)
@@ -728,9 +764,9 @@ Colores: verde si ganancia ≥ 0, rojo si pérdida
 └── Dockerfile + docker-compose.yml
 ```
 
-### 21.3 Modelos de datos (22)
+### 21.3 Modelos de datos (23)
 
-`Categoria`, `Producto`, `Cliente`, `Factura`, `DetalleFac`, `MovInventario`, `Abono`, `Proveedor`, `Compra`, `DetalleCompra`, `Lote`, `Gasto`, `AbonoCompra`, `Proforma`, `DetalleProforma`, `CartSession`, `Config`, `Usuario`, `Auditoria`, `Caja`, `ArqueoDetalle`, `MovimientoCaja`
+`Categoria`, `Producto`, `ProductoCodigo`, `Cliente`, `Factura`, `DetalleFac`, `MovInventario`, `Abono`, `Proveedor`, `Compra`, `DetalleCompra`, `Gasto`, `AbonoCompra`, `Proforma`, `DetalleProforma`, `CartSession`, `Config`, `Usuario`, `Auditoria`, `Caja`, `ArqueoDetalle`, `MovimientoCaja`, `UnidadMedida`
 
 ### 21.4 Flujo de datos transaccionales
 
@@ -747,16 +783,28 @@ POS → POST /api/facturas → $transaction {
 } → Actualizar Caja (por método de pago)
 ```
 
-**Compra:**
+**Compra (directa):**
 ```
-Compras → POST /api/compras → $transaction {
+Compras → POST /api/compras (esBorrador: false) → $transaction {
   1. Generar número COM-XXXXX
   2. Crear Compra + Detalles
   3. Por cada detalle:
-     a. Si tiene lote → crear Lote
-     b. Incrementar stock
-     c. Actualizar costo (incluyendo costoVenta2/3/4 si aplica)
-     d. Crear MovInventario (entrada)
+     a. Incrementar stock
+     b. Actualizar costo (incluyendo costoVenta2/3/4 si aplica)
+     c. Crear MovInventario (entrada)
+}
+```
+
+**Compra (borrador → finalizar):**
+```
+Compras → PUT /api/compras/[id] (esBorrador: false) → $transaction {
+  1. Eliminar Detalles viejos
+  2. Actualizar Compra con nuevos datos
+  3. Crear nuevos Detalles
+  4. Por cada detalle:
+     a. Incrementar stock
+     b. Actualizar costo
+     c. Crear MovInventario (entrada)
 }
 ```
 
@@ -781,6 +829,6 @@ Facturas → POST /api/facturas/[id]/anular → Verificar contraseña → $trans
 
 ---
 
-> **Última actualización:** Julio 2026
+> **Última actualización:** Julio 2026 — v2.0: Códigos alias, borradores de compra, teclado virtual custom
 > **Versión:** 0.1.0
 > **Licencia:** Propietaria — requiere archivo .lic válido

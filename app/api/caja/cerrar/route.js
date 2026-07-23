@@ -50,8 +50,12 @@ export async function POST(req) {
 
     if (arqueo?.length) {
       for (const item of arqueo) {
-        if (item.moneda === 'C$') efectivoRealCs += item.subtotal
-        else efectivoRealUs += item.subtotal
+        const st = parseFloat(item.subtotal)
+        if (isNaN(st)) {
+          return NextResponse.json({ error: 'Valor inválido en el arqueo. Revisá los subtotales.' }, { status: 400 })
+        }
+        if (item.moneda === 'C$') efectivoRealCs += st
+        else efectivoRealUs += st
       }
     }
 

@@ -18,7 +18,8 @@ export async function GET(request) {
       ...(buscar && {
         OR: [
           { nombre: { contains: buscar, mode: 'insensitive' } },
-          { codigo: { contains: buscar, mode: 'insensitive' } }
+          { codigo: { contains: buscar, mode: 'insensitive' } },
+          { codigosAlias: { some: { codigo: { contains: buscar, mode: 'insensitive' } } } }
         ]
       }),
       ...(categoriaId && { categoriaId: parseInt(categoriaId) }),
@@ -35,7 +36,7 @@ export async function GET(request) {
     const [productos, total] = await Promise.all([
       prisma.producto.findMany({
         where,
-        include: { categoria: true },
+        include: { categoria: true, codigosAlias: true },
         orderBy: { nombre: 'asc' },
         skip: (page - 1) * limit,
         take: limit
@@ -58,6 +59,8 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json()
+    const codigosAlias = Array.isArray(body.codigosAlias) ? body.codigosAlias.filter(c => c?.trim()) : []
+
     const producto = await prisma.producto.create({
       data: {
         nombre: body.nombre,
@@ -86,10 +89,17 @@ export async function POST(request) {
         factorVenta4: parseFloat(body.factorVenta4 || 1),
         categoriaId: parseInt(body.categoriaId),
         esGenerico: body.esGenerico === true,
-        fechaVencimiento: body.fechaVencimiento ? new Date(body.fechaVencimiento) : null
+        fechaVencimiento: body.fechaVencimiento ? new Date(body.fechaVencimiento) : null,
+        codigosAlias: codigosAlias.length > 0 ? {
+          create: codigosAlias.map(c => ({ codigo: c }))
+        } : undefined
       }
     })
-    return NextResponse.json(producto, { status: 201 })
+    const result = await prisma.producto.findUnique({
+      where: { id: producto.id },
+      include: { categoria: true, codigosAlias: true }
+    })
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: 'Error al crear producto' }, { status: 500 })
   }

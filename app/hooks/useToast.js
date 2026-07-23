@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 
 export function useToast() {
-  const [toast, setToast] = useState(null)
+  const [toasts, setToasts] = useState([])
 
-  function mostrar(mensaje, tipo = 'exito') {
-    setToast({ mensaje, tipo })
-  }
+  const mostrar = useCallback((mensaje, tipo = 'exito') => {
+    setToasts(prev => [...prev, { id: Date.now() + Math.random(), mensaje, tipo }])
+  }, [])
 
-  function cerrar() {
-    setToast(null)
-  }
+  const cerrar = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, [])
 
-  return { toast, mostrar, cerrar }
+  const toast = toasts.length > 0 ? toasts[0] : null
+  const onCerrar = toast ? () => cerrar(toast.id) : () => {}
+
+  return { toast, mostrar, cerrar: () => { if (toast) cerrar(toast.id) } }
 }

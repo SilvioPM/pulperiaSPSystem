@@ -160,6 +160,22 @@ td {
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
+/* ── 1024×768 (15" laptops / small screens) ── */
+@media (max-width: 1024px) {
+  .compact-main { padding: 12px !important; }
+  .card { padding: 14px; }
+  table th, table td { padding: 8px 10px !important; font-size: 13px; }
+  .table-wrap { overflow-x: auto !important; }
+  .dashboard-2col { grid-template-columns: 1fr !important; }
+  .pos-product-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; gap: 8px !important; }
+  .pos-cat-btn { padding: 8px 14px !important; font-size: 13px !important; min-height: 34px !important; }
+
+  button, .btn, [role="button"] { min-height: 36px; }
+  input, select, textarea { font-size: 14px; padding: 8px 10px; }
+  h1 { font-size: 20px !important; }
+  h2 { font-size: 17px !important; }
+}
+
 /* ── Mobile: horizontal scroll for card grids and tables ── */
 @media (max-width: 768px) {
   body {

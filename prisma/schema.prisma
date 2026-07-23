@@ -50,10 +50,21 @@ model Producto {
   detallesCompra    DetalleCompra[]
   detallesProforma  DetalleProforma[]
   fechaVencimiento  DateTime?
+  codigosAlias      ProductoCodigo[]
 
   @@index([nombre])
   @@index([categoriaId])
   @@index([activo])
+}
+
+model ProductoCodigo {
+  id         Int      @id @default(autoincrement())
+  codigo     String   @unique
+  productoId Int
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  creadoEn   DateTime @default(now())
+
+  @@map("ProductoCodigo")
 }
 
 model Cliente {

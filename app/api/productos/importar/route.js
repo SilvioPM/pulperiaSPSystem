@@ -72,6 +72,17 @@ const mayoristaCommon = {
   precioMayor: parseFloat(fila['PrecioMayor'] || 0),
   cantidadMinimaMayor: parseFloat(fila['CantidadMinimaMayor'] || 0),
 }
+const allUnitFields = ['Unidad', 'UnidadVenta2', 'UnidadVenta3', 'UnidadVenta4']
+for (const field of allUnitFields) {
+  const val = String(fila[field] || '').trim()
+  if (val) {
+    await prisma.unidadMedida.upsert({
+      where: { nombre: val },
+      update: {},
+      create: { nombre: val }
+    }).catch(() => {})
+  }
+}
 const fechaVenc = fila['FechaVencimiento'] ? new Date(fila['FechaVencimiento']) : null
 const stockImport = parseInt(fila['Stock'] || 0)
 
@@ -162,6 +173,24 @@ if (productoId && fechaVenc) {
     where: { id: productoId },
     data: { fechaVencimiento: venc }
   })
+}
+const codigosAliasRaw = String(fila['CodigosAlias'] || '').trim()
+if (productoId && codigosAliasRaw) {
+  const aliasList = codigosAliasRaw.split(/[,;]+/).map(c => c.trim()).filter(Boolean)
+  if (aliasList.length > 0) {
+    const existingAlias = await prisma.productoCodigo.findMany({
+      where: { productoId },
+      select: { codigo: true }
+    })
+    const existingSet = new Set(existingAlias.map(a => a.codigo))
+    const toCreate = aliasList.filter(c => !existingSet.has(c))
+    if (toCreate.length > 0) {
+      await prisma.productoCodigo.createMany({
+        data: toCreate.map(c => ({ codigo: c, productoId })),
+        skipDuplicates: true
+      })
+    }
+  }
 }
         resultados.exitosos++
 
