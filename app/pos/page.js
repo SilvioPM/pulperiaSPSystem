@@ -850,7 +850,7 @@ export default function POS() {
                 {clientes.filter(c => c.nombre.toLowerCase().includes(buscarCliente.toLowerCase())).length === 0 && (
                   <div style={{ padding: '16px', textAlign: 'center' }}>
                     <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '8px' }}>No se encontr&oacute; &apos;{buscarCliente}&apos;</div>
-                    <button onClick={() => { setNuevoCliente({ nombre: buscarCliente, telefono: '', direccion: '' }); setMostrarFormCliente(true) }}
+                    <button onClick={() => { setNuevoCliente({ nombre: buscarCliente, telefono: '', direccion: '' }); setMostrarFormCliente(true); setMostrarClientes(false) }}
                       style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>
                       <UserPlus size={16} style={{ marginRight: 4 }} /> Crear cliente rápido
                     </button>
