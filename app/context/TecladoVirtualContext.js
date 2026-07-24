@@ -11,7 +11,6 @@ export function useTecladoVirtual() {
 export function TecladoVirtualProvider({ children }) {
   const [visible, setVisible] = useState(false)
   const [keyboardHeight, setKeyboardHeight] = useState(0)
-  const [inputActivo, setInputActivo] = useState('')
   const [tipo, setTipo] = useState('letras')
   const [ultimoTipo, setUltimoTipo] = useState('letras')
   const [posY, setPosY] = useState(0)
@@ -23,7 +22,6 @@ export function TecladoVirtualProvider({ children }) {
   }, [])
 
   const onChange = useCallback((valor) => {
-    setInputActivo(valor)
     if (inputRef.current) {
       const tag = inputRef.current.tagName?.toLowerCase()
       const proto = tag === 'textarea' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
@@ -56,7 +54,6 @@ export function TecladoVirtualProvider({ children }) {
       const nuevoTipo = esNumero ? 'numeros' : ultimoTipo || 'letras'
       setTipo(nuevoTipo)
       setUltimoTipo(nuevoTipo)
-      setInputActivo(el.value || '')
       inputRef.current = el
       setVisible(true)
 
