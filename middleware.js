@@ -23,8 +23,14 @@ export default async function middleware(req) {
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
     const origin = req.headers.get('origin')
     const referer = req.headers.get('referer')
-    const url = new URL(req.url)
-    const allowed = [url.origin, `${url.protocol}//${url.host}`]
+    const host = req.headers.get('host')
+    const allowed = []
+    if (host) {
+      allowed.push(`http://${host}`, `https://${host}`)
+    } else {
+      const url = new URL(req.url)
+      allowed.push(url.origin)
+    }
     if (origin) {
       try {
         const o = new URL(origin)
