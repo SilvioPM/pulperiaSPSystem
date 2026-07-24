@@ -83,6 +83,10 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
     } else {
       onChange(valor + tecla)
     }
+    // Re-focus input if it lost focus (happens on touch when keyboard button is clicked)
+    if (inputRef.current && document.activeElement !== inputRef.current) {
+      inputRef.current.focus()
+    }
   }
 
   function k({ t, a, green, gray, wide }) {
@@ -147,7 +151,7 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
   }, [onHeightChange])
 
   return (
-    <div ref={containerRef} style={{
+    <div ref={containerRef} className="teclado-virtual-container" style={{
       position: 'fixed', bottom: 0, left: area.left, width: area.width, zIndex: 9999,
       background: bg,
       backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',

@@ -72,6 +72,7 @@ export function TecladoVirtualProvider({ children }) {
       const related = e.relatedTarget
       if (related && (related.closest('.teclado-virtual-container') || related.hasAttribute('data-tecla'))) return
       setTimeout(() => {
+        if (inputRef.current && document.body.contains(inputRef.current) && (document.activeElement === inputRef.current || document.activeElement?.closest?.('.teclado-virtual-container'))) return
         if (!document.activeElement || document.activeElement === document.body || !document.body.contains(inputRef.current)) {
           setVisible(false)
           inputRef.current = null
