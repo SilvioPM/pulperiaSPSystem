@@ -162,7 +162,6 @@ export default function Inicio() {
           {/* ── FILA 3: Chart (70%) + Pie Métodos Pago (30%) ── */}
           <div className="dashboard-2col" style={{
             display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 16, marginBottom: 24,
-            minHeight: 320,
           }}>
             <GraficoFlujoCaja data={stats.gananciasPorMes} gananciaMesActual={stats.gananciaMesActual} />
             <PieMetodosPago data={stats.metodosPago} />

@@ -53,8 +53,8 @@ export default function GraficoFlujoCaja({ data = [], gananciaMesActual = 0 }) {
   }
 
   return (
-    <div className="card" style={{ padding: 20, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+    <div className="card" style={{ padding: 20, height: 320, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 8, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <TrendingUp size={20} color="var(--verde)" />
           <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--texto)', textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>
