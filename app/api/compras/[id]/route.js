@@ -51,24 +51,15 @@ export async function PUT(request, { params }) {
           const producto = await tx.producto.findUnique({ where: { id: parseInt(detalle.productoId) } })
           if (!producto) throw new Error(`Producto ID ${detalle.productoId} no encontrado`)
 
-          let cantidadBase = parseFloat(detalle.cantidad)
-          let factor = 1
-
-          if (detalle.unidad === producto.unidadCompra && producto.factorConversion) {
-            factor = producto.factorConversion
-          } else if (producto.unidadVenta2 && detalle.unidad === producto.unidadVenta2 && producto.factorVenta2) {
-            factor = producto.factorVenta2
-          } else if (producto.unidadVenta3 && detalle.unidad === producto.unidadVenta3 && producto.factorVenta3) {
-            factor = producto.factorVenta3
-          } else if (producto.unidadVenta4 && detalle.unidad === producto.unidadVenta4 && producto.factorVenta4) {
-            factor = producto.factorVenta4
-          }
-
-          cantidadBase *= factor
+          const fc = parseFloat(detalle.factorConversion) || producto.factorConversion || 1
+          const cantidadBase = parseFloat(detalle.cantidad) * fc
 
           const updateData = {
             stock: { increment: cantidadBase },
-            costo: factor > 1 ? parseFloat(detalle.costo) / factor : parseFloat(detalle.costo)
+            unidadBase: detalle.unidadVenta || producto.unidadBase,
+            unidadCompra: detalle.unidadCompra || producto.unidadCompra,
+            factorConversion: fc,
+            costo: parseFloat(detalle.costo) / fc
           }
           if (producto.unidadVenta2 && detalle.unidad === producto.unidadVenta2) {
             updateData.costoVenta2 = parseFloat(detalle.costo)
@@ -90,7 +81,7 @@ export async function PUT(request, { params }) {
               tipo: 'entrada',
               cantidad: cantidadBase,
               cantidadOriginal: parseFloat(detalle.cantidad),
-              unidadOriginal: detalle.unidad || 'unidad',
+              unidadOriginal: detalle.unidadCompra || detalle.unidad || 'unidad',
               motivo: `Compra ${existente.numero}`
             }
           })

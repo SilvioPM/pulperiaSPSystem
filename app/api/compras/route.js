@@ -103,16 +103,15 @@ export async function POST(request) {
           const producto = await tx.producto.findUnique({ where: { id: parseInt(detalle.productoId) } })
           if (!producto) throw new Error(`Producto ID ${detalle.productoId} no encontrado`)
 
-          const esUnidadCompra = detalle.unidad === producto.unidadCompra
-          const cantidadBase = esUnidadCompra
-            ? parseFloat(detalle.cantidad) * (producto.factorConversion || 1)
-            : parseFloat(detalle.cantidad)
+          const fc = parseFloat(detalle.factorConversion) || producto.factorConversion || 1
+          const cantidadBase = parseFloat(detalle.cantidad) * fc
 
           const updateData = {
             stock: { increment: cantidadBase },
-            costo: esUnidadCompra
-              ? parseFloat(detalle.costo) / (producto.factorConversion || 1)
-              : parseFloat(detalle.costo)
+            unidadBase: detalle.unidadVenta || producto.unidadBase,
+            unidadCompra: detalle.unidadCompra || producto.unidadCompra,
+            factorConversion: fc,
+            costo: parseFloat(detalle.costo) / fc
           }
           if (producto.unidadVenta2 && detalle.unidad === producto.unidadVenta2) {
             updateData.costoVenta2 = parseFloat(detalle.costo)
@@ -137,7 +136,7 @@ export async function POST(request) {
               tipo: 'entrada',
               cantidad: cantidadBase,
               cantidadOriginal: parseFloat(detalle.cantidad),
-              unidadOriginal: detalle.unidad || 'unidad',
+              unidadOriginal: detalle.unidadCompra || detalle.unidad || 'unidad',
               motivo: `Compra ${numero}`
             }
           })
