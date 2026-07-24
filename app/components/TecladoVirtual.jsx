@@ -99,7 +99,6 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
     const sizeKey = a ? KWF : KF
     return (
       <button data-tecla="true"
-        onMouseDown={e => e.preventDefault()}
         onClick={() => pulsar(a || t)}
         style={{
           width: w, height: KH, margin: KS, borderRadius: phone ? 8 : 10,

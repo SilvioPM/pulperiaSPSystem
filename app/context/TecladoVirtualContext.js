@@ -14,6 +14,7 @@ export function TecladoVirtualProvider({ children }) {
   const [tipo, setTipo] = useState('letras')
   const [ultimoTipo, setUltimoTipo] = useState('letras')
   const [posY, setPosY] = useState(0)
+  const posYRef = useRef(0)
   const inputRef = useRef(null)
   const esTactilRef = useRef(false)
 
@@ -58,7 +59,11 @@ export function TecladoVirtualProvider({ children }) {
       setVisible(true)
 
       const rect = el.getBoundingClientRect()
-      setPosY(rect.top + rect.height)
+      const newPosY = rect.top + rect.height
+      if (newPosY !== posYRef.current) {
+        posYRef.current = newPosY
+        setPosY(newPosY)
+      }
 
       el.setAttribute('inputmode', 'none')
       el.setAttribute('autocomplete', 'off')

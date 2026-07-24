@@ -87,11 +87,11 @@ export default function Clientes() {
 
       {/* Buscador */}
       <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
-        <input
-          type="text"
-          placeholder="Buscar por nombre, teléfono o cédula..."
-          value={buscando}
-          onChange={e => { setBuscando(e.target.value); if (e.target.value.length >= 2 || !e.target.value) cargarClientes(1) }}
+              <input
+                type="text"
+                placeholder="Buscar por nombre, teléfono o cédula..."
+                value={buscando}
+                onChange={e => { setBuscando(e.target.value); if (e.target.value.length >= 2 || !e.target.value) cargarClientes(1) }}
           style={{
             width: '100%', padding: '10px 14px', borderRadius: '8px',
             border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none'

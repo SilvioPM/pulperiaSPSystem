@@ -43,7 +43,7 @@ export default function Productos() {
   const [importando, setImportando]       = useState(false)
   const [resultImport, setResultImport]   = useState(null)
   const inputExcel                        = useRef(null) 
-  const [cargando, setCargando]           = useState(true)
+  const [cargando, setCargando]           = useState('inicial')
   const [mostrarInactivos, setMostrarInactivos] = useState(false)
   const [page, setPage]                   = useState(1)
   const [totalPages, setTotalPages]       = useState(1)
@@ -56,10 +56,10 @@ export default function Productos() {
   }
 
   useEffect(() => {
-    setCargando(true)
+    setCargando(prev => prev === 'inicial' ? 'inicial' : 'busqueda')
     Promise.all([cargarProductos(), cargarCategorias(), cargarUnidades()])
       .catch(() => {})
-      .finally(() => setCargando(false))
+      .finally(() => setCargando('listo'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mostrarInactivos, page, buscando])
 
@@ -301,7 +301,7 @@ async function importarExcel(e) {
     '#7c3aed', '#ea580c', '#0284c7', '#dc2626'
   ]
 
-  if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
+  if (cargando === 'inicial') return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
   return (
     <div>
@@ -456,7 +456,7 @@ async function importarExcel(e) {
 
           <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input type="text"
+              <input type="text" inputMode="none"
                 placeholder="Buscar producto..."
                 value={buscando}
                 onChange={e => { setBuscando(e.target.value); setPage(1) }}
