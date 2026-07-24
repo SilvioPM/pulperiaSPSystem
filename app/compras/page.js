@@ -438,10 +438,10 @@ async function crearProductoRapido(e) {
       {/* Modal nueva compra */}
       {mostrarForm && (
         <div onClick={() => { setMostrarForm(false); limpiarForm() }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '24px', width: '900px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', gap: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '24px', width: 'min(95vw, 900px)', maxHeight: '90vh', overflowY: 'auto', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
 
             {/* Panel izquierdo — productos */}
-<div style={{ flex: 1 }}>
+<div style={{ flex: '1 1 400px', minWidth: '280px' }}>
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
     <h3 style={{ fontWeight: 700 }}><Icons.Package size={16} /> Productos</h3>
     <button onClick={() => setMostrarNuevoProd(true)}
@@ -508,7 +508,7 @@ async function crearProductoRapido(e) {
 </div>
 
             {/* Detalle */}
-            <div style={{ width: '360px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ flex: '1 1 320px', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <h3 style={{ fontWeight: 700 }}><Icons.ShoppingCart size={16} /> Detalle de compra</h3>
                 <button onClick={() => { setMostrarForm(false); limpiarForm() }}
@@ -573,70 +573,68 @@ async function crearProductoRapido(e) {
                   </div>
                 ) : (
                   carrito.map(item => (
-                    <div key={item.productoId} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600 }}>{item.nombre}</span>
+                    <div key={item.productoId} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600 }}>{item.nombre}</span>
                         <button onClick={() => setCarrito(prev => prev.filter(i => i.productoId !== item.productoId))}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '16px' }}>✕</button>
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '14px' }}>✕</button>
                       </div>
 
-                      {/* Unidad de compra */}
-                      <div style={{ marginBottom: '6px' }}>
-                        <label style={{ fontSize: '11px', color: '#64748b' }}>Unidad de compra</label>
-                        <select value={item.unidadCompra} onChange={e => actualizarDetalle(item.productoId, 'unidadCompra', e.target.value)}
-                          style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
-                          {unidades.map(u => <option key={u.nombre} value={u.nombre}>{u.nombre}</option>)}
-                        </select>
-                      </div>
-
-                      {/* Unidad de venta */}
-                      <div style={{ marginBottom: '6px' }}>
-                        <label style={{ fontSize: '11px', color: '#64748b' }}>Unidad de venta</label>
-                        <select value={item.unidadVenta} onChange={e => actualizarDetalle(item.productoId, 'unidadVenta', e.target.value)}
-                          style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}>
-                          {unidades.map(u => <option key={u.nombre} value={u.nombre}>{u.nombre}</option>)}
-                        </select>
-                      </div>
-
-                      {/* Factor de conversión si difieren */}
-                      {item.unidadCompra !== item.unidadVenta && (
-                        <div style={{ marginBottom: '6px' }}>
-                          <label style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 600 }}>
-                            ¿Cuántas {item.unidadVenta}s tiene 1 {item.unidadCompra}?
-                          </label>
-                          <input type="number" step="0.01" min="0.01" value={item.factorConversion}
-                            onChange={e => setCarrito(prev => prev.map(i =>
-                              i.productoId === item.productoId ? { ...i, factorConversion: parseFloat(e.target.value) || 1 } : i
-                            ))}
-                            style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #7c3aed', fontSize: '13px', outline: 'none' }}
-                          />
+                      {/* Unidades y conversión */}
+                      <div style={{ display: 'grid', gridTemplateColumns: item.unidadCompra !== item.unidadVenta ? '1fr 1fr 1fr' : '1fr 1fr', gap: '4px', marginBottom: '6px' }}>
+                        <div>
+                          <label style={{ fontSize: '11px', color: '#64748b' }}>Unidad compra</label>
+                          <select value={item.unidadCompra} onChange={e => actualizarDetalle(item.productoId, 'unidadCompra', e.target.value)}
+                            style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}>
+                            {unidades.map(u => <option key={u.nombre} value={u.nombre}>{u.nombre}</option>)}
+                          </select>
                         </div>
-                      )}
+                        <div>
+                          <label style={{ fontSize: '11px', color: '#64748b' }}>Unidad venta</label>
+                          <select value={item.unidadVenta} onChange={e => actualizarDetalle(item.productoId, 'unidadVenta', e.target.value)}
+                            style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}>
+                            {unidades.map(u => <option key={u.nombre} value={u.nombre}>{u.nombre}</option>)}
+                          </select>
+                        </div>
+                        {item.unidadCompra !== item.unidadVenta && (
+                          <div>
+                            <label style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 600 }}>
+                              {item.unidadVenta}s / 1 {item.unidadCompra}
+                            </label>
+                            <input type="number" step="0.01" min="0.01" value={item.factorConversion}
+                              onChange={e => setCarrito(prev => prev.map(i =>
+                                i.productoId === item.productoId ? { ...i, factorConversion: parseFloat(e.target.value) || 1 } : i
+                              ))}
+                              style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #7c3aed', fontSize: '12px', outline: 'none' }}
+                            />
+                          </div>
+                        )}
+                      </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
                         <div>
                           <label style={{ fontSize: '11px', color: '#64748b' }}>Cantidad ({item.unidadCompra})</label>
                           <input type="number" step="0.5" value={item.cantidad}
                             onChange={e => actualizarDetalle(item.productoId, 'cantidad', e.target.value)}
-                            style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                            style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                           />
                         </div>
                         <div>
                           <label style={{ fontSize: '11px', color: '#64748b' }}>Costo por {item.unidadCompra}</label>
                           <input type="number" step="0.01" value={item.costo}
                             onChange={e => actualizarDetalle(item.productoId, 'costo', e.target.value)}
-                            style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                            style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                           />
                         </div>
                       </div>
-                      <div style={{ marginTop: '6px' }}>
-                        <label style={{ fontSize: '11px', color: '#64748b' }}>Fecha de vencimiento <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opcional)</span></label>
+                      <div>
+                        <label style={{ fontSize: '11px', color: '#64748b' }}>Vence <span style={{ fontWeight: 400, color: '#94a3b8' }}>(opc)</span></label>
                         <input type="date" value={item.fechaVencimiento || ''}
                           onChange={e => actualizarDetalle(item.productoId, 'fechaVencimiento', e.target.value)}
-                          style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                          style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                         />
                       </div>
-                      <div style={{ textAlign: 'right', fontSize: '13px', fontWeight: 700, marginTop: '4px', color: '#16a34a' }}>
+                      <div style={{ textAlign: 'right', fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>
                         C$ {item.subtotal.toFixed(2)}
                       </div>
                     </div>
