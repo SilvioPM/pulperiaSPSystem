@@ -65,14 +65,14 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const { montoInicial, usuario } = await req.json()
+    const { montoInicial, montoInicialUs, usuario } = await req.json()
 
     // Verificar que no haya una caja abierta
     const abierta = await prisma.caja.findFirst({ where: { estado: 'abierta' } })
     if (abierta) return NextResponse.json({ error: 'Ya hay una caja abierta' }, { status: 400 })
 
     const caja = await prisma.caja.create({
-      data: { usuarioApertura: usuario, montoInicial: parseFloat(montoInicial || 0) }
+      data: { usuarioApertura: usuario, montoInicial: parseFloat(montoInicial || 0), montoInicialUs: parseFloat(montoInicialUs || 0) }
     })
 
     return NextResponse.json(caja, { status: 201 })

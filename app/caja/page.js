@@ -17,6 +17,7 @@ export default function CajaPage() {
 
   // Apertura
   const [montoApertura, setMontoApertura] = useState('')
+  const [montoAperturaUs, setMontoAperturaUs] = useState('')
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
 
@@ -81,11 +82,11 @@ export default function CajaPage() {
     const r = await fetch('/api/caja', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ montoInicial: parseFloat(montoApertura || 0), usuario: user?.nombre || user?.username })
+      body: JSON.stringify({ montoInicial: parseFloat(montoApertura || 0), montoInicialUs: parseFloat(montoAperturaUs || 0), usuario: user?.nombre || user?.username })
     })
     const d = await r.json()
     if (!r.ok) { setError(d.error); return }
-    auditar(user?.username, 'crear', 'caja', `Caja abierta con C$ ${montoApertura}`)
+    auditar(user?.username, 'crear', 'caja', `Caja abierta con C$ ${montoApertura}${montoAperturaUs ? ', $ ' + montoAperturaUs : ''}`)
     setMsg('Caja abierta exitosamente')
     cargar()
   }
@@ -156,11 +157,22 @@ export default function CajaPage() {
         {!caja && !cerrando && (
           <form onSubmit={abrirCaja} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
             <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1e293b', marginBottom: 16 }}>Abrir Caja</h2>
-            <label style={{ display: 'block', fontSize: 13, color: '#64748b', marginBottom: 4 }}>Monto inicial (C$)</label>
-            <input type="number" step="0.01" value={montoApertura} onChange={e => setMontoApertura(e.target.value)}
-              placeholder="0.00" required
-              style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%', marginBottom: 16 }}
-            />
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#64748b', marginBottom: 4 }}>Monto inicial C$</label>
+                <input type="number" step="0.01" value={montoApertura} onChange={e => setMontoApertura(e.target.value)}
+                  placeholder="0.00" required
+                  style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#64748b', marginBottom: 4 }}>Monto inicial $</label>
+                <input type="number" step="0.01" value={montoAperturaUs} onChange={e => setMontoAperturaUs(e.target.value)}
+                  placeholder="0.00"
+                  style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%' }}
+                />
+              </div>
+            </div>
             <button type="submit" style={{
               padding: '10px 24px', background: '#16a34a', color: '#fff', border: 'none',
               borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer'
@@ -179,6 +191,7 @@ export default function CajaPage() {
               <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Monto inicial</div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: '#1e293b' }}>C$ {caja.montoInicial.toFixed(2)}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#ca8a04', marginTop: 2 }}>$ {caja.montoInicialUs?.toFixed(2) || '0.00'}</div>
               </div>
               <div style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Total ingresado</div>
@@ -326,8 +339,8 @@ export default function CajaPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                 <span style={{ color: '#475569' }}>C$: Inicial {caja.montoInicial.toFixed(2)} + Efectivo {caja.ventasEfectivoCs.toFixed(2)} + Abonos {caja.abonosTotal?.toFixed(2) || '0.00'} + Ingresos {caja.ingresosExtra.toFixed(2)} - Egresos {caja.egresos.toFixed(2)}</span>
                 <span style={{ fontWeight: 600 }}>= C$ {(caja.montoInicial + caja.ventasEfectivoCs + (caja.abonosTotal || 0) + caja.ingresosExtra - caja.egresos).toFixed(2)}</span>
-                <span style={{ color: '#475569' }}>$: Ventas {caja.ventasEfectivoUs.toFixed(2)}</span>
-                <span style={{ fontWeight: 600 }}>= $ {caja.ventasEfectivoUs.toFixed(2)}</span>
+                <span style={{ color: '#475569' }}>$: Inicial {caja.montoInicialUs?.toFixed(2) || '0.00'} + Ventas {caja.ventasEfectivoUs.toFixed(2)}</span>
+                <span style={{ fontWeight: 600 }}>= $ {((caja.montoInicialUs || 0) + caja.ventasEfectivoUs).toFixed(2)}</span>
               </div>
             </div>
 
@@ -363,7 +376,8 @@ export default function CajaPage() {
                     <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Fecha</th>
                     <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Abrió</th>
                     <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Cerró</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Inicial</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Inic. C$</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Inic. $</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Vendido</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Ing.Extra</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Egresos</th>
@@ -380,6 +394,7 @@ export default function CajaPage() {
                       <td style={{ padding: '10px 12px' }}>{h.usuarioApertura}</td>
                       <td style={{ padding: '10px 12px' }}>{h.usuarioCierre}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.montoInicial.toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right' }}>$ {h.montoInicialUs?.toFixed(2) || '0.00'}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.totalVendido.toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.ingresosExtra.toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>C$ {h.egresos.toFixed(2)}</td>

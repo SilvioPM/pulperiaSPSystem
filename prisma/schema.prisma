@@ -302,6 +302,7 @@ model Caja {
   usuarioApertura String
   usuarioCierre  String?
   montoInicial   Float     @default(0)
+  montoInicialUs Float     @default(0)
   ventasEfectivoCs Float   @default(0)
   ventasEfectivoUs Float   @default(0)
   ventasTarjeta   Float    @default(0)
