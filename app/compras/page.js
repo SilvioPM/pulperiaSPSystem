@@ -24,6 +24,12 @@ export default function Compras() {
     proveedorId: '', facturaProveedor: '', esCredito: false, fechaVencimiento: '', nota: ''
   })
   const { toast, mostrar, cerrar } = useToast()
+
+  useEffect(() => {
+    const modalAbierto = mostrarForm || mostrarNuevoProd || compraVer || mostrarAbono || mostrarAnular
+    document.body.style.overflow = modalAbierto ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mostrarForm, mostrarNuevoProd, compraVer, mostrarAbono, mostrarAnular])
   const [buscarProducto, setBuscarProducto]   = useState('')
   const [buscarFactura, setBuscarFactura]     = useState('')
   const [mostrarNuevoProd, setMostrarNuevoProd] = useState(false)
