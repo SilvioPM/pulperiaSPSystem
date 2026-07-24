@@ -67,11 +67,12 @@ export async function POST(request) {
           validoHasta: body.validoHasta ? new Date(body.validoHasta) : null,
           estado: 'pendiente',
           detalles: {
-            create: body.detalles.map(d => ({
+              create: body.detalles.map(d => ({
               productoId: parseInt(d.productoId),
               cantidad: parseFloat(d.cantidad),
               precio: parseFloat(d.precio),
-              subtotal: parseFloat(d.subtotal)
+              subtotal: parseFloat(d.subtotal),
+              unidad: d.unidad || null
             }))
           }
         },
