@@ -18,6 +18,7 @@ export default function Proformas() {
   const [convirtiendo, setConvirtiendo] = useState(false)
   const [buscar, setBuscar]             = useState('')
   const [buscarProd, setBuscarProd]     = useState('')
+  const [presentacionSel, setPresentacionSel] = useState({})
   const cartaRef = useRef(null)
   const { toast, mostrar, cerrar } = useToast()
 
@@ -27,7 +28,6 @@ export default function Proformas() {
   const [nota, setNota]                 = useState('')
   const [validoHasta, setValidoHasta]   = useState('')
 
-  const [unidades, setUnidades]         = useState([])
   const [cargando, setCargando] = useState(true)
   const reciboRef = useRef(null)
 
@@ -37,23 +37,21 @@ export default function Proformas() {
 
   async function cargarTodo() {
     try {
-      const [pRes, clRes, catRes, configRes, proRes, uRes] = await Promise.all([
+      const [pRes, clRes, catRes, configRes, proRes] = await Promise.all([
         fetch('/api/productos'),
         fetch('/api/clientes'),
         fetch('/api/categorias'),
         fetch('/api/config'),
-        fetch('/api/proformas'),
-        fetch('/api/unidades-medida')
+        fetch('/api/proformas')
       ])
-      const [p, cl, cat, cfg, pro, u] = await Promise.all([
-        pRes.json(), clRes.json(), catRes.json(), configRes.json(), proRes.json(), uRes.json()
+      const [p, cl, cat, cfg, pro] = await Promise.all([
+        pRes.json(), clRes.json(), catRes.json(), configRes.json(), proRes.json()
       ])
       setProductos(Array.isArray(p) ? p : (p.data || []))
       setClientes(Array.isArray(cl) ? cl : (cl.data || []))
       setCategorias(Array.isArray(cat) ? cat : [])
       setConfig(cfg || {})
       setProformas(Array.isArray(pro) ? pro : (Array.isArray(pro?.data) ? pro.data : []))
-      setUnidades(Array.isArray(u) ? u : [])
     } catch {
       setProformas([])
     }
@@ -64,25 +62,32 @@ export default function Proformas() {
     documentTitle: proformaVer?.numero || 'Proforma',
   })
 
+  function obtenerPres(producto, pres) {
+    if (pres === 'venta2' && producto.unidadVenta2) return { precio: producto.precioVenta2, unidad: producto.unidadVenta2 }
+    if (pres === 'venta3' && producto.unidadVenta3) return { precio: producto.precioVenta3, unidad: producto.unidadVenta3 }
+    if (pres === 'venta4' && producto.unidadVenta4) return { precio: producto.precioVenta4, unidad: producto.unidadVenta4 }
+    return { precio: producto.precio, unidad: producto.unidad }
+  }
+
   function agregarProducto(producto) {
+    const pres = presentacionSel[producto.id] || 'base'
+    const p = obtenerPres(producto, pres)
     setCarrito(prev => {
-      const existe = prev.find(i => i.productoId === producto.id)
+      const existe = prev.find(i => i.productoId === producto.id && i._pres === pres)
       if (existe) {
-        return prev.map(i => i.productoId === producto.id
+        return prev.map(i => i.productoId === producto.id && i._pres === pres
           ? { ...i, cantidad: i.cantidad + 1, subtotal: (i.cantidad + 1) * i.precio }
           : i
         )
       }
-      const uv = producto.unidadVenta || producto.unidadBase || 'unidad'
       return [...prev, {
         productoId: producto.id,
         nombre:     producto.nombre,
-        precio:     producto.precio,
+        _pres:      pres,
+        precio:     p.precio,
+        unidad:     p.unidad,
         cantidad:   1,
-        unidadVenta: uv,
-        unidadBase: producto.unidadBase || uv,
-        factorConversion: producto.factorConversion || 1,
-        subtotal:   producto.precio
+        subtotal:   p.precio
       }]
     })
   }
@@ -93,29 +98,22 @@ export default function Proformas() {
   documentTitle: proformaVer?.numero || 'Proforma',
  })
 
-  function cambiarCantidad(productoId, cantidad) {
+  function cambiarCantidad(productoId, cantidad, pres) {
     if (cantidad === '') return
     const val = parseFloat(cantidad)
     if (val <= 0) {
-      setCarrito(prev => prev.filter(i => i.productoId !== productoId))
+      setCarrito(prev => prev.filter(i => !(i.productoId === productoId && i._pres === pres)))
       return
     }
-    setCarrito(prev => prev.map(i => i.productoId === productoId
+    setCarrito(prev => prev.map(i => i.productoId === productoId && i._pres === pres
       ? { ...i, cantidad: val, subtotal: val * i.precio }
       : i
     ))
   }
 
-  function cambiarUnidad(productoId, unidad) {
-    setCarrito(prev => prev.map(i => i.productoId === productoId
-      ? { ...i, unidadVenta: unidad }
-      : i
-    ))
-  }
-
-  function cambiarPrecio(productoId, precio) {
+  function cambiarPrecio(productoId, pres, precio) {
     const val = parseFloat(precio) || 0
-    setCarrito(prev => prev.map(i => i.productoId === productoId
+    setCarrito(prev => prev.map(i => i.productoId === productoId && i._pres === pres
       ? { ...i, precio: val, subtotal: i.cantidad * val }
       : i
     ))
@@ -142,7 +140,8 @@ export default function Proformas() {
           productoId: item.productoId,
           cantidad:   item.cantidad,
           precio:     item.precio,
-          subtotal:   item.subtotal
+          subtotal:   item.subtotal,
+          unidad:     item.unidad
         }))
       })
     })
@@ -156,6 +155,7 @@ export default function Proformas() {
     setClienteId('')
     setNota('')
     setValidoHasta('')
+    setPresentacionSel({})
     cargarTodo()
     mostrar(`Proforma ${data.numero} guardada exitosamente`, 'exito')
     setProformaVer(data)
@@ -258,7 +258,7 @@ _Esta es una cotización, no una factura oficial._
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}><Icons.FileEdit size={24} /> Proformas / Cotizaciones</h1>
           <p style={{ color: '#64748b', fontSize: '14px' }}>{proformas.length} proformas registradas</p>
         </div>
-        <button className="btn-verde" onClick={() => setMostrarForm(true)}>
+        <button className="btn-verde" onClick={() => { setMostrarForm(true); setPresentacionSel({}) }}>
           + Nueva Proforma
         </button>
       </div>
@@ -379,13 +379,38 @@ _Esta es una cotización, no una factura oficial._
               />
               </div>
               <div style={{ maxHeight: '400px', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {productos.filter(p => !buscarProd || p.nombre?.toLowerCase().includes(buscarProd.toLowerCase())).map(p => (
+                {productos.filter(p => !buscarProd || p.nombre?.toLowerCase().includes(buscarProd.toLowerCase())).map(p => {
+                  const presentaciones = [
+                    { key: 'base', label: p.unidad, check: true },
+                    { key: 'venta2', label: p.unidadVenta2, check: p.unidadVenta2 && p.precioVenta2 > 0 },
+                    { key: 'venta3', label: p.unidadVenta3, check: p.unidadVenta3 && p.precioVenta3 > 0 },
+                    { key: 'venta4', label: p.unidadVenta4, check: p.unidadVenta4 && p.precioVenta4 > 0 },
+                  ].filter(x => x.check)
+                  const presActual = presentacionSel[p.id] || 'base'
+                  const pp = obtenerPres(p, presActual)
+                  return (
                   <div key={p.id} onClick={() => agregarProducto(p)}
                     style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer', background: 'white' }}>
                     <div style={{ fontSize: '13px', fontWeight: 600 }}>{p.nombre}</div>
-                    <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>C$ {p.precio?.toFixed(2)}</div>
+                    {presentaciones.length > 1 && (
+                      <div style={{ display: 'flex', gap: '4px', margin: '6px 0' }} onClick={e => e.stopPropagation()}>
+                        {presentaciones.map(pre => (
+                          <button key={pre.key} onClick={() => setPresentacionSel(prev => ({...prev, [p.id]: pre.key}))}
+                            style={{
+                              flex: 1, padding: '4px 4px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer',
+                              border: presActual === pre.key ? '2px solid #16a34a' : '1px solid #e2e8f0',
+                              background: presActual === pre.key ? '#f0fdf4' : 'white',
+                              color: presActual === pre.key ? '#16a34a' : '#94a3b8'
+                            }}>
+                            {pre.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>C$ {pp.precio?.toFixed(2)} / {pp.unidad}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>Stock: {p.stock}</div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
 
@@ -393,7 +418,7 @@ _Esta es una cotización, no una factura oficial._
             <div style={{ width: '340px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><Icons.FileText size={18} /> Detalle</h3>
-                <button onClick={() => { setMostrarForm(false); setCarrito([]) }}
+                <button onClick={() => { setMostrarForm(false); setCarrito([]); setPresentacionSel({}) }}
                   style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', fontSize: '16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
 
@@ -421,28 +446,34 @@ _Esta es una cotización, no una factura oficial._
                   </div>
                 ) : (
                   carrito.map(item => (
-                    <div key={item.productoId} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>{item.nombre} <span style={{ fontWeight: 400, color: '#64748b', fontSize: '11px' }}>({item.unidadVenta})</span></div>
+                    <div key={item.productoId + (item._pres || '')} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+                        {item.nombre} <span style={{ fontWeight: 400, color: '#64748b', fontSize: '11px' }}>{item.unidad}</span>
+                      </div>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input type="number" value={item.cantidad} min="0.5" step="0.5" inputMode="none"
-                          onChange={e => cambiarCantidad(item.productoId, e.target.value)}
-                          style={{ width: '55px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
+                        <input type="text" inputMode="decimal" defaultValue={item.cantidad}
+                          onBlur={e => {
+                            const v = parseFloat(e.target.value)
+                            if (v > 0) cambiarCantidad(item.productoId, v, item._pres)
+                            else e.target.value = item.cantidad
+                          }}
+                          onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+                          style={{ width: '50px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none', textAlign: 'center' }}
                         />
-                        <select value={item.unidadVenta} onChange={e => cambiarUnidad(item.productoId, e.target.value)}
-                          style={{ padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}>
-                          {[item.unidadBase, ...unidades.filter(u => u.nombre !== item.unidadBase).map(u => u.nombre)].filter((v,i,a)=>a.indexOf(v)===i).map(u => (
-                            <option key={u} value={u}>{u}</option>
-                          ))}
-                        </select>
                         <span style={{ fontSize: '12px', color: '#64748b' }}>× C$</span>
-                        <input type="number" value={item.precio} step="0.01" inputMode="none"
-                          onChange={e => cambiarPrecio(item.productoId, e.target.value)}
-                          style={{ width: '70px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
+                        <input type="text" inputMode="decimal" defaultValue={item.precio}
+                          onBlur={e => {
+                            const v = parseFloat(e.target.value)
+                            if (v > 0) cambiarPrecio(item.productoId, item._pres, v)
+                            else e.target.value = item.precio
+                          }}
+                          onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+                          style={{ width: '65px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none', textAlign: 'center' }}
                         />
                         <span style={{ fontSize: '13px', fontWeight: 700, marginLeft: 'auto' }}>
                           C$ {item.subtotal.toFixed(2)}
                         </span>
-                        <button onClick={() => setCarrito(prev => prev.filter(i => i.productoId !== item.productoId))}
+                        <button onClick={() => setCarrito(prev => prev.filter(i => !(i.productoId === item.productoId && i._pres === item._pres)))}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}>✕</button>
                       </div>
                     </div>
