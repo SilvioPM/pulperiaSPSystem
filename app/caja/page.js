@@ -5,7 +5,7 @@ import AuthGuard from '@/app/components/AuthGuard'
 import { auditar } from '@/lib/auditarClient'
 import * as Icons from 'lucide-react'
 
-const DENOMINACIONES_CS = [1000, 500, 200, 100, 50, 25, 20, 10, 5]
+const DENOMINACIONES_CS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.5]
 const DENOMINACIONES_US = [100, 50, 20, 10, 5, 2, 1]
 
 export default function CajaPage() {
@@ -294,7 +294,7 @@ export default function CajaPage() {
                     <input type="number" min="0" value={arqueo.cs[d]} onChange={e => setDenominacion('cs', d, e.target.value)}
                       style={{ width: '60px', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }}
                     />
-                    <span style={{ fontSize: 12, color: '#94a3b8' }}>= C$ {(d * (arqueo.cs[d] || 0)).toFixed(0)}</span>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>= C$ {(d * (arqueo.cs[d] || 0)).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
