@@ -25,6 +25,7 @@ export async function PUT(request, { params }) {
         data: {
           facturaProveedor: body.facturaProveedor || null,
           proveedorId: parseInt(body.proveedorId),
+          subtotal: parseFloat(body.subtotal || 0),
           iva: parseFloat(body.iva || 0),
           total: parseFloat(body.total),
           esCredito,

@@ -73,6 +73,7 @@ export async function POST(request) {
           numero,
           facturaProveedor: body.facturaProveedor || null,
           proveedorId: parseInt(body.proveedorId),
+          subtotal: parseFloat(body.subtotal || 0),
           iva: parseFloat(body.iva || 0),
           total: parseFloat(body.total),
           esCredito,
