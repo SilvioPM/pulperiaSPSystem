@@ -31,14 +31,13 @@ export async function POST(request) {
         data: { saldoPendiente: nuevoSaldo, estado: nuevoEstado }
       })
 
-      // Sumar a caja abierta (el abono es dinero que entra)
+      // Sumar a caja abierta (el abono es dinero real que entra)
       const cajaAbierta = await tx.caja.findFirst({ where: { estado: 'abierta' } })
       if (cajaAbierta) {
         await tx.caja.update({
           where: { id: cajaAbierta.id },
           data: {
-            totalVendido: { increment: monto },
-            ventasEfectivoCs: { increment: monto }
+            totalVendido: { increment: monto }
           }
         })
       }

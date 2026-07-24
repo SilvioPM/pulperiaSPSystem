@@ -165,29 +165,41 @@ export async function POST(request) {
       return creada
     })
 
-    // Actualizar caja abierta si existe
+    // Actualizar caja abierta si existe (SOLO pagos reales, NO crédito)
     const cajaAbierta = await prisma.caja.findFirst({ where: { estado: 'abierta' } })
     if (cajaAbierta) {
-      const updateCaja = { totalVendido: { increment: parseFloat(body.total) } }
+      const updateCaja = {}
       const dp = body.detallesPago || []
       if (dp.length > 0) {
+        let totalPagado = 0
         for (const p of dp) {
           const monto = parseFloat(p.monto || 0)
-          if (p.metodo === 'efectivo' && p.moneda === 'C$') updateCaja.ventasEfectivoCs = { increment: monto }
-          else if (p.metodo === 'efectivo' && p.moneda === '$') updateCaja.ventasEfectivoUs = { increment: monto }
-          else if (p.metodo === 'dolares') updateCaja.ventasEfectivoUs = { increment: monto }
-          else if (p.metodo === 'tarjeta') updateCaja.ventasTarjeta = { increment: monto }
-          else if (p.metodo === 'transferencia') updateCaja.ventasTransfer = { increment: monto }
-          else if (p.metodo === 'credito') updateCaja.ventasCredito = { increment: monto }
+          if (p.metodo === 'credito') {
+            updateCaja.ventasCredito = { increment: monto }
+          } else {
+            totalPagado += monto
+            if (p.metodo === 'efectivo' && p.moneda === 'C$') updateCaja.ventasEfectivoCs = { increment: monto }
+            else if (p.metodo === 'efectivo' && p.moneda === '$') updateCaja.ventasEfectivoUs = { increment: monto }
+            else if (p.metodo === 'dolares') updateCaja.ventasEfectivoUs = { increment: monto }
+            else if (p.metodo === 'tarjeta') updateCaja.ventasTarjeta = { increment: monto }
+            else if (p.metodo === 'transferencia') updateCaja.ventasTransfer = { increment: monto }
+          }
         }
+        if (totalPagado > 0) updateCaja.totalVendido = { increment: totalPagado }
       } else {
-        if (body.metodoPago === 'efectivo') updateCaja.ventasEfectivoCs = { increment: parseFloat(body.total) }
-        else if (body.metodoPago === 'dolares') updateCaja.ventasEfectivoUs = { increment: parseFloat(body.pagoEnUsd || body.pagoCon || 0) }
-        else if (body.metodoPago === 'tarjeta') updateCaja.ventasTarjeta = { increment: parseFloat(body.total) }
-        else if (body.metodoPago === 'transferencia') updateCaja.ventasTransfer = { increment: parseFloat(body.total) }
-        else if (body.metodoPago === 'credito') updateCaja.ventasCredito = { increment: parseFloat(body.total) }
+        if (body.metodoPago === 'credito') {
+          updateCaja.ventasCredito = { increment: parseFloat(body.total) }
+        } else {
+          updateCaja.totalVendido = { increment: parseFloat(body.total) }
+          if (body.metodoPago === 'efectivo') updateCaja.ventasEfectivoCs = { increment: parseFloat(body.total) }
+          else if (body.metodoPago === 'dolares') updateCaja.ventasEfectivoUs = { increment: parseFloat(body.pagoEnUsd || body.pagoCon || 0) }
+          else if (body.metodoPago === 'tarjeta') updateCaja.ventasTarjeta = { increment: parseFloat(body.total) }
+          else if (body.metodoPago === 'transferencia') updateCaja.ventasTransfer = { increment: parseFloat(body.total) }
+        }
       }
-      await prisma.caja.update({ where: { id: cajaAbierta.id }, data: updateCaja })
+      if (Object.keys(updateCaja).length > 0) {
+        await prisma.caja.update({ where: { id: cajaAbierta.id }, data: updateCaja })
+      }
     }
 
     return NextResponse.json(factura, { status: 201 })

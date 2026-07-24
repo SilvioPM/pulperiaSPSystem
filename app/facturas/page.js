@@ -21,6 +21,11 @@ export default function Facturas() {
   const [authError, setAuthError]   = useState('')
   const [anulando, setAnulando]     = useState(false)
   const [cargando, setCargando]     = useState(true)
+  const [mostrarAbono, setMostrarAbono] = useState(false)
+  const [facturaAbonar, setFacturaAbonar] = useState(null)
+  const [abonoMonto, setAbonoMonto]     = useState('')
+  const [abonoNota, setAbonoNota]       = useState('')
+  const [abonando, setAbonando]         = useState(false)
   const reciboRef = useRef(null)
 
   useEffect(() => {
@@ -118,6 +123,30 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
       setAuthError('Error de conexión')
     } finally {
       setAnulando(false)
+    }
+  }
+
+  async function registrarAbono() {
+    const monto = parseFloat(abonoMonto)
+    if (!monto || monto <= 0) return
+    setAbonando(true)
+    try {
+      const res = await fetch('/api/abonos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ facturaId: facturaAbonar.id, monto, nota: abonoNota })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setMostrarAbono(false)
+      setAbonoMonto('')
+      setAbonoNota('')
+      setFacturaAbonar(null)
+      cargarFacturas(page)
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setAbonando(false)
     }
   }
 
@@ -227,13 +256,18 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
                         <Icons.XCircle size={14} /> Anulada
                       </span>
                     ) : f.estado === 'credito' ? (
-                      <span style={{
-                        padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                        background: '#fef9c3', color: '#ca8a04',
-                        display: 'inline-flex', alignItems: 'center', gap: 4
-                      }}>
-                        <Icons.ClipboardList size={14} /> Crédito
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{
+                          padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                          background: '#fef9c3', color: '#ca8a04',
+                          display: 'inline-flex', alignItems: 'center', gap: 4
+                        }}>
+                          <Icons.ClipboardList size={14} /> Crédito
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#ca8a04', fontWeight: 600 }}>
+                          Saldo: C$ {(f.saldoPendiente || 0).toFixed(2)}
+                        </span>
+                      </div>
                     ) : (
                       <span style={{
                         padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
@@ -272,6 +306,16 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
                         }}>
                         <Icons.Smartphone size={16} />
                       </button>
+                      {f.estado === 'credito' && (
+                        <button onClick={() => { setFacturaAbonar(f); setAbonoMonto(''); setAbonoNota(''); setMostrarAbono(true) }}
+                          style={{
+                            padding: '6px 10px', borderRadius: '6px', border: '1px solid #fef9c3',
+                            background: '#fef9c3', cursor: 'pointer', fontSize: '13px', color: '#ca8a04', fontWeight: 600,
+                            display: 'inline-flex', alignItems: 'center', gap: 4
+                          }}>
+                          <Icons.DollarSign size={16} />
+                        </button>
+                      )}
                       {f.estado !== 'anulada' && (
                         <button onClick={() => { setShowAnular(f); setAuthUser(''); setAuthPass(''); setAuthError('') }}
                           style={{
@@ -344,6 +388,63 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
               padding: '16px', background: '#f8fafc', display: 'inline-block'
             }}>
               <FacturaRecibo ref={reciboRef} factura={facturaVer} config={config} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal registrar abono */}
+      {mostrarAbono && facturaAbonar && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60
+        }}>
+          <div className="card" style={{ width: '400px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#ca8a04', display: 'flex', alignItems: 'center', gap: 8 }}><Icons.DollarSign size={20} /> Registrar Abono</h2>
+              <button onClick={() => setMostrarAbono(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+            </div>
+
+            <div style={{ background: '#fef9c3', border: '1px solid #fef3c7', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '13px', color: '#92400e', fontWeight: 600 }}>{facturaAbonar.numero}</div>
+              <div style={{ fontSize: '13px', color: '#92400e' }}>Total: C$ {facturaAbonar.total.toFixed(2)}</div>
+              <div style={{ fontSize: '13px', color: '#92400e' }}>Cliente: {facturaAbonar.cliente?.nombre || 'General'}</div>
+              <div style={{ fontSize: '15px', color: '#92400e', fontWeight: 700, marginTop: 4 }}>
+                Saldo pendiente: C$ {(facturaAbonar.saldoPendiente || 0).toFixed(2)}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600, fontSize: '14px' }}>Monto a abonar (C$)</label>
+              <input type="number" value={abonoMonto}
+                onChange={e => setAbonoMonto(e.target.value)}
+                step="0.01" min="0.01" max={facturaAbonar.saldoPendiente || 0}
+                placeholder="0.00"
+                style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '14px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600, fontSize: '14px' }}>Nota (opcional)</label>
+              <input value={abonoNota} onChange={e => setAbonoNota(e.target.value)}
+                placeholder="Ej: abono parcial"
+                style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '6px', fontSize: '14px' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setMostrarAbono(false)}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                Cancelar
+              </button>
+              <button onClick={registrarAbono} disabled={abonando || !abonoMonto || parseFloat(abonoMonto) <= 0}
+                style={{
+                  flex: 2, padding: '12px', borderRadius: '8px', border: 'none',
+                  background: abonando ? '#fcd34d' : '#ca8a04', color: 'white',
+                  cursor: 'pointer', fontWeight: 600
+                }}>
+                {abonando ? 'Registrando...' : <><Icons.CheckCircle size={16} /> Registrar Abono</>}
+              </button>
             </div>
           </div>
         </div>
