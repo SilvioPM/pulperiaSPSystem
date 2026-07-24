@@ -27,6 +27,7 @@ export default function Proformas() {
   const [nota, setNota]                 = useState('')
   const [validoHasta, setValidoHasta]   = useState('')
 
+  const [unidades, setUnidades]         = useState([])
   const [cargando, setCargando] = useState(true)
   const reciboRef = useRef(null)
 
@@ -36,21 +37,23 @@ export default function Proformas() {
 
   async function cargarTodo() {
     try {
-      const [pRes, clRes, catRes, configRes, proRes] = await Promise.all([
+      const [pRes, clRes, catRes, configRes, proRes, uRes] = await Promise.all([
         fetch('/api/productos'),
         fetch('/api/clientes'),
         fetch('/api/categorias'),
         fetch('/api/config'),
-        fetch('/api/proformas')
+        fetch('/api/proformas'),
+        fetch('/api/unidades-medida')
       ])
-      const [p, cl, cat, cfg, pro] = await Promise.all([
-        pRes.json(), clRes.json(), catRes.json(), configRes.json(), proRes.json()
+      const [p, cl, cat, cfg, pro, u] = await Promise.all([
+        pRes.json(), clRes.json(), catRes.json(), configRes.json(), proRes.json(), uRes.json()
       ])
       setProductos(Array.isArray(p) ? p : (p.data || []))
       setClientes(Array.isArray(cl) ? cl : (cl.data || []))
       setCategorias(Array.isArray(cat) ? cat : [])
       setConfig(cfg || {})
       setProformas(Array.isArray(pro) ? pro : (Array.isArray(pro?.data) ? pro.data : []))
+      setUnidades(Array.isArray(u) ? u : [])
     } catch {
       setProformas([])
     }
@@ -70,11 +73,15 @@ export default function Proformas() {
           : i
         )
       }
+      const uv = producto.unidadVenta || producto.unidadBase || 'unidad'
       return [...prev, {
         productoId: producto.id,
         nombre:     producto.nombre,
         precio:     producto.precio,
         cantidad:   1,
+        unidadVenta: uv,
+        unidadBase: producto.unidadBase || uv,
+        factorConversion: producto.factorConversion || 1,
         subtotal:   producto.precio
       }]
     })
@@ -87,13 +94,21 @@ export default function Proformas() {
  })
 
   function cambiarCantidad(productoId, cantidad) {
+    if (cantidad === '') return
     const val = parseFloat(cantidad)
-    if (!val || val <= 0) {
+    if (val <= 0) {
       setCarrito(prev => prev.filter(i => i.productoId !== productoId))
       return
     }
     setCarrito(prev => prev.map(i => i.productoId === productoId
       ? { ...i, cantidad: val, subtotal: val * i.precio }
+      : i
+    ))
+  }
+
+  function cambiarUnidad(productoId, unidad) {
+    setCarrito(prev => prev.map(i => i.productoId === productoId
+      ? { ...i, unidadVenta: unidad }
       : i
     ))
   }
@@ -407,16 +422,22 @@ _Esta es una cotización, no una factura oficial._
                 ) : (
                   carrito.map(item => (
                     <div key={item.productoId} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>{item.nombre}</div>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <input type="number" value={item.cantidad} min="0.5" step="0.5"
+                      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>{item.nombre} <span style={{ fontWeight: 400, color: '#64748b', fontSize: '11px' }}>({item.unidadVenta})</span></div>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input type="number" value={item.cantidad} min="0.5" step="0.5" inputMode="none"
                           onChange={e => cambiarCantidad(item.productoId, e.target.value)}
-                          style={{ width: '60px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                          style={{ width: '55px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                         />
-                        <span style={{ fontSize: '12px', color: '#64748b' }}>×</span>
-                        <input type="number" value={item.precio} step="0.01"
+                        <select value={item.unidadVenta} onChange={e => cambiarUnidad(item.productoId, e.target.value)}
+                          style={{ padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}>
+                          {[item.unidadBase, ...unidades.filter(u => u.nombre !== item.unidadBase).map(u => u.nombre)].filter((v,i,a)=>a.indexOf(v)===i).map(u => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </select>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>× C$</span>
+                        <input type="number" value={item.precio} step="0.01" inputMode="none"
                           onChange={e => cambiarPrecio(item.productoId, e.target.value)}
-                          style={{ width: '80px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
+                          style={{ width: '70px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                         />
                         <span style={{ fontSize: '13px', fontWeight: 700, marginLeft: 'auto' }}>
                           C$ {item.subtotal.toFixed(2)}
