@@ -372,14 +372,14 @@ export default function POS() {
           total,
           pagoCon: metodosPago.length > 1
             ? metodosPago.reduce((s, p) => s + (p.metodo === 'dolares' ? parseFloat(p.monto || 0) * tasaCambio : (p.metodo === 'credito' ? 0 : parseFloat(p.monto || 0))), 0)
-            : (metodoPago === 'dolares' ? pagoConCordobas : parseFloat(pagoCon || total)),
+            : (metodoPago === 'dolares' ? pagoConCordobas : (metodoPago === 'credito' ? 0 : parseFloat(pagoCon || total))),
           pagoEnUsd: metodosPago.length > 1 ? metodosPago.filter(p => p.metodo === 'dolares').reduce((s, p) => s + parseFloat(p.monto || 0), 0) : (metodoPago === 'dolares' ? parseFloat(pagoCon || 0) : 0),
           cambio: Math.max(0, (metodosPago.length > 1 ? metodosPago.reduce((s, p) => s + (p.metodo === 'dolares' ? parseFloat(p.monto || 0) * tasaCambio : (p.metodo === 'credito' ? 0 : parseFloat(p.monto || 0))), 0) : pagoConCordobas) - total),
           clienteId: clienteSeleccionado?.id || null,
           metodoPago: metodosPago.length > 1 ? 'mixto' : (esVentaCredito ? 'credito' : metodoPago),
           esCredito: esVentaCredito,
           fechaVencimiento: esVentaCredito ? fechaVencimiento : null,
-          detallesPago: metodosPago.length > 1 ? metodosPago.filter(p => parseFloat(p.monto || 0) > 0) : undefined,
+          detallesPago: metodosPago.filter(p => parseFloat(p.monto || 0) > 0),
           detalles: carrito.map(item => ({
             productoId: item.id,
             cantidad: item.cantidad,
