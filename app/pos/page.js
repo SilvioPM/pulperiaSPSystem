@@ -727,7 +727,7 @@ export default function POS() {
               </label>
               <button onClick={() => { setDescPorc(!descPorc); setDescuento('') }}
                 style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '11px', cursor: 'pointer', background: descPorc ? '#dbeafe' : 'white', fontWeight: 600, color: descPorc ? '#2563eb' : '#64748b' }}>
-                {descPorc ? 'C$' : '%'}
+                {descPorc ? '%' : 'C$'}
               </button>
             </div>
             <input id="campo-descuento" type="number" inputMode="none" value={descuento} onChange={e => setDescuento(e.target.value)} placeholder="0.00"
