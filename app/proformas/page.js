@@ -454,7 +454,7 @@ _Esta es una cotización, no una factura oficial._
                         {item.nombre} <span style={{ fontWeight: 400, color: '#64748b', fontSize: '11px' }}>{item.unidad}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input type="text" inputMode="decimal" defaultValue={item.cantidad}
+                        <input type="text" inputMode="decimal" key={item.cantidad} defaultValue={item.cantidad}
                           onBlur={e => {
                             const v = parseFloat(e.target.value)
                             if (v > 0) cambiarCantidad(item.productoId, v, item._pres)

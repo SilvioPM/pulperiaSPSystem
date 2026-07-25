@@ -654,9 +654,9 @@ export default function POS() {
                       style={{ width: '40px', height: '40px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '18px' }}>
                       −
                     </button>
-                    <input type="number" step="0.5" min="0.5"
+                    <input type="text" inputMode="decimal"
+                      key={item.cantidad}
                       defaultValue={item.cantidad}
-                      ref={el => { if (el && el._lv !== item.cantidad) { el._lv = item.cantidad; if (el !== document.activeElement) el.value = item.cantidad } }}
                       onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v > 0) cambiarCantidad(item.id, v, item._pres); else e.target.value = item.cantidad }}
                       onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
                       style={{ fontSize: '14px', fontWeight: 700, width: '44px', textAlign: 'center', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px' }} />
