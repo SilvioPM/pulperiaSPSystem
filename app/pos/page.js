@@ -191,14 +191,29 @@ export default function POS() {
     setCargandoProformas(false)
   }
 
+  function detectarPres(producto, unidad) {
+    if (!unidad || unidad === producto.unidad) return 'base'
+    if (unidad === producto.unidadVenta2) return 'venta2'
+    if (unidad === producto.unidadVenta3) return 'venta3'
+    if (unidad === producto.unidadVenta4) return 'venta4'
+    return 'base'
+  }
+
   function cargarProformaEnPOS(proforma) {
-    setCarrito(proforma.detalles.map(d => ({
-      ...d.producto,
-      cantidad: d.cantidad,
-      precio: d.precio,
-      subtotal: d.subtotal,
-      _proformaDetalleId: d.id
-    })))
+    setCarrito(proforma.detalles.map(d => {
+      const pres = detectarPres(d.producto, d.unidad)
+      const p = obtenerPres(d.producto, pres)
+      return {
+        ...d.producto,
+        cantidad: d.cantidad,
+        precio: d.precio,
+        subtotal: d.subtotal,
+        _pres: pres,
+        unidadVenta: p.unidad,
+        factorConversion: p.factor,
+        _proformaDetalleId: d.id,
+      }
+    }))
     if (proforma.cliente) setClienteSeleccionado(proforma.cliente)
     setProformaActiva(proforma.id)
     setMostrarProformas(false)
