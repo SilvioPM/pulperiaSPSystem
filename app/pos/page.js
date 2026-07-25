@@ -16,6 +16,7 @@ export default function POS() {
   const [productos, setProductos]     = useState([])
   const [categorias, setCategorias]   = useState([])
   const [carrito, setCarrito]         = useState([])
+  const inputRefs = useRef({})
   const [buscar, setBuscar]           = useState('')
   const [categoriaActiva, setCategoriaActiva] = useState(null)
   const [pagoCon, setPagoCon]         = useState('')
@@ -270,6 +271,19 @@ export default function POS() {
       return [...prev, { ...producto, cantidad: 1, _pres: pres, precio: precioFinal, unidadVenta, factorConversion: factorConv }]
     })
   }
+
+  // Sincroniza inputs no enfocados cuando carrito cambia (ej: clicks +/-)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    carrito.forEach(item => {
+      const key = `${item.id}-${item._pres || 'base'}`
+      const el = inputRefs.current[key]
+      if (el && document.activeElement !== el) {
+        el.value = item.cantidad
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carrito])
 
   function cambiarCantidad(id, nuevaCantidad, pres) {
     if (nuevaCantidad <= 0) return
@@ -670,8 +684,8 @@ export default function POS() {
                       −
                     </button>
                     <input type="text" inputMode="decimal"
-                      key={item.cantidad}
                       defaultValue={item.cantidad}
+                      ref={el => { if (el) inputRefs.current[`${item.id}-${item._pres || 'base'}`] = el }}
                       onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v > 0) cambiarCantidad(item.id, v, item._pres); else e.target.value = item.cantidad }}
                       onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
                       style={{ fontSize: '14px', fontWeight: 700, width: '44px', textAlign: 'center', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px' }} />

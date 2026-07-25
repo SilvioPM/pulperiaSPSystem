@@ -33,6 +33,7 @@ export default function Proformas() {
 
   const [cargando, setCargando] = useState(true)
   const reciboRef = useRef(null)
+  const inputRefs = useRef({})
 
   useEffect(() => {
     cargarTodo().finally(() => setCargando(false))
@@ -100,6 +101,16 @@ export default function Proformas() {
   contentRef: cartaRef,
   documentTitle: proformaVer?.numero || 'Proforma',
  })
+
+  useEffect(() => {
+    carrito.forEach(item => {
+      const key = `${item.productoId}-${item._pres || 'base'}`
+      const el = inputRefs.current[key]
+      if (el && document.activeElement !== el) {
+        el.value = item.cantidad
+      }
+    })
+  }, [carrito])
 
   function cambiarCantidad(productoId, cantidad, pres) {
     if (cantidad === '') return
@@ -454,7 +465,8 @@ _Esta es una cotización, no una factura oficial._
                         {item.nombre} <span style={{ fontWeight: 400, color: '#64748b', fontSize: '11px' }}>{item.unidad}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input type="text" inputMode="decimal" key={item.cantidad} defaultValue={item.cantidad}
+                        <input type="text" inputMode="decimal" defaultValue={item.cantidad}
+                          ref={el => { if (el) inputRefs.current[`${item.productoId}-${item._pres || 'base'}`] = el }}
                           onBlur={e => {
                             const v = parseFloat(e.target.value)
                             if (v > 0) cambiarCantidad(item.productoId, v, item._pres)
