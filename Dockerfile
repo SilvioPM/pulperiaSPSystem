@@ -19,8 +19,22 @@ RUN npm run build
 
 EXPOSE 3000
 
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN cat > /usr/local/bin/docker-entrypoint.sh << 'SCRIPT'
+#!/bin/sh
+set -e
+echo "🚀 Aplicando migraciones..."
+npx prisma migrate deploy 2>&1 || {
+  echo "⚠️ Primera ejecucion — aplicando schema inicial..."
+  npx prisma db push --accept-data-loss 2>&1
+}
+echo "🌱 Sembrando datos iniciales..."
+npx prisma db seed 2>&1 || echo "⚠️ Seed ya ejecutado o datos existentes"
+echo "💾 Iniciando programador de respaldos semanales..."
+SPSYSTEM_BACKUP_DIR="${SPSYSTEM_BACKUP_DIR:-/app/respaldos}" node /app/lib/backup-cron.mjs &
+echo "✅ Iniciando aplicacion..."
+exec npx next start
+SCRIPT
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["npm", "run", "start"]
