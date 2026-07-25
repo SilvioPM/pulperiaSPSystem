@@ -60,7 +60,7 @@ export async function POST(req) {
     }
 
     const diferenciaCs = parseFloat((efectivoRealCs - caja.montoInicial - ventasEfectivoCs - caja.ingresosExtra + caja.egresos).toFixed(2))
-    const diferenciaUs = parseFloat((efectivoRealUs - caja.montoInicialUs - ventasEfectivoUs).toFixed(2))
+    const diferenciaUs = parseFloat((efectivoRealUs - caja.montoInicialUs - ventasEfectivoUs - caja.ingresosExtraUs + caja.egresosUs).toFixed(2))
 
     // Guardar detalle del arqueo
     if (arqueo?.length) {

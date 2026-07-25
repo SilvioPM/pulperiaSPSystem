@@ -5,8 +5,11 @@ import Toast from '../components/Toast'
 import AbonoRecibo from '../components/AbonoRecibo'
 import { useToast } from '../hooks/useToast'
 import * as Icons from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function CuentasCobrar() {
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [facturas, setFacturas]       = useState([])
   const [facturaSeleccionada, setFacturaSeleccionada] = useState(null)
   const [mostrarAbono, setMostrarAbono] = useState(false)
@@ -297,7 +300,9 @@ export default function CuentasCobrar() {
       {mostrarAbono && facturaSeleccionada && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50
         }}>
           <div className="card" style={{ width: '420px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -404,7 +409,9 @@ export default function CuentasCobrar() {
       {facturaSeleccionada && !mostrarAbono && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50
         }}>
           <div className="card" style={{ width: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>

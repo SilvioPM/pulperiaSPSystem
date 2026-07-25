@@ -4,8 +4,11 @@ import Toast from '../components/Toast'
 import ImportarCSV from '../components/ImportarCSV'
 import { useToast } from '../hooks/useToast'
 import * as Icons from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function Proveedores() {
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [proveedores, setProveedores]   = useState([])
   const [mostrarForm, setMostrarForm]   = useState(false)
   const [editando, setEditando]         = useState(null)
@@ -145,7 +148,10 @@ export default function Proveedores() {
       </div>
 
       {mostrarForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+        <div style={{           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50 }}>
           <div className="card" style={{ width: '460px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700 }}>{editando ? <><Icons.Edit size={16} /> Editar</> : <><Icons.Factory size={16} /> Nuevo</>} Proveedor</h2>

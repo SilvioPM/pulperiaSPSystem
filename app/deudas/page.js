@@ -1,12 +1,15 @@
 'use client'
 import { useState, useEffect } from 'react'
 import * as Icons from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function Deudas() {
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [compras, setCompras]       = useState([])
   const [compraSeleccionada, setCompraSeleccionada] = useState(null)
   const [mostrarAbono, setMostrarAbono] = useState(false)
-  const [formAbono, setFormAbono]     = useState({ monto: '', nota: '' })
+  const [formAbono, setFormAbono]     = useState({ monto: '', nota: '', fuente: 'caja' })
   const [guardando, setGuardando]     = useState(false)
   const [cargando, setCargando]       = useState(true)
   const [filtro, setFiltro]           = useState('pendientes')
@@ -58,19 +61,19 @@ export default function Deudas() {
         res = await fetch(`/api/proveedores/${compraSeleccionada.proveedor.id}/abonar-inicial`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ monto, nota: formAbono.nota })
+          body: JSON.stringify({ monto, nota: formAbono.nota, fuente: formAbono.fuente })
         })
       } else {
         res = await fetch('/api/abonos-compra', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ compraId: compraSeleccionada.id, monto, nota: formAbono.nota })
+          body: JSON.stringify({ compraId: compraSeleccionada.id, monto, nota: formAbono.nota, fuente: formAbono.fuente })
         })
       }
 
       if (res.ok) {
         setMostrarAbono(false)
-        setFormAbono({ monto: '', nota: '' })
+        setFormAbono({ monto: '', nota: '', fuente: 'caja' })
         setCompraSeleccionada(null)
         cargarCompras()
       } else {
@@ -220,12 +223,14 @@ export default function Deudas() {
       {mostrarAbono && compraSeleccionada && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50
         }}>
           <div className="card" style={{ width: '400px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700 }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.ArrowUpRight size={16} /> Abonar a Proveedor</span></h2>
-              <button onClick={() => { setMostrarAbono(false); setFormAbono({ monto: '', nota: '' }) }}
+              <button onClick={() => { setMostrarAbono(false); setFormAbono({ monto: '', nota: '', fuente: 'caja' }) }}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
 
@@ -280,6 +285,19 @@ export default function Deudas() {
                 <input value={formAbono.nota} onChange={e => setFormAbono({...formAbono, nota: e.target.value})}
                   placeholder="Ej: Pago con transferencia"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>Fuente del pago</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '8px 14px', borderRadius: 8, border: formAbono.fuente === 'caja' ? '2px solid #16a34a' : '1px solid #e2e8f0', background: formAbono.fuente === 'caja' ? '#f0fdf4' : 'white', flex: 1 }}>
+                    <input type="radio" name="fuente" value="caja" checked={formAbono.fuente === 'caja'} onChange={e => setFormAbono({...formAbono, fuente: e.target.value})} style={{ accentColor: '#16a34a' }} />
+                    <span style={{ fontSize: 13, fontWeight: 600 }}><Icons.Wallet size={14} /> Desde caja</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '8px 14px', borderRadius: 8, border: formAbono.fuente === 'otro' ? '2px solid #ca8a04' : '1px solid #e2e8f0', background: formAbono.fuente === 'otro' ? '#fef9c3' : 'white', flex: 1 }}>
+                    <input type="radio" name="fuente" value="otro" checked={formAbono.fuente === 'otro'} onChange={e => setFormAbono({...formAbono, fuente: e.target.value})} style={{ accentColor: '#ca8a04' }} />
+                    <span style={{ fontSize: 13, fontWeight: 600 }}><Icons.Banknote size={14} /> Otra fuente</span>
+                  </label>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button type="button" onClick={() => setMostrarAbono(false)} style={{ flex: 1, padding: '12px', border: '1px solid #e2e8f0', background: 'white', borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>

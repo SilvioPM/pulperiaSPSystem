@@ -4,8 +4,11 @@ import { useAuth } from '@/app/context/AuthContext'
 import Toast from '@/app/components/Toast'
 import { useToast } from '@/app/hooks/useToast'
 import * as Icons from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function Gastos() {
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const { toast, mostrar, cerrar } = useToast()
   const [gastos, setGastos] = useState([])
   const [totalGastos, setTotalGastos] = useState(0)
@@ -78,7 +81,10 @@ export default function Gastos() {
       </div>
 
       {mostrarForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div style={{           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 100 }}>
           <div className="card" style={{ width: 400, padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Nuevo gasto</h2>

@@ -6,13 +6,14 @@ export async function POST(request) {
     const body = await request.json()
     const compraId = parseInt(body.compraId)
     const monto = parseFloat(body.monto)
+    const fuente = body.fuente || 'otro'
 
     if (!compraId || isNaN(monto) || monto <= 0) {
       return NextResponse.json({ error: 'Datos de abono inválidos' }, { status: 400 })
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const compra = await tx.compra.findUnique({ where: { id: compraId } })
+      const compra = await tx.compra.findUnique({ where: { id: compraId }, include: { proveedor: true } })
       if (!compra) throw new Error('Compra no encontrada')
       if (monto > compra.saldoPendiente) {
         throw new Error(`El abono supera el saldo pendiente (C$ ${compra.saldoPendiente})`)
@@ -27,6 +28,23 @@ export async function POST(request) {
         where: { id: compraId },
         data: { saldoPendiente: nuevoSaldo, estado: nuevoSaldo <= 0 ? 'pagada' : 'credito' }
       })
+
+      if (fuente === 'caja') {
+        const cajaAbierta = await tx.caja.findFirst({ where: { estado: 'abierta' } })
+        if (cajaAbierta) {
+          await tx.movimientoCaja.create({
+            data: {
+              cajaId: cajaAbierta.id, tipo: 'salida',
+              concepto: `Pago a proveedor ${compra.proveedor?.nombre || ''} - Compra #${compra.numero}`.trim(),
+              moneda: 'C$', monto
+            }
+          })
+          await tx.caja.update({
+            where: { id: cajaAbierta.id },
+            data: { egresos: { increment: monto } }
+          })
+        }
+      }
 
       return { abono, nuevoSaldo }
     })

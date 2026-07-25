@@ -62,8 +62,8 @@ export default function GraficoFlujoCaja({ data = [], gananciaMesActual = 0 }) {
           </h3>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--texto-secundario)', textTransform: 'uppercase', letterSpacing: 1 }}>Ganancia del mes actual</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--verde)' }}>C$ {Number(gananciaMesActual).toLocaleString('es-NI', { minimumFractionDigits: 2 })}</div>
+          <div style={{ fontSize: 11, color: 'var(--texto-secundario)', textTransform: 'uppercase', letterSpacing: 1 }}>{gananciaMesActual >= 0 ? 'Ganancia' : 'Pérdida'} del mes actual</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: gananciaMesActual >= 0 ? 'var(--verde)' : '#dc2626' }}>C$ {Number(Math.abs(gananciaMesActual)).toLocaleString('es-NI', { minimumFractionDigits: 2 })}</div>
         </div>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>

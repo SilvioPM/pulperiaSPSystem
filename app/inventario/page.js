@@ -3,8 +3,11 @@ import { useState, useEffect } from 'react'
 
 import StockAlerta from '@/app/components/StockAlerta'
 import * as Icons from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function Inventario() {
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [movimientos, setMovimientos] = useState([])
   const [productos, setProductos]     = useState([])
   const [mostrarForm, setMostrarForm] = useState(false)
@@ -272,7 +275,9 @@ export default function Inventario() {
       {mostrarForm && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50
         }}>
           <div className="card" style={{ width: '440px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>

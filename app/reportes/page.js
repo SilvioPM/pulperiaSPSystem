@@ -590,7 +590,7 @@ export default function Reportes() {
         reporte && <FlujoCajaView data={reporte} />
       ) : modulo === 'mermas' ? (
         reporte && <MermasView data={reporte} />
-      ) : modulo === 'ganancias' ? (
+      ) : modulo === 'pyl' ? (
         reporte && <GananciasView data={reporte} />
       ) : modulo === 'fiscal' ? (
         reporte && <FiscalView data={reporte} />

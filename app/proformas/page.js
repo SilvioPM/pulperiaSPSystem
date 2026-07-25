@@ -6,8 +6,11 @@ import ProformaCarta from '../components/ProformaCarta'
 import Toast from '../components/Toast'
 import { useToast } from '../hooks/useToast'
 import * as Icons from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function Proformas() {
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [proformas, setProformas]       = useState([])
   const [productos, setProductos]       = useState([])
   const [clientes, setClientes]         = useState([])
@@ -366,8 +369,8 @@ _Esta es una cotización, no una factura oficial._
 
       {/* Modal nueva proforma */}
       {mostrarForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', width: '900px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', gap: '20px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', boxSizing: 'border-box', zIndex: 50 }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', width: 'min(95vw, 900px)', maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 40}px)` : '90vh', overflowY: 'auto', display: 'flex', gap: '20px' }}>
 
             {/* Panel izquierdo — productos */}
             <div style={{ flex: 1 }}>
@@ -520,8 +523,8 @@ _Esta es una cotización, no una factura oficial._
 
       {/* Modal ver proforma */}
       {proformaVer && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div className="card" style={{ width: '90vw', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center', paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0, overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50 }}>
+          <div className="card" style={{ width: '90vw', maxWidth: '750px', maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 60}px)` : '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#7c3aed' }}>{proformaVer.numero}</h2>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>

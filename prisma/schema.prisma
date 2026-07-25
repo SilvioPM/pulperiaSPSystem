@@ -310,7 +310,9 @@ model Caja {
   ventasCredito   Float    @default(0)
   totalVendido    Float    @default(0)
   ingresosExtra   Float    @default(0)
+  ingresosExtraUs Float    @default(0)
   egresos         Float    @default(0)
+  egresosUs       Float    @default(0)
   efectivoRealCs  Float?
   efectivoRealUs  Float?
   diferencia      Float?

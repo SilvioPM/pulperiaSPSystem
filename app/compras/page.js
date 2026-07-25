@@ -5,8 +5,11 @@ import Toast from '../components/Toast'
 import AbonoRecibo from '../components/AbonoRecibo'
 import { useToast } from '../hooks/useToast'
 import * as Icons from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function Compras() {
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [compras, setCompras]         = useState([])
   const [proveedores, setProveedores] = useState([])
   const [productos, setProductos]     = useState([])
@@ -443,8 +446,8 @@ async function crearProductoRapido(e) {
 
       {/* Modal nueva compra */}
       {mostrarForm && (
-        <div onClick={() => { setMostrarForm(false); limpiarForm() }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '24px', width: 'min(95vw, 900px)', maxHeight: '90vh', overflowY: 'auto', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        <div onClick={() => { setMostrarForm(false); limpiarForm() }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', boxSizing: 'border-box', zIndex: 50 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '24px', width: 'min(95vw, 900px)', maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 40}px)` : '90vh', overflowY: 'auto', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
 
             {/* Panel izquierdo — productos */}
 <div style={{ flex: '1 1 400px', minWidth: '280px' }}>
@@ -678,9 +681,11 @@ async function crearProductoRapido(e) {
             {mostrarNuevoProd && (
               <div style={{
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+                display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+                paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+                overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 100
               }}>
-          <div className="card" style={{ width: '90vw', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card" style={{ width: '90vw', maxWidth: '750px', maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 60}px)` : '90vh', overflowY: 'auto' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <h2 style={{ fontSize: '18px', fontWeight: 700 }}>➕ Nuevo Producto</h2>
                     <button onClick={() => setMostrarNuevoProd(false)}
@@ -791,12 +796,11 @@ async function crearProductoRapido(e) {
 
       {/* Modal ver compra */}
       {compraVer && !mostrarAbono && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div className="card" style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center', paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0, overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50 }}>
+          <div className="card" style={{ width: '500px', maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 60}px)` : '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>{compraVer.numero}</h2>
-              <button onClick={() => setCompraVer(null)}
-                style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', fontSize: '16px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>{compraVer && compraVer.numero}</h2>
+              <button onClick={() => setCompraVer(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
 
             <div style={{ marginBottom: '16px', fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -875,11 +879,11 @@ async function crearProductoRapido(e) {
 
       {/* Modal abono */}
       {mostrarAbono && compraVer && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center', paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0, overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50 }}>
           <div className="card" style={{ width: '400px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}><Icons.DollarSign size={16} /> Abonar a {compraVer.numero}</h2>
-              <button onClick={() => { setMostrarAbono(false); setFormAbono({ monto: '', nota: '' }) }}
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#16a34a' }}><Icons.ArrowUpRight size={16} /> Abonar</h2>
+              <button onClick={() => { setMostrarAbono(false); setFormAbono({ monto: '', nota: '', username: '', password: '' }) }}
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
 
@@ -925,7 +929,7 @@ async function crearProductoRapido(e) {
 
       {/* Modal anular compra */}
       {mostrarAnular && compraAnular && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center', paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0, overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 60 }}>
           <div className="card" style={{ width: '420px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#dc2626' }}><Icons.Ban size={16} /> Anular Compra</h2>

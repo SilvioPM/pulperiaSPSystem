@@ -7,12 +7,16 @@ import { useToast } from '@/app/hooks/useToast'
 import StockAlerta from '@/app/components/StockAlerta'
 import BarcodeLabel, { PrintBarcodeLabel } from '@/app/components/BarcodeLabel'
 import * as Icons from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function Productos() {
   const { puedeEditar, user } = useAuth()
   const editable = puedeEditar('productos')
   const { toast, mostrar, cerrar } = useToast()
-  const [confirm, setConfirm] = useState(null) // { mensaje, onConfirm }
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
+  const [confirm, setConfirm] = useState(null)
+  const [deleteProductoId, setDeleteProductoId] = useState(null)
   const [tab, setTab]         = useState('productos')
   const [productos, setProductos]   = useState([])
   const [categorias, setCategorias] = useState([])
@@ -179,26 +183,40 @@ async function guardarEdicion(e) {
     mostrar('Error al editar producto', 'error')
   }
 }
-async function eliminarProducto(id) {
-  setConfirm({ mensaje: '¿Seguro que querés eliminar este producto?', onConfirm: async () => {
-    try {
-      const res  = await fetch(`/api/productos/${id}`, { method: 'DELETE' })
-      const text = await res.text()
-      const data = text ? JSON.parse(text) : {}
-      if (!res.ok) {
-        mostrar(data.error || 'Error al eliminar', 'error')
-      } else if (data.inactivado) {
-        mostrar(data.motivo || 'Producto marcado como inactivo (tiene movimientos)', 'exito')
-        auditar(user?.username || user?.nombre, 'inactivar', 'producto', `Producto ID ${id} marcado inactivo por tener movimientos`)
-        cargarProductos()
-      } else {
-        auditar(user?.username || user?.nombre, 'eliminar', 'producto', `Producto ID ${id} eliminado`)
-        cargarProductos()
-      }
-    } catch (error) {
-      mostrar('Error al eliminar producto', 'error')
+function eliminarProducto(id) {
+  setDeleteProductoId(id)
+}
+
+async function borrarProducto(id) {
+  try {
+    const res  = await fetch(`/api/productos/${id}`, { method: 'DELETE' })
+    const text = await res.text()
+    const data = text ? JSON.parse(text) : {}
+    if (!res.ok) {
+      mostrar(data.error || 'Error al eliminar', 'error')
+    } else if (data.inactivado) {
+      mostrar(data.motivo || 'Producto marcado como inactivo (tiene movimientos)', 'exito')
+      cargarProductos()
+    } else {
+      cargarProductos()
     }
-  }})
+  } catch {
+    mostrar('Error al eliminar producto', 'error')
+  }
+}
+
+async function desactivarProducto(id) {
+  try {
+    const res = await fetch(`/api/productos/${id}`, { method: 'PATCH' })
+    if (res.ok) {
+      mostrar('Producto desactivado', 'exito')
+      cargarProductos()
+    } else {
+      mostrar('Error al desactivar producto', 'error')
+    }
+  } catch {
+    mostrar('Error al desactivar producto', 'error')
+  }
 }
 // Descargar plantilla Excel de ejemplo
 async function descargarPlantilla() {
@@ -309,7 +327,9 @@ async function importarExcel(e) {
       {confirm && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 1000
         }}>
           <div style={{
             background: '#fff', borderRadius: 12, padding: 24, width: 380,
@@ -332,6 +352,54 @@ async function importarExcel(e) {
                   background: '#dc2626', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer'
                 }}>
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteProductoId && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 1000
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 12, padding: 28, width: 420,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.15)', textAlign: 'center'
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}><Icons.AlertTriangle size={40} color="#dc2626" /></div>
+            <p style={{ fontSize: 17, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
+              ¿Qué querés hacer con este producto?
+            </p>
+            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>
+              Podés eliminarlo por completo o solo desactivarlo para que no aparezca en las listas.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={() => { borrarProducto(deleteProductoId); setDeleteProductoId(null) }}
+                style={{
+                  padding: '12px', borderRadius: 8, border: 'none',
+                  background: '#dc2626', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer'
+                }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Icons.Trash2 size={18} /> Eliminar por completo
+                </span>
+              </button>
+              <button onClick={() => { desactivarProducto(deleteProductoId); setDeleteProductoId(null) }}
+                style={{
+                  padding: '12px', borderRadius: 8, border: '1px solid #f59e0b',
+                  background: '#fef9c3', color: '#92400e', fontSize: 14, fontWeight: 700, cursor: 'pointer'
+                }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Icons.ToggleLeft size={18} /> Solo desactivar
+                </span>
+              </button>
+              <button onClick={() => setDeleteProductoId(null)}
+                style={{
+                  padding: '10px', borderRadius: 8, border: '1px solid #e2e8f0',
+                  background: '#fff', color: '#475569', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                }}>
+                Cancelar
               </button>
             </div>
           </div>
@@ -489,14 +557,23 @@ async function importarExcel(e) {
                 </tr>
               </thead>
               <tbody>
-                {productos.length === 0 ? (
-                  <tr>
-                    <td colSpan={editable ? 8 : 7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                      No hay productos aún
-                    </td>
-                  </tr>
-                ) : (
-                  productos.map((p, i) => (
+                {(() => {
+                  const visibles = mostrarInactivos ? productos.filter(p => !p.activo) : productos
+                  const totalMsg = mostrarInactivos && productos.length > 0
+                    ? `${visibles.length} inactivo(s) de ${productos.length} producto(s)`
+                    : null
+                  return visibles.length === 0 ? (
+                    <tr>
+                      <td colSpan={editable ? 8 : 7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                        {mostrarInactivos ? 'No hay productos inactivos' : 'No hay productos aún'}
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      {totalMsg && (
+                        <tr><td colSpan={editable ? 8 : 7} style={{ padding: '4px 16px 8px', fontSize: 12, color: '#92400e', fontWeight: 600 }}>{totalMsg}</td></tr>
+                      )}
+                      {visibles.map((p, i) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 600, fontSize: '14px' }}>{p.nombre} {p.esGenerico && <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', marginLeft: 4 }}>Genérico</span>} {!p.activo && <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', marginLeft: 4 }}>Inactivo</span>}</div>
@@ -586,8 +663,10 @@ async function importarExcel(e) {
                       </td>
                       )}
                     </tr>
-                  ))
-                )}
+                  ))}
+                </>
+              )
+            })()}
               </tbody>
             </table>
             {totalPages > 1 && (
@@ -688,7 +767,9 @@ async function importarExcel(e) {
       {mostrarFormProd && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50
         }}>
           <div className="card" style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -979,7 +1060,9 @@ async function importarExcel(e) {
       {mostrarFormCat && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50
         }}>
           <div className="card" style={{ width: '400px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -1316,7 +1399,9 @@ async function importarExcel(e) {
       {mostrarGestionUnidades && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+          paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+          overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50
         }}>
           <div className="card" style={{ width: '480px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>

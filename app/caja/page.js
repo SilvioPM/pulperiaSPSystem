@@ -145,7 +145,7 @@ export default function CajaPage() {
 
   return (
     <AuthGuard modulos={['caja']}>
-      <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ padding: '24px' }}>
         <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
           Caja
         </h1>
@@ -247,9 +247,11 @@ export default function CajaPage() {
               </form>
 
               {/* Resumen */}
-              <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 13 }}>
-                <span>Ingresos extra: <b style={{ color: '#16a34a' }}>C$ {caja.ingresosExtra.toFixed(2)}</b></span>
-                <span>Egresos: <b style={{ color: '#dc2626' }}>C$ {caja.egresos.toFixed(2)}</b></span>
+              <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 13, flexWrap: 'wrap' }}>
+                <span>Ingresos extra C$: <b style={{ color: '#16a34a' }}>C$ {caja.ingresosExtra.toFixed(2)}</b></span>
+                {caja.ingresosExtraUs > 0 && <span>Ingresos extra USD: <b style={{ color: '#16a34a' }}>$ {caja.ingresosExtraUs.toFixed(2)}</b></span>}
+                <span>Egresos C$: <b style={{ color: '#dc2626' }}>C$ {caja.egresos.toFixed(2)}</b></span>
+                {caja.egresosUs > 0 && <span>Egresos USD: <b style={{ color: '#dc2626' }}>$ {caja.egresosUs.toFixed(2)}</b></span>}
               </div>
 
               {movimientos.length === 0 ? (
@@ -339,8 +341,8 @@ export default function CajaPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                 <span style={{ color: '#475569' }}>C$: Inicial {caja.montoInicial.toFixed(2)} + Efectivo {caja.ventasEfectivoCs.toFixed(2)} + Abonos {caja.abonosTotal?.toFixed(2) || '0.00'} + Ingresos {caja.ingresosExtra.toFixed(2)} - Egresos {caja.egresos.toFixed(2)}</span>
                 <span style={{ fontWeight: 600 }}>= C$ {(caja.montoInicial + caja.ventasEfectivoCs + (caja.abonosTotal || 0) + caja.ingresosExtra - caja.egresos).toFixed(2)}</span>
-                <span style={{ color: '#475569' }}>$: Inicial {caja.montoInicialUs?.toFixed(2) || '0.00'} + Ventas {caja.ventasEfectivoUs.toFixed(2)}</span>
-                <span style={{ fontWeight: 600 }}>= $ {((caja.montoInicialUs || 0) + caja.ventasEfectivoUs).toFixed(2)}</span>
+                <span style={{ color: '#475569' }}>$: Inicial {caja.montoInicialUs?.toFixed(2) || '0.00'} + Ventas {caja.ventasEfectivoUs.toFixed(2)} {caja.ingresosExtraUs > 0 ? `+ Ingresos $${caja.ingresosExtraUs.toFixed(2)}` : ''} {caja.egresosUs > 0 ? `- Egresos $${caja.egresosUs.toFixed(2)}` : ''}</span>
+                <span style={{ fontWeight: 600 }}>= $ {((caja.montoInicialUs || 0) + caja.ventasEfectivoUs + (caja.ingresosExtraUs || 0) - (caja.egresosUs || 0)).toFixed(2)}</span>
               </div>
             </div>
 

@@ -26,13 +26,14 @@ export async function POST(req) {
       data: { cajaId: caja.id, tipo, concepto, moneda, monto: parseFloat(monto) }
     })
 
-    // Actualizar totales en caja
+    // Actualizar totales en caja según moneda
     const esEntrada = tipo === 'entrada'
+    const esUs = moneda === '$'
     await prisma.caja.update({
       where: { id: caja.id },
       data: esEntrada
-        ? { ingresosExtra: { increment: parseFloat(monto) } }
-        : { egresos: { increment: parseFloat(monto) } }
+        ? (esUs ? { ingresosExtraUs: { increment: parseFloat(monto) } } : { ingresosExtra: { increment: parseFloat(monto) } })
+        : (esUs ? { egresosUs: { increment: parseFloat(monto) } } : { egresos: { increment: parseFloat(monto) } })
     })
 
     return NextResponse.json(mov, { status: 201 })
@@ -51,13 +52,14 @@ export async function DELETE(req) {
     const caja = await prisma.caja.findFirst({ where: { estado: 'abierta', id: mov.cajaId } })
     if (!caja) return NextResponse.json({ error: 'La caja ya está cerrada' }, { status: 400 })
 
-    // Revertir totales
+    // Revertir totales según moneda
     const esEntrada = mov.tipo === 'entrada'
+    const esUs = mov.moneda === '$'
     await prisma.caja.update({
       where: { id: mov.cajaId },
       data: esEntrada
-        ? { ingresosExtra: { decrement: mov.monto } }
-        : { egresos: { decrement: mov.monto } }
+        ? (esUs ? { ingresosExtraUs: { decrement: mov.monto } } : { ingresosExtra: { decrement: mov.monto } })
+        : (esUs ? { egresosUs: { decrement: mov.monto } } : { egresos: { decrement: mov.monto } })
     })
 
     await prisma.movimientoCaja.delete({ where: { id } })

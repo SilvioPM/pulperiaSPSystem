@@ -63,6 +63,18 @@ export async function PUT(request, { params }) {
   }
 }
 
+// PATCH — Desactivar un producto
+export async function PATCH(request, { params }) {
+  try {
+    const { id: idStr } = await params
+    const id = parseInt(idStr)
+    await prisma.producto.update({ where: { id }, data: { activo: false } })
+    return NextResponse.json({ ok: true, desactivado: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Error al desactivar producto' }, { status: 500 })
+  }
+}
+
 // DELETE — Eliminar un producto (o marcarlo inactivo si tiene movimientos)
 export async function DELETE(request, { params }) {
   try {
