@@ -50,9 +50,9 @@ next-env.d.ts
 server.log
 *.log
 
-# generated
-public/manifest.json
-public/sw.js
+# generated (committed for PWA)
+# public/manifest.json
+# public/sw.js
 
 # license files
 *.lic
