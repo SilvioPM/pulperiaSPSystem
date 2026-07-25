@@ -197,7 +197,7 @@ const ProformaCarta = forwardRef(({ proforma, config }, ref) => {
                   )}
                 </td>
                 <td style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px' }}>
-                  {d.cantidad}
+                  {d.cantidad} {d.unidad || ''}
                 </td>
                 <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px' }}>
                   C$ {d.precio?.toFixed(2)}

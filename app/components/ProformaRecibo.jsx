@@ -81,7 +81,7 @@ const ProformaRecibo = forwardRef(({ proforma, config }, ref) => {
           {proforma?.detalles?.map((d, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontSize: '11px' }}>
               <span style={{ flex: 2 }}>{d.producto?.nombre}</span>
-              <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad}</span>
+              <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad} {d.unidad || ''}</span>
               <span style={{ flex: 1, textAlign: 'right' }}>C$ {d.precio?.toFixed(2)}</span>
               <span style={{ flex: 1, textAlign: 'right' }}>C$ {d.subtotal?.toFixed(2)}</span>
             </div>
