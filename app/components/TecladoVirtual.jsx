@@ -8,6 +8,9 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
   const [area, setArea] = useState({ left: 0, width: 0 })
   const [phone, setPhone] = useState(false)
 
+  // Ref para tracking local del valor, evita depender del DOM (React 19 lo resetea)
+  const ultimoValor = useRef('')
+
   useEffect(() => {
     setTema(document.documentElement.getAttribute('data-theme') === 'oscuro' ? 'oscuro' : 'claro')
     const mq = window.matchMedia('(max-width: 640px)')
@@ -45,6 +48,17 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
     }
   }, [posY])
 
+  // Sincroniza ultimoValor cuando cambia el input enfocado
+  useEffect(() => {
+    const el = inputRef?.current
+    if (el) {
+      ultimoValor.current = el.value || ''
+      const handler = () => { ultimoValor.current = el.value || '' }
+      el.addEventListener('input', handler)
+      return () => el.removeEventListener('input', handler)
+    }
+  }, [inputRef?.current])
+
   const isDark = tema === 'oscuro'
   const bg = isDark ? 'rgba(30,41,59,0.7)' : 'rgba(241,245,249,0.7)'
   const keyBg = isDark ? 'rgba(51,65,85,0.9)' : 'rgba(255,255,255,0.9)'
@@ -57,18 +71,16 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
   const KWF = phone ? 12 : 13
   const KW_BASE = phone ? 38 : 48
 
-  const leerValor = useCallback(() => {
-    return inputRef?.current?.value || ''
-  }, [inputRef])
-
   function pulsar(tecla) {
     if (!inputRef?.current) return
     if (!document.body.contains(inputRef.current)) { onCerrar(); return }
-    const valor = leerValor()
+    const valor = ultimoValor.current
     if (tecla === '{backspace}') {
-      onChange(valor.slice(0, -1))
+      ultimoValor.current = valor.slice(0, -1)
+      onChange(ultimoValor.current)
     } else if (tecla === '{space}') {
-      onChange(valor + ' ')
+      ultimoValor.current = valor + ' '
+      onChange(ultimoValor.current)
     } else if (tecla === '{done}') {
       onCerrar()
     } else if (tecla === '{shift}') {
@@ -81,7 +93,8 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
       setModo('num')
       cambiarTipo('numeros')
     } else {
-      onChange(valor + tecla)
+      ultimoValor.current = valor + tecla
+      onChange(ultimoValor.current)
     }
     // Re-focus input if it lost focus (happens on touch when keyboard button is clicked)
     if (inputRef.current && document.activeElement !== inputRef.current) {
