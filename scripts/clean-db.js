@@ -3,100 +3,70 @@ const prisma = new PrismaClient()
 
 async function main() {
   console.log('=== LIMPIEZA DE BASE DE DATOS ===')
-  console.log('Se preservará: Config (licencia), Usuarios\n')
+  console.log('Se preservara: Config (licencia), Usuarios\n')
 
   const args = process.argv.slice(2)
-  const conservarMaestros = args.includes('--conservar-maestros')
   const soloTransacciones = args.includes('--solo-transacciones')
 
-  if (args.length === 0) {
+  if (args.length === 0 || args.includes('--help')) {
     console.log('MODOS:')
-    console.log('  --solo-transacciones    Limpia facturas, compras, movimientos, caja, proformas, gastos')
-    console.log('                          Conserva: productos, clientes, proveedores, categorías')
-    console.log('  --conservar-maestros    Lo mismo + conserva productos, clientes, proveedores, cat.')
-    console.log('  (sin flag)              Limpia TODO excepto Config y Usuarios\n')
+    console.log('  --solo-transacciones    Limpia facturas, compras, caja, proformas, gastos,')
+    console.log('                          movimientos. Conserva: productos, clientes,')
+    console.log('                          proveedores, categorias, unidades de medida.')
+    console.log('  (sin flag)              Limpia TODO excepto Config y Usuarios')
+    console.log('                          (pide confirmacion)\n')
+    if (args.includes('--help')) process.exit(0)
   }
 
-  if (!soloTransacciones && !conservarMaestros) {
+  if (!soloTransacciones) {
     console.log('⚠️   LIMPIEZA COMPLETA (solo se preservan Config y Usuarios)')
     const rl = require('readline').createInterface({ input: process.stdin, output: process.stdout })
     const respuesta = await new Promise(resolve => {
-      rl.question('¿Estás seguro? (escribí "SI" para confirmar): ', resolve)
+      rl.question('¿Estas seguro? (escribi "SI" para confirmar): ', resolve)
     })
     rl.close()
     if (respuesta !== 'SI') {
-      console.log('Operación cancelada.')
+      console.log('Operacion cancelada.')
       process.exit(0)
     }
   }
 
   console.log('\nLimpiando...\n')
 
-  // Orden inverso por claves foráneas
-  if (soloTransacciones || conservarMaestros) {
-    await prisma.abono.deleteMany()
-    console.log('  ✓ Abonos')
-    await prisma.cuentaXCobrar.deleteMany()
-    console.log('  ✓ Cuentas por cobrar')
-    await prisma.detalleFactura.deleteMany()
-    console.log('  ✓ Detalles de factura')
-    await prisma.factura.deleteMany()
-    console.log('  ✓ Facturas')
-    await prisma.detalleCompra.deleteMany()
-    console.log('  ✓ Detalles de compra')
-    await prisma.compra.deleteMany()
-    console.log('  ✓ Compras')
-    await prisma.detalleProforma.deleteMany()
-    console.log('  ✓ Detalles de proforma')
-    await prisma.proforma.deleteMany()
-    console.log('  ✓ Proformas')
-    await prisma.gasto.deleteMany()
-    console.log('  ✓ Gastos')
-    await prisma.movInventario.deleteMany()
-    console.log('  ✓ Movimientos de inventario')
-    await prisma.movCaja.deleteMany()
-    console.log('  ✓ Movimientos de caja')
-    await prisma.cierreCaja.deleteMany()
-    console.log('  ✓ Cierres de caja')
-    await prisma.caja.deleteMany()
-    console.log('  ✓ Caja')
-    await prisma.cartSession.deleteMany()
-    console.log('  ✓ Sesiones de carrito')
-    await prisma.respaldo.deleteMany()
-    console.log('  ✓ Respaldos')
-    await prisma.auditoria.deleteMany()
-    console.log('  ✓ Auditoría')
-
-    // Resetear stock
-    await prisma.producto.updateMany({ data: { stock: 0 } })
-    console.log('  ✓ Stock reiniciado a 0')
+  const paso = async (nombre, fn) => {
+    await fn()
+    console.log(`  ✓ ${nombre}`)
   }
 
-  if (!soloTransacciones && !conservarMaestros) {
-    // Limpieza completa
-    await prisma.abono.deleteMany()
-    await prisma.cuentaXCobrar.deleteMany()
-    await prisma.detalleFactura.deleteMany()
-    await prisma.factura.deleteMany()
-    await prisma.detalleCompra.deleteMany()
-    await prisma.compra.deleteMany()
-    await prisma.detalleProforma.deleteMany()
-    await prisma.proforma.deleteMany()
-    await prisma.gasto.deleteMany()
-    await prisma.movInventario.deleteMany()
-    await prisma.movCaja.deleteMany()
-    await prisma.cierreCaja.deleteMany()
-    await prisma.caja.deleteMany()
-    await prisma.cartSession.deleteMany()
-    await prisma.respaldo.deleteMany()
-    await prisma.auditoria.deleteMany()
-    await prisma.productoCodigo.deleteMany()
-    await prisma.producto.deleteMany()
-    await prisma.categoria.deleteMany()
-    await prisma.cliente.deleteMany()
-    await prisma.proveedor.deleteMany()
-    await prisma.producto.deleteMany()
-    console.log('  ✓ Productos, categorías, clientes, proveedores')
+  // Orden inverso por claves foraneas
+
+  await paso('Arqueos de caja', () => prisma.arqueoDetalle.deleteMany())
+  await paso('Movimientos de caja', () => prisma.movimientoCaja.deleteMany())
+  await paso('Abonos de compras', () => prisma.abonoCompra.deleteMany())
+  await paso('Abonos de facturas', () => prisma.abono.deleteMany())
+  await paso('Detalles de factura', () => prisma.detalleFac.deleteMany())
+  await paso('Detalles de compra', () => prisma.detalleCompra.deleteMany())
+  await paso('Detalles de proforma', () => prisma.detalleProforma.deleteMany())
+  await paso('Facturas', () => prisma.factura.deleteMany())
+  await paso('Compras', () => prisma.compra.deleteMany())
+  await paso('Proformas', () => prisma.proforma.deleteMany())
+  await paso('Movimientos de inventario', () => prisma.movInventario.deleteMany())
+  await paso('Gastos', () => prisma.gasto.deleteMany())
+  await paso('Sesiones de carrito', () => prisma.cartSession.deleteMany())
+  await paso('Auditoria', () => prisma.auditoria.deleteMany())
+
+  await paso('Caja', () => prisma.caja.deleteMany())
+
+  if (soloTransacciones) {
+    await paso('Stock reiniciado a 0', () => prisma.producto.updateMany({ data: { stock: 0 } }))
+  } else {
+    // Limpieza completa: borrar maestros
+    await paso('Codigos de producto', () => prisma.productoCodigo.deleteMany())
+    await paso('Productos', () => prisma.producto.deleteMany())
+    await paso('Categorias', () => prisma.categoria.deleteMany())
+    await paso('Clientes', () => prisma.cliente.deleteMany())
+    await paso('Proveedores', () => prisma.proveedor.deleteMany())
+    await paso('Unidades de medida', () => prisma.unidadMedida.deleteMany())
   }
 
   console.log('\n✅ Limpieza completada.')
