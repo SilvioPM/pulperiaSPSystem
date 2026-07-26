@@ -152,7 +152,9 @@ export default function Reportes() {
       }
 
       let url = mod.api
-      if (mod.necesitaFechas && (desde || hasta)) {
+      if (mod.id === 'inventario') {
+        url += '?limit=10000'
+      } else if (mod.necesitaFechas && (desde || hasta)) {
         const params = new URLSearchParams()
         if (desde) params.set('desde', desde)
         if (hasta) params.set('hasta', hasta)

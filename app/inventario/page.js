@@ -16,9 +16,14 @@ export default function Inventario() {
   const [filtroVenc, setFiltroVenc]   = useState(15)
   const [cargando, setCargando] = useState(true)
   const [buscar, setBuscar]     = useState('')
+  const [buscarProd, setBuscarProd] = useState('')
   const [form, setForm] = useState({
     productoId: '', tipo: 'entrada', cantidad: '', motivo: ''
   })
+
+  const prodsFiltrados = buscarProd
+    ? productos.filter(p => p.nombre?.toLowerCase().includes(buscarProd.toLowerCase()))
+    : productos
 
   const filtrados = buscar
     ? movimientos.filter(m => m.producto?.nombre?.toLowerCase().includes(buscar.toLowerCase()))
@@ -60,7 +65,7 @@ export default function Inventario() {
   }
 
   async function cargarProductos() {
-    const res  = await fetch('/api/productos')
+    const res  = await fetch('/api/productos?limit=10000')
     const data = await res.json()
     setProductos(data.data || data)
   }
@@ -316,16 +321,21 @@ export default function Inventario() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Producto *
                 </label>
+                <input type="text" placeholder="Buscá un producto por nombre..."
+                  value={buscarProd} onChange={e => setBuscarProd(e.target.value)}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', marginBottom: '8px' }}
+                />
                 <select required value={form.productoId}
                   onChange={e => setForm({...form, productoId: e.target.value})}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}>
                   <option value="">Seleccioná un producto...</option>
-                  {productos.map(p => (
+                  {prodsFiltrados.map(p => (
                     <option key={p.id} value={p.id}>
                       {p.nombre} — Stock actual: {p.stock}
                     </option>
                   ))}
                 </select>
+                {buscarProd && <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>{prodsFiltrados.length} de {productos.length} productos</div>}
               </div>
 
               {/* Cantidad */}
