@@ -64,6 +64,7 @@ export default function Proformas() {
   const imprimirProforma = useReactToPrint({
     contentRef: reciboRef,
     documentTitle: proformaVer?.numero || 'Proforma',
+    pageStyle: '@page { size: 80mm auto; margin: 0mm; }',
   })
 
   function obtenerPres(producto, pres) {
