@@ -22,13 +22,21 @@ export function TecladoVirtualProvider({ children }) {
     esTactilRef.current = navigator.maxTouchPoints > 0
   }, [])
 
-  const onChange = useCallback((valor) => {
+  const onChange = useCallback((valor, cursorPos) => {
     if (inputRef.current) {
       const tag = inputRef.current.tagName?.toLowerCase()
       const proto = tag === 'textarea' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
       const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value').set
       nativeSetter.call(inputRef.current, valor)
       inputRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+      // Restaurar posición del cursor tras el re-render de React
+      if (cursorPos !== undefined) {
+        requestAnimationFrame(() => {
+          if (inputRef.current && document.activeElement === inputRef.current) {
+            inputRef.current.setSelectionRange(cursorPos, cursorPos)
+          }
+        })
+      }
     }
   }, [])
 

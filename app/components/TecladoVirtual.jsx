@@ -74,13 +74,17 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
   function pulsar(tecla) {
     if (!inputRef?.current) return
     if (!document.body.contains(inputRef.current)) { onCerrar(); return }
+    const el = inputRef.current
+    const cursor = el.selectionStart ?? ultimoValor.current.length
     const valor = ultimoValor.current
     if (tecla === '{backspace}') {
-      ultimoValor.current = valor.slice(0, -1)
-      onChange(ultimoValor.current)
+      if (cursor > 0) {
+        ultimoValor.current = valor.slice(0, cursor - 1) + valor.slice(cursor)
+        onChange(ultimoValor.current, cursor - 1)
+      }
     } else if (tecla === '{space}') {
-      ultimoValor.current = valor + ' '
-      onChange(ultimoValor.current)
+      ultimoValor.current = valor.slice(0, cursor) + ' ' + valor.slice(cursor)
+      onChange(ultimoValor.current, cursor + 1)
     } else if (tecla === '{done}') {
       onCerrar()
     } else if (tecla === '{shift}') {
@@ -93,8 +97,8 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
       setModo('num')
       cambiarTipo('numeros')
     } else {
-      ultimoValor.current = valor + tecla
-      onChange(ultimoValor.current)
+      ultimoValor.current = valor.slice(0, cursor) + tecla + valor.slice(cursor)
+      onChange(ultimoValor.current, cursor + 1)
     }
     // Re-focus input if it lost focus (happens on touch when keyboard button is clicked)
     if (inputRef.current && document.activeElement !== inputRef.current) {
