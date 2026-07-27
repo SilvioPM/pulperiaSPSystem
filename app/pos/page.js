@@ -710,7 +710,12 @@ export default function POS() {
                     <input type="text" inputMode="decimal"
                       defaultValue={item.cantidad}
                       ref={el => { if (el) inputRefs.current[`${item.id}-${item._pres || 'base'}`] = el }}
-                      onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v > 0) cambiarCantidad(item.id, v, item._pres); else e.target.value = item.cantidad }}
+                      onBlur={e => {
+                        if (e.relatedTarget?.hasAttribute?.('data-tecla')) return
+                        const v = parseFloat(e.target.value)
+                        if (!isNaN(v) && v > 0) cambiarCantidad(item.id, v, item._pres)
+                        else e.target.value = item.cantidad
+                      }}
                       onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
                       style={{ fontSize: '14px', fontWeight: 700, width: '44px', textAlign: 'center', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px' }} />
                     <button onClick={() => cambiarCantidad(item.id, item.cantidad + 0.5, item._pres)}

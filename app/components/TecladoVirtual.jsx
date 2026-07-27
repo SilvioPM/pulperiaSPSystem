@@ -99,10 +99,7 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
       ultimoValor.current = valor.slice(0, cursor) + tecla + valor.slice(cursor)
       onChange(ultimoValor.current, cursor + 1)
     }
-    // Re-focus input if it lost focus (happens on touch when keyboard button is clicked)
-    if (inputRef.current && document.activeElement !== inputRef.current) {
-      inputRef.current.focus()
-    }
+    // El input mantiene el foco porque onMouseDown previene el default
   }
 
   function k({ t, a, green, gray, wide }) {
@@ -115,6 +112,7 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
     const sizeKey = a ? KWF : KF
     return (
       <button data-tecla="true"
+        onMouseDown={e => e.preventDefault()}
         onClick={() => pulsar(a || t)}
         style={{
           width: w, height: KH, margin: KS, borderRadius: phone ? 8 : 10,
