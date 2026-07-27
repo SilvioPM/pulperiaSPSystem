@@ -59,17 +59,16 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
     }
   }, [inputRef?.current])
 
-  const isDark = tema === 'oscuro'
-  const bg = 'rgba(30,41,59,0.92)'
-  const keyBg = 'rgba(51,65,85,0.92)'
+  const bg = 'rgba(30,41,59,0.75)'
+  const keyBg = 'rgba(51,65,85,0.80)'
   const keyBorder = '#475569'
   const accent = '#16a34a'
 
-  const KH = phone ? 44 : 48
-  const KS = phone ? 3 : 3
-  const KF = phone ? 16 : 17
-  const KWF = phone ? 12 : 13
-  const KW_BASE = phone ? 38 : 48
+  const KH = phone ? 48 : 54
+  const KS = phone ? 4 : 4
+  const KF = phone ? 17 : 18
+  const KWF = phone ? 13 : 14
+  const KW_BASE = phone ? 42 : 52
 
   function pulsar(tecla) {
     if (!inputRef?.current) return
@@ -111,8 +110,8 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
     if (!t) return <div style={{ width: w, height: KH }} />
     const isGreen = green
     const isGray = gray
-    const bgKey = isGreen ? accent : isGray ? (isDark ? '#475569' : '#475569') : keyBg
-    const colorKey = isGreen ? '#fff' : isDark ? '#f1f5f9' : '#f1f5f9'
+    const bgKey = isGreen ? accent : isGray ? '#475569' : keyBg
+    const colorKey = isGreen ? '#fff' : '#f1f5f9'
     const sizeKey = a ? KWF : KF
     return (
       <button data-tecla="true"
