@@ -225,6 +225,8 @@ async function descargarPlantilla() {
     {
       Nombre: 'Arroz Diana 1lb',
       Codigo: '001',
+      Codigo2: '7501234567',
+      Codigo3: '7501234568',
       Precio: 28,
       Costo: 22,
       Stock: 50,
@@ -250,6 +252,7 @@ async function descargarPlantilla() {
     {
       Nombre: 'Coca Cola 500ml',
       Codigo: '002',
+      Codigo2: '7509876543',
       Precio: 25,
       Costo: 18,
       Stock: 24,

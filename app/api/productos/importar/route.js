@@ -174,9 +174,12 @@ if (productoId && fechaVenc) {
     data: { fechaVencimiento: venc }
   })
 }
-const codigosAliasRaw = String(fila['CodigosAlias'] || '').trim()
-if (productoId && codigosAliasRaw) {
-  const aliasList = codigosAliasRaw.split(/[,;]+/).map(c => c.trim()).filter(Boolean)
+const codigosAliasRaw = String(fila['CodigosAlias'] || fila['Codigo2'] || '').trim()
+const codigo3Raw = String(fila['Codigo3'] || '').trim()
+if (productoId && (codigosAliasRaw || codigo3Raw)) {
+  const aliasList = []
+  if (codigosAliasRaw) aliasList.push(...codigosAliasRaw.split(/[,;]+/).map(c => c.trim()).filter(Boolean))
+  if (codigo3Raw) aliasList.push(codigo3Raw.trim())
   if (aliasList.length > 0) {
     const existingAlias = await prisma.productoCodigo.findMany({
       where: { productoId },
