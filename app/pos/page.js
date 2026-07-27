@@ -1165,14 +1165,20 @@ export default function POS() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Cantidad ({genericoModal.unidad})</label>
-                <input type="number" step="0.5" min="0.5" autoFocus value={genCantidad}
-                  onChange={e => setGenCantidad(e.target.value)}
+                <input type="text" inputMode="decimal" autoFocus value={genCantidad}
+                  onChange={e => {
+                    const v = e.target.value
+                    if (/^\d*\.?\d*$/.test(v) || v === '') setGenCantidad(v)
+                  }}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }} />
               </div>
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Total a cobrar (C$) *</label>
-                <input type="number" step="0.01" min="0.01" value={genPrecio}
-                  onChange={e => setGenPrecio(e.target.value)}
+                <input type="text" inputMode="decimal" value={genPrecio}
+                  onChange={e => {
+                    const v = e.target.value
+                    if (/^\d*\.?\d*$/.test(v) || v === '') setGenPrecio(v)
+                  }}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }} />
               </div>
               {genPrecio && parseFloat(genPrecio) > 0 && genCantidad && parseFloat(genCantidad) > 0 && (
