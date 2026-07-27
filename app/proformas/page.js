@@ -42,7 +42,7 @@ export default function Proformas() {
   async function cargarTodo() {
     try {
       const [pRes, clRes, catRes, configRes, proRes] = await Promise.all([
-        fetch('/api/productos'),
+        fetch('/api/productos?limit=10000'),
         fetch('/api/clientes'),
         fetch('/api/categorias'),
         fetch('/api/config'),
