@@ -39,6 +39,7 @@ export default function POS() {
   const [mostrarDivisas, setMostrarDivisas] = useState(false)
   const [divisaTipo, setDivisaTipo] = useState('comprar') // 'comprar' o 'vender'
   const [divisaMonto, setDivisaMonto] = useState('')
+  const [divisaTasa, setDivisaTasa] = useState('')
   const [divisaResultado, setDivisaResultado] = useState(null)
   const [nombreParked, setNombreParked]               = useState('')
   const [presentacionSel, setPresentacionSel]         = useState({})
@@ -1254,13 +1255,7 @@ export default function POS() {
                   </button>
                 </div>
 
-                {tasaCambio <= 0 && (
-                  <div style={{ padding: '12px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '13px', marginBottom: '16px', textAlign: 'center' }}>
-                    Configurá la tasa de cambio en ⚙️ Configuración
-                  </div>
-                )}
-
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '12px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                     Monto en dólares ($)
                   </label>
@@ -1270,17 +1265,27 @@ export default function POS() {
                   />
                 </div>
 
-                {tasaCambio > 0 && parseFloat(divisaMonto) > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                    Tasa de cambio
+                  </label>
+                  <input type="number" inputMode="none" value={divisaTasa} placeholder={`Ej: ${tasaCambio > 0 ? tasaCambio.toFixed(2) : '36.50'}`}
+                    onChange={e => setDivisaTasa(e.target.value)}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }}
+                  />
+                </div>
+
+                {parseFloat(divisaTasa) > 0 && parseFloat(divisaMonto) > 0 && (
                   <div style={{ padding: '12px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #86efac', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
-                      <span style={{ color: '#475569' }}>{divisaTipo === 'comprar' ? 'Recibís en C$ (entregás $)' : 'Entregás en C$ (recibís $)'}:</span>
+                      <span style={{ color: '#475569' }}>Dólares:</span>
                       <span style={{ fontWeight: 700 }}>$ {parseFloat(divisaMonto).toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                      <span style={{ color: '#475569' }}>{divisaTipo === 'comprar' ? 'Entregás en C$ (pagás)' : 'Recibís en C$'}:</span>
-                      <span style={{ fontWeight: 700, color: '#16a34a' }}>C$ {(parseFloat(divisaMonto) * tasaCambio).toFixed(2)}</span>
+                      <span style={{ color: '#475569' }}>Córdobas:</span>
+                      <span style={{ fontWeight: 700, color: '#16a34a' }}>C$ {(parseFloat(divisaMonto) * parseFloat(divisaTasa)).toFixed(2)}</span>
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '4px' }}>Tasa: {tasaCambio.toFixed(2)}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '4px' }}>Tasa: {parseFloat(divisaTasa).toFixed(2)}</div>
                   </div>
                 )}
 
@@ -1291,35 +1296,32 @@ export default function POS() {
                   </button>
                   <button onClick={async () => {
                     const monto = parseFloat(divisaMonto)
+                    const tasa = parseFloat(divisaTasa)
                     if (!monto || monto <= 0) return mostrar('Ingresá un monto válido', 'alerta')
-                    if (tasaCambio <= 0) return mostrar('Configurá la tasa de cambio', 'alerta')
+                    if (!tasa || tasa <= 0) return mostrar('Ingresá la tasa de cambio', 'alerta')
                     try {
                       const ahora = new Date().toLocaleString('es-NI')
                       const esCompra = divisaTipo === 'comprar'
-                      // Registrar egreso de $ (compra: doy $) o ingreso de $ (venta: recibo $)
+                      const montoCs = monto * tasa
                       const tipoMov = esCompra ? 'salida' : 'entrada'
-                      const concepto = esCompra ? `Compra de dólares - $${monto.toFixed(2)} a tasa ${tasaCambio}` : `Venta de dólares - $${monto.toFixed(2)} a tasa ${tasaCambio}`
+                      const concepto = `${esCompra ? 'Compra' : 'Venta'} de dólares - $${monto.toFixed(2)} @ ${tasa.toFixed(2)}`
                       const res = await fetch('/api/caja/movimientos', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ tipo: tipoMov, concepto, moneda: '$', monto })
                       })
                       if (!res.ok) throw new Error('Error al registrar')
-                      // Si es compra: también se recibe C$ (ingreso)
-                      if (esCompra) {
-                        await fetch('/api/caja/movimientos', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ tipo: 'entrada', concepto: `Compra de dólares - C$${(monto * tasaCambio).toFixed(2)}`, moneda: 'C$', monto: monto * tasaCambio })
+                      await fetch('/api/caja/movimientos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          tipo: esCompra ? 'entrada' : 'salida',
+                          concepto: `${esCompra ? 'Compra' : 'Venta'} de dólares - C$${montoCs.toFixed(2)} @ ${tasa.toFixed(2)}`,
+                          moneda: 'C$',
+                          monto: montoCs
                         })
-                      } else {
-                        await fetch('/api/caja/movimientos', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ tipo: 'salida', concepto: `Venta de dólares - C$${(monto * tasaCambio).toFixed(2)}`, moneda: 'C$', monto: monto * tasaCambio })
-                        })
-                      }
-                      setDivisaResultado({ tipo: divisaTipo, montoUsd: monto, montoCs: monto * tasaCambio, tasa: tasaCambio, fecha: ahora })
+                      })
+                      setDivisaResultado({ tipo: divisaTipo, montoUsd: monto, montoCs, tasa, fecha: ahora })
                     } catch (e) {
                       mostrar('Error al registrar la operación', 'error')
                     }
@@ -1339,11 +1341,14 @@ export default function POS() {
                   <div style={{ fontSize: '14px', color: '#475569', marginBottom: '4px' }}>
                     {divisaResultado.tipo === 'comprar' ? 'Compra' : 'Venta'} de dólares
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '14px', color: '#475569', marginBottom: '2px' }}>
+                    {divisaResultado.tipo === 'comprar' ? 'C$ → $' : '$ → C$'} — Tasa: {divisaResultado.tasa.toFixed(2)}
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '2px' }}>
                     $ {divisaResultado.montoUsd.toFixed(2)} ↔ C$ {divisaResultado.montoCs.toFixed(2)}
                   </div>
                   <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                    Tasa: {divisaResultado.tasa.toFixed(2)} — {divisaResultado.fecha}
+                    {divisaResultado.fecha}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -1355,22 +1360,24 @@ export default function POS() {
                     const ancho = 320; const alto = 500
                     const w = window.open('', '_blank', `width=${ancho},height=${alto}`)
                     if (!w) return
+                    const esCompra = divisaResultado.tipo === 'comprar'
                     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cambio de divisas</title><style>
-* { margin:0; padding:0; box-sizing:border-box; }
-@page { size:80mm auto; margin:0; }
-body { width:80mm; padding:4mm; font-family:monospace; font-size:12px; color:#000; }
-h2 { text-align:center; font-size:14px; margin-bottom:4px; }
-.t { text-align:center; font-size:11px; margin-bottom:8px; border-bottom:1px dashed #000; padding-bottom:6px; }
-.r { display:flex; justify-content:space-between; margin-bottom:4px; }
-.b { font-weight:700; }
-.g { color:#16a34a; }
-.f { text-align:center; font-size:11px; margin-top:8px; border-top:1px dashed #000; padding-top:6px; }
+*{margin:0;padding:0;box-sizing:border-box}
+@page{size:80mm auto;margin:0}
+body{width:80mm;padding:4mm;font-family:monospace;font-size:12px;color:#000}
+h2{text-align:center;font-size:14px;margin-bottom:4px}
+.t{text-align:center;font-size:11px;margin-bottom:8px;border-bottom:1px dashed #000;padding-bottom:6px}
+.r{display:flex;justify-content:space-between;margin-bottom:4px}
+.b{font-weight:700}
+.g{color:#16a34a}
+.f{text-align:center;font-size:11px;margin-top:8px;border-top:1px dashed #000;padding-top:6px}
 </style></head><body>
 <h2>${config?.nombre || 'Mi Pulpería'}</h2>
-<div class="t">${divisaResultado.tipo === 'comprar' ? 'COMPRA DE DÓLARES' : 'VENTA DE DÓLARES'}</div>
-<div class="r"><span>Monto USD:</span><span class="b">$${divisaResultado.montoUsd.toFixed(2)}</span></div>
-<div class="r"><span>Monto Córdobas:</span><span class="b g">C$${divisaResultado.montoCs.toFixed(2)}</span></div>
-<div class="r"><span>Tasa de cambio:</span><span>${divisaResultado.tasa.toFixed(2)}</span></div>
+<div class="t">${esCompra ? 'COMPRA DE DÓLARES' : 'VENTA DE DÓLARES'}</div>
+<div class="r"><span>Operación:</span><span>${esCompra ? 'Compra \$' : 'Venta \$'}</span></div>
+<div class="r"><span>Monto USD:</span><span class="b">\$${divisaResultado.montoUsd.toFixed(2)}</span></div>
+<div class="r"><span>Monto Córdobas:</span><span class="b g">C\$${divisaResultado.montoCs.toFixed(2)}</span></div>
+<div class="r"><span>Tasa aplicada:</span><span>${divisaResultado.tasa.toFixed(2)}</span></div>
 <div class="r"><span>Fecha:</span><span>${divisaResultado.fecha}</span></div>
 <div class="f">${config?.mensajePie || '¡Gracias!'}</div>
 <script>setTimeout(function(){window.print();window.close()},300);</script>
