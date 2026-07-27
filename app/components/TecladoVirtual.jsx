@@ -60,9 +60,9 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
   }, [inputRef?.current])
 
   const isDark = tema === 'oscuro'
-  const bg = isDark ? 'rgba(30,41,59,0.7)' : 'rgba(241,245,249,0.7)'
-  const keyBg = isDark ? 'rgba(51,65,85,0.9)' : 'rgba(255,255,255,0.9)'
-  const keyBorder = isDark ? '#475569' : '#cbd5e1'
+  const bg = 'rgba(30,41,59,0.92)'
+  const keyBg = 'rgba(51,65,85,0.92)'
+  const keyBorder = '#475569'
   const accent = '#16a34a'
 
   const KH = phone ? 44 : 48
@@ -111,8 +111,8 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
     if (!t) return <div style={{ width: w, height: KH }} />
     const isGreen = green
     const isGray = gray
-    const bgKey = isGreen ? accent : isGray ? (isDark ? '#475569' : '#e2e8f0') : keyBg
-    const colorKey = isGreen ? '#fff' : isDark ? '#f1f5f9' : '#1e293b'
+    const bgKey = isGreen ? accent : isGray ? (isDark ? '#475569' : '#475569') : keyBg
+    const colorKey = isGreen ? '#fff' : isDark ? '#f1f5f9' : '#f1f5f9'
     const sizeKey = a ? KWF : KF
     return (
       <button data-tecla="true"
