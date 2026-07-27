@@ -35,7 +35,11 @@ export default function POS() {
   const [esCredito, setEsCredito]                     = useState(false)
   const [fechaVencimiento, setFechaVencimiento]         = useState('')
   const [parkedSessions, setParkedSessions]           = useState([])
-  const [mostrarParked, setMostrarParked]             = useState(false)
+  const [mostrarParked, setMostrarParked] = useState(false)
+  const [mostrarDivisas, setMostrarDivisas] = useState(false)
+  const [divisaTipo, setDivisaTipo] = useState('comprar') // 'comprar' o 'vender'
+  const [divisaMonto, setDivisaMonto] = useState('')
+  const [divisaResultado, setDivisaResultado] = useState(null)
   const [nombreParked, setNombreParked]               = useState('')
   const [presentacionSel, setPresentacionSel]         = useState({})
   const [errorCaja, setErrorCaja]                     = useState(false)
@@ -481,10 +485,15 @@ export default function POS() {
               value={buscar}
               onChange={e => setBuscar(e.target.value)}
               style={{
-                width: '100%', padding: '12px 14px', borderRadius: '8px',
+                flex: 1, padding: '12px 14px', borderRadius: '8px',
                 border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none'
               }}
             />
+            <button onClick={() => setMostrarDivisas(true)}
+              title="Compra / Venta de divisas"
+              style={{ width: '40px', height: '40px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <DollarSign size={18} color="#d97706" />
+            </button>
           </div>
 
           {esPhone && buscar ? null : esPhone ? (
@@ -1203,6 +1212,180 @@ export default function POS() {
         <FacturaRecibo ref={reciboRef} factura={facturaExitosa} config={config} />
       </div>
 
+      {/* ── MODAL DIVISAS ── */}
+      {mostrarDivisas && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+        }}>
+          <div className="card" style={{ width: 'min(95vw, 420px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <DollarSign size={18} color="#d97706" /> Compra / Venta de divisas
+              </h2>
+              <button onClick={() => { setMostrarDivisas(false); setDivisaResultado(null); setDivisaMonto('') }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}>
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            {!divisaResultado ? (
+              <>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <button onClick={() => setDivisaTipo('comprar')}
+                    style={{
+                      flex: 1, padding: '12px', borderRadius: '8px', border: '2px solid',
+                      borderColor: divisaTipo === 'comprar' ? '#16a34a' : '#e2e8f0',
+                      background: divisaTipo === 'comprar' ? '#dcfce7' : '#f8fafc',
+                      cursor: 'pointer', fontWeight: 600, fontSize: '14px',
+                      color: divisaTipo === 'comprar' ? '#16a34a' : '#64748b'
+                    }}>
+                    Comprar $
+                  </button>
+                  <button onClick={() => setDivisaTipo('vender')}
+                    style={{
+                      flex: 1, padding: '12px', borderRadius: '8px', border: '2px solid',
+                      borderColor: divisaTipo === 'vender' ? '#d97706' : '#e2e8f0',
+                      background: divisaTipo === 'vender' ? '#fef3c7' : '#f8fafc',
+                      cursor: 'pointer', fontWeight: 600, fontSize: '14px',
+                      color: divisaTipo === 'vender' ? '#d97706' : '#64748b'
+                    }}>
+                    Vender $
+                  </button>
+                </div>
+
+                {tasaCambio <= 0 && (
+                  <div style={{ padding: '12px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '13px', marginBottom: '16px', textAlign: 'center' }}>
+                    Configurá la tasa de cambio en ⚙️ Configuración
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                    Monto en dólares ($)
+                  </label>
+                  <input type="number" inputMode="none" value={divisaMonto} placeholder="0.00"
+                    onChange={e => setDivisaMonto(e.target.value)}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }}
+                  />
+                </div>
+
+                {tasaCambio > 0 && parseFloat(divisaMonto) > 0 && (
+                  <div style={{ padding: '12px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #86efac', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
+                      <span style={{ color: '#475569' }}>{divisaTipo === 'comprar' ? 'Recibís en C$ (entregás $)' : 'Entregás en C$ (recibís $)'}:</span>
+                      <span style={{ fontWeight: 700 }}>$ {parseFloat(divisaMonto).toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                      <span style={{ color: '#475569' }}>{divisaTipo === 'comprar' ? 'Entregás en C$ (pagás)' : 'Recibís en C$'}:</span>
+                      <span style={{ fontWeight: 700, color: '#16a34a' }}>C$ {(parseFloat(divisaMonto) * tasaCambio).toFixed(2)}</span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '4px' }}>Tasa: {tasaCambio.toFixed(2)}</div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => { setMostrarDivisas(false); setDivisaMonto('') }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600, color: '#64748b' }}>
+                    Cancelar
+                  </button>
+                  <button onClick={async () => {
+                    const monto = parseFloat(divisaMonto)
+                    if (!monto || monto <= 0) return mostrar('Ingresá un monto válido', 'alerta')
+                    if (tasaCambio <= 0) return mostrar('Configurá la tasa de cambio', 'alerta')
+                    try {
+                      const ahora = new Date().toLocaleString('es-NI')
+                      const esCompra = divisaTipo === 'comprar'
+                      // Registrar egreso de $ (compra: doy $) o ingreso de $ (venta: recibo $)
+                      const tipoMov = esCompra ? 'salida' : 'entrada'
+                      const concepto = esCompra ? `Compra de dólares - $${monto.toFixed(2)} a tasa ${tasaCambio}` : `Venta de dólares - $${monto.toFixed(2)} a tasa ${tasaCambio}`
+                      const res = await fetch('/api/caja/movimientos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tipo: tipoMov, concepto, moneda: '$', monto })
+                      })
+                      if (!res.ok) throw new Error('Error al registrar')
+                      // Si es compra: también se recibe C$ (ingreso)
+                      if (esCompra) {
+                        await fetch('/api/caja/movimientos', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ tipo: 'entrada', concepto: `Compra de dólares - C$${(monto * tasaCambio).toFixed(2)}`, moneda: 'C$', monto: monto * tasaCambio })
+                        })
+                      } else {
+                        await fetch('/api/caja/movimientos', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ tipo: 'salida', concepto: `Venta de dólares - C$${(monto * tasaCambio).toFixed(2)}`, moneda: 'C$', monto: monto * tasaCambio })
+                        })
+                      }
+                      setDivisaResultado({ tipo: divisaTipo, montoUsd: monto, montoCs: monto * tasaCambio, tasa: tasaCambio, fecha: ahora })
+                    } catch (e) {
+                      mostrar('Error al registrar la operación', 'error')
+                    }
+                  }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '15px' }}>
+                    Confirmar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ padding: '24px', textAlign: 'center' }}>
+                  <CheckCircle size={48} color="#16a34a" style={{ marginBottom: '12px' }} />
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#16a34a', marginBottom: '12px' }}>
+                    Operación registrada
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#475569', marginBottom: '4px' }}>
+                    {divisaResultado.tipo === 'comprar' ? 'Compra' : 'Venta'} de dólares
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '16px', marginBottom: '4px' }}>
+                    $ {divisaResultado.montoUsd.toFixed(2)} ↔ C$ {divisaResultado.montoCs.toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    Tasa: {divisaResultado.tasa.toFixed(2)} — {divisaResultado.fecha}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => { setMostrarDivisas(false); setDivisaResultado(null); setDivisaMonto('') }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                    Cerrar
+                  </button>
+                  <button onClick={() => {
+                    const ancho = 320; const alto = 500
+                    const w = window.open('', '_blank', `width=${ancho},height=${alto}`)
+                    if (!w) return
+                    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cambio de divisas</title><style>
+* { margin:0; padding:0; box-sizing:border-box; }
+@page { size:80mm auto; margin:0; }
+body { width:80mm; padding:4mm; font-family:monospace; font-size:12px; color:#000; }
+h2 { text-align:center; font-size:14px; margin-bottom:4px; }
+.t { text-align:center; font-size:11px; margin-bottom:8px; border-bottom:1px dashed #000; padding-bottom:6px; }
+.r { display:flex; justify-content:space-between; margin-bottom:4px; }
+.b { font-weight:700; }
+.g { color:#16a34a; }
+.f { text-align:center; font-size:11px; margin-top:8px; border-top:1px dashed #000; padding-top:6px; }
+</style></head><body>
+<h2>${config?.nombre || 'Mi Pulpería'}</h2>
+<div class="t">${divisaResultado.tipo === 'comprar' ? 'COMPRA DE DÓLARES' : 'VENTA DE DÓLARES'}</div>
+<div class="r"><span>Monto USD:</span><span class="b">$${divisaResultado.montoUsd.toFixed(2)}</span></div>
+<div class="r"><span>Monto Córdobas:</span><span class="b g">C$${divisaResultado.montoCs.toFixed(2)}</span></div>
+<div class="r"><span>Tasa de cambio:</span><span>${divisaResultado.tasa.toFixed(2)}</span></div>
+<div class="r"><span>Fecha:</span><span>${divisaResultado.fecha}</span></div>
+<div class="f">${config?.mensajePie || '¡Gracias!'}</div>
+<script>setTimeout(function(){window.print();window.close()},300);</script>
+</body></html>`)
+                    w.document.close()
+                  }}
+                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d97706', background: '#fffbeb', cursor: 'pointer', fontWeight: 600, color: '#d97706' }}>
+                    <Printer size={14} style={{ marginRight: 4 }} /> Imprimir recibo
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
       {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
