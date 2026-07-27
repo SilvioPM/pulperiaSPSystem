@@ -91,7 +91,6 @@ export default function POS() {
 
   const agregarAlCarritoRef = useRef(null)
   agregarAlCarritoRef.current = agregarAlCarrito
-  const stockErrorRef = useRef(false)
 
   const buscarProducto = useCallback(async (codigo) => {
     try {
@@ -302,7 +301,6 @@ export default function POS() {
         const key = `${id}-${pres || 'base'}`
         const el = inputRefs.current[key]
         if (el) el.value = item.cantidad
-        stockErrorRef.current = true
         return mostrar(`Stock insuficiente. Disponible: ${item.stock} ${item.unidad}, necesitas ${stockReq} ${item.unidad}`, 'alerta')
       }
     }
@@ -344,15 +342,6 @@ export default function POS() {
   const cambio           = pagoConCordobas - total
 
   async function procesarVenta() {
-    // Forzar sync de cantidad: blur el input activo para que onBlur + cambiarCantidad se ejecuten
-    stockErrorRef.current = false
-    if (document.activeElement?.tagName === 'INPUT') {
-      document.activeElement.blur()
-      // Esperar a que React procese el batch de setCarrito (si el stock fue suficiente)
-      // o que stockErrorRef se marque true (si fue insuficiente)
-      await new Promise(r => setTimeout(r, 0))
-    }
-    if (stockErrorRef.current) return
     if (carrito.length === 0) return mostrar('Agregá productos al carrito', 'alerta')
     if (esCredito && !clienteSeleccionado) return mostrar('Seleccioná un cliente para venta al crédito', 'alerta')
     if (metodosPago.length > 1) {
@@ -386,9 +375,15 @@ export default function POS() {
 
     for (const item of carrito) {
       if (item.esGenerico) continue
+      // Leer cantidad REAL del DOM input (lo que el usuario ve/tipéo)
+      const key = `${item.id}-${item._pres || 'base'}`
+      const el = inputRefs.current[key]
+      const cantidad = el ? (parseFloat(el.value) || item.cantidad) : item.cantidad
       const factor = item.factorConversion || 1
-      const stockReq = item.cantidad * factor
+      const stockReq = cantidad * factor
       if (item.stock !== undefined && item.stock < stockReq) {
+        // Resetear input al valor real del carrito
+        if (el) el.value = item.cantidad
         setCargando(false)
         return mostrar(`Stock insuficiente para "${item.nombre}". Disponible: ${item.stock} ${item.unidad}, necesitas ${stockReq} ${item.unidad}`, 'alerta')
       }
