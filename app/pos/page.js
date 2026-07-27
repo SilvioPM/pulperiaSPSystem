@@ -275,6 +275,7 @@ export default function POS() {
       const precioFinal = aplicarMayorista(producto, pres, 1) ? (producto.precioMayor || precioUsado) : precioUsado
       return [...prev, { ...producto, cantidad: 1, _pres: pres, precio: precioFinal, unidadVenta, factorConversion: factorConv }]
     })
+    setBuscar('')
   }
 
   // Sincroniza inputs no enfocados cuando carrito cambia (ej: clicks +/-)
