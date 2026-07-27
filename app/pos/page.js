@@ -46,6 +46,7 @@ export default function POS() {
   const [errorCaja, setErrorCaja]                     = useState(false)
   const [genericoModal, setGenericoModal]             = useState(null)
   const [genPrecio, setGenPrecio]                     = useState('')
+  const [genPrecioLibra, setGenPrecioLibra]           = useState('')
   const [genCantidad, setGenCantidad]                 = useState('1')
   const [mostrarFormCliente, setMostrarFormCliente]   = useState(false)
   const [nuevoCliente, setNuevoCliente]               = useState({ nombre: '', telefono: '', direccion: '' })
@@ -612,6 +613,7 @@ export default function POS() {
                     const pres = presentacionSel[producto.id] || 'base'
                     const p = obtenerPres(producto, pres)
                     setGenPrecio(p.precio > 0 ? p.precio.toString() : '')
+                    setGenPrecioLibra('')
                     setGenCantidad('1')
                     setGenericoModal(producto)
                   } else if (stockSuficiente) {
@@ -1164,11 +1166,34 @@ export default function POS() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Cantidad ({genericoModal.unidad})</label>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Peso / Cantidad ({genericoModal.unidad})</label>
                 <input type="text" inputMode="decimal" autoFocus value={genCantidad}
                   onChange={e => {
                     const v = e.target.value
-                    if (/^\d*\.?\d*$/.test(v) || v === '') setGenCantidad(v)
+                    if (/^\d*\.?\d*$/.test(v) || v === '') {
+                      setGenCantidad(v)
+                      if (genPrecioLibra && v) {
+                        const cant = parseFloat(v)
+                        const pl = parseFloat(genPrecioLibra)
+                        if (cant > 0 && pl > 0) setGenPrecio((cant * pl).toFixed(2))
+                      }
+                    }
+                  }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Precio por {genericoModal.unidad} (C$)</label>
+                <input type="text" inputMode="decimal" value={genPrecioLibra}
+                  onChange={e => {
+                    const v = e.target.value
+                    if (/^\d*\.?\d*$/.test(v) || v === '') {
+                      setGenPrecioLibra(v)
+                      if (genCantidad && v) {
+                        const cant = parseFloat(genCantidad)
+                        const pl = parseFloat(v)
+                        if (cant > 0 && pl > 0) setGenPrecio((cant * pl).toFixed(2))
+                      }
+                    }
                   }}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }} />
               </div>
@@ -1181,9 +1206,13 @@ export default function POS() {
                   }}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }} />
               </div>
-              {genPrecio && parseFloat(genPrecio) > 0 && genCantidad && parseFloat(genCantidad) > 0 && (
+              {(genPrecioLibra && genCantidad && parseFloat(genCantidad) > 0 && parseFloat(genPrecioLibra) > 0) ? (
                 <div style={{ padding: '10px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: '15px', textAlign: 'center' }}>
-                  Total a cobrar: C$ {parseFloat(genPrecio).toFixed(2)}
+                  {parseFloat(genCantidad).toFixed(2)} {genericoModal.unidad} × C$ {parseFloat(genPrecioLibra).toFixed(2)} = C$ {(parseFloat(genCantidad) * parseFloat(genPrecioLibra)).toFixed(2)}
+                </div>
+              ) : genPrecio && parseFloat(genPrecio) > 0 && genCantidad && parseFloat(genCantidad) > 0 && (
+                <div style={{ padding: '10px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: '15px', textAlign: 'center' }}>
+                  Total: C$ {parseFloat(genPrecio).toFixed(2)}
                 </div>
               )}
               <button onClick={() => {
