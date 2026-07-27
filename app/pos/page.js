@@ -95,7 +95,7 @@ export default function POS() {
 
   const buscarProducto = useCallback(async (codigo) => {
     try {
-      const res = await fetch(`/api/productos?buscar=${encodeURIComponent(codigo)}`)
+      const res = await fetch(`/api/productos?buscar=${encodeURIComponent(codigo)}&limit=10000`)
       const data = await res.json()
       const prods = data.data || data || []
       const prod = prods.find(p =>

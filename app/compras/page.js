@@ -59,7 +59,7 @@ export default function Compras() {
   try {
     const [cRes, pRes, prRes, catRes, uRes] = await Promise.all([
       fetch('/api/compras'),
-      fetch('/api/productos'),
+      fetch('/api/productos?limit=10000'),
       fetch('/api/proveedores'),
       fetch('/api/categorias'),
       fetch('/api/unidades-medida')

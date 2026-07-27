@@ -71,7 +71,7 @@ export default function Inventario() {
   }
 
   async function cargarVencer() {
-    const res  = await fetch(`/api/productos?vencer=${filtroVenc}&limit=200`)
+    const res  = await fetch(`/api/productos?vencer=${filtroVenc}&limit=10000`)
     const data = await res.json()
     setProdsVencer(data.data || [])
   }
@@ -284,7 +284,7 @@ export default function Inventario() {
           paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
           overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 50
         }}>
-          <div className="card" style={{ width: '440px' }}>
+          <div className="card" style={{ width: 'min(95vw, 580px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 700 }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icons.Package size={16} /> Registrar Movimiento</span></h2>
               <button onClick={() => setMostrarForm(false)}
