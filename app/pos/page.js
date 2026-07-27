@@ -624,14 +624,14 @@ export default function POS() {
                   borderRadius: '12px', padding: '14px 10px 10px',
                   textAlign: 'center', cursor: stockSuficiente ? 'pointer' : 'not-allowed',
                   opacity: producto.stock === 0 ? 0.5 : 1,
-                  userSelect: 'none',
+                  userSelect: 'none', overflowWrap: 'break-word', wordBreak: 'break-word',
                 }}>
                 {presentaciones.length > 1 && (
-                  <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', justifyContent: 'center', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
                     {presentaciones.map(pre => (
                       <button key={pre.key} onClick={() => setPresentacionSel(prev => ({...prev, [producto.id]: pre.key}))}
                         style={{
-                          flex: 1, padding: '6px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer',
+                          flex: '1 1 auto', padding: '4px 4px', borderRadius: '4px', fontSize: '9px', fontWeight: 700, cursor: 'pointer',
                           border: presActual === pre.key ? '2px solid #16a34a' : '1px solid #e2e8f0',
                           background: presActual === pre.key ? '#f0fdf4' : 'white',
                           color: presActual === pre.key ? '#16a34a' : '#94a3b8'
