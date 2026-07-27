@@ -296,6 +296,10 @@ export default function POS() {
     if (item) {
       const stockReq = nuevaCantidad * (item.factorConversion || 1)
       if (item.stock !== undefined && item.stock < stockReq) {
+        // Resetear input al valor real del carrito
+        const key = `${id}-${pres || 'base'}`
+        const el = inputRefs.current[key]
+        if (el) el.value = item.cantidad
         return mostrar(`Stock insuficiente. Disponible: ${item.stock} ${item.unidad}, necesitas ${stockReq} ${item.unidad}`, 'alerta')
       }
     }
@@ -426,6 +430,7 @@ export default function POS() {
         })
       })
       const factura = await res.json()
+      if (!res.ok) throw new Error(factura.error || 'Error al crear la factura')
       if (proformaActiva) {
         await fetch(`/api/proformas/${proformaActiva}`, {
           method: 'PUT',
@@ -445,7 +450,7 @@ export default function POS() {
       setTimeout(() => setFacturaExitosa(null), 6000)
       setTimeout(imprimirTicket, 300)
     } catch (error) {
-      mostrar('Error al procesar la venta', 'error')
+      mostrar(error?.message || 'Error al procesar la venta', 'error')
     }
     setCargando(false)
   }
