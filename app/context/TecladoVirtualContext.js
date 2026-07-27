@@ -33,7 +33,7 @@ export function TecladoVirtualProvider({ children }) {
       if (cursorPos !== undefined) {
         requestAnimationFrame(() => {
           if (inputRef.current && document.activeElement === inputRef.current) {
-            inputRef.current.setSelectionRange(cursorPos, cursorPos)
+            try { inputRef.current.setSelectionRange(cursorPos, cursorPos) } catch {}
           }
         })
       }

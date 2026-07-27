@@ -1306,8 +1306,11 @@ export default function POS() {
                   <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                     Monto en dólares ($)
                   </label>
-                  <input type="number" inputMode="none" value={divisaMonto} placeholder="0.00"
-                    onChange={e => setDivisaMonto(e.target.value)}
+                  <input type="text" inputMode="decimal" value={divisaMonto} placeholder="0.00"
+                    onChange={e => {
+                      const v = e.target.value
+                      if (/^\d*\.?\d*$/.test(v) || v === '') setDivisaMonto(v)
+                    }}
                     style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }}
                   />
                 </div>
@@ -1316,8 +1319,11 @@ export default function POS() {
                   <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                     Tasa de cambio
                   </label>
-                  <input type="number" inputMode="none" value={divisaTasa} placeholder={`Ej: ${tasaCambio > 0 ? tasaCambio.toFixed(2) : '36.50'}`}
-                    onChange={e => setDivisaTasa(e.target.value)}
+                  <input type="text" inputMode="decimal" value={divisaTasa} placeholder={`Ej: ${tasaCambio > 0 ? tasaCambio.toFixed(2) : '36.50'}`}
+                    onChange={e => {
+                      const v = e.target.value
+                      if (/^\d*\.?\d*$/.test(v) || v === '') setDivisaTasa(v)
+                    }}
                     style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }}
                   />
                 </div>
