@@ -64,11 +64,11 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
   const keyBorder = '#475569'
   const accent = '#16a34a'
 
-  const KH = phone ? 48 : 54
-  const KS = phone ? 4 : 4
-  const KF = phone ? 17 : 18
-  const KWF = phone ? 13 : 14
-  const KW_BASE = phone ? 42 : 52
+  const KH = phone ? 52 : 60
+  const KS = phone ? 4 : 5
+  const KF = phone ? 18 : 20
+  const KWF = phone ? 14 : 15
+  const KW_BASE = phone ? 46 : 58
 
   function pulsar(tecla) {
     if (!inputRef?.current) return
@@ -173,7 +173,7 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
       boxShadow: '0 -4px 24px rgba(0,0,0,0.1)',
     }}>
       {modo === 'letras' ? (
-        <div style={{ display: 'flex', gap: phone ? 4 : 8, maxWidth: phone ? '100%' : 860, margin: '0 auto' }}>
+        <div style={{ display: 'flex', gap: phone ? 4 : 8, width: '100%' }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             {(mayus ? FILAS_LETRAS_SHIFT : FILAS_LETRAS).map((fila, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -202,10 +202,10 @@ export default function TecladoVirtual({ inputRef, onChange, onCerrar, tipo: tip
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: phone ? '100%' : 540, margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           {NUM_SYMBOLS.map((fila, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'center', flexWrap: 'nowrap' }}>
-              {fila.map(t => k({ t, wide: phone ? Math.min(42, (area.width - 20) / 10) : 48 }))}
+            <div key={i} style={{ display: 'flex', justifyContent: 'center', flexWrap: 'nowrap', width: '100%' }}>
+              {fila.map(t => k({ t, wide: KW_BASE }))}
             </div>
           ))}
           <div style={{ display: 'flex', marginTop: phone ? 2 : 4 }}>
