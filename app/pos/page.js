@@ -163,7 +163,7 @@ export default function POS() {
   }, [])
 
   async function cargarProductos() {
-    let url = '/api/productos?'
+    let url = '/api/productos?limit=10000&'
     if (buscar)         url += `buscar=${buscar}&`
     if (categoriaActiva) url += `categoriaId=${categoriaActiva}`
     const res = await fetch(url)
