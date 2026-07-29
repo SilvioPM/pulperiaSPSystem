@@ -377,6 +377,7 @@ export default function Reportes() {
       }, 0)
     : datosValidos.reduce((s, f) => s + (f.total || 0), 0)
   const sumCosto = datosValidos.reduce((s, f) => s + (f.costo || 0), 0)
+  const sumValorTotal = datosValidos.reduce((s, f) => s + (parseFloat(f.valorTotal) || 0), 0)
   const sumGanancia = datosValidos.reduce((s, f) => s + (f.ganancia || 0), 0)
 
   return (
@@ -630,7 +631,7 @@ export default function Reportes() {
                                 }}>
                                   {fila._raw?.estado === 'anulada' ? <><Icons.XCircle size={14} /> Anulada</> : fila._raw?.estado === 'credito' ? <><Icons.ClipboardList size={14} /> Crédito</> : <><Icons.CheckCircle size={14} /> Pagada</>}
                                 </span>
-                              ) : col.key === 'total' || col.key === 'subtotal' || col.key === 'ganancia' || col.key === 'precio' || col.key === 'costo' || col.key === 'descuento'
+                              ) : col.key === 'total' || col.key === 'subtotal' || col.key === 'ganancia' || col.key === 'precio' || col.key === 'costo' || col.key === 'valorTotal' || col.key === 'descuento'
                                 ? `C$ ${(fila[col.key] || 0).toFixed(2)}`
                                 : col.key === 'margen'
                                 ? `${(fila[col.key] || 0).toFixed(1)}%`
@@ -643,7 +644,7 @@ export default function Reportes() {
                       ))
                     )}
                   </tbody>
-                  {(modulo === 'ventas' || modulo === 'ganancias') && datos.length > 0 && (
+                  {(modulo === 'ventas' || modulo === 'ganancias' || modulo === 'inventario') && datos.length > 0 && (
                     <tfoot>
                       <tr style={{ background: '#f1f5f9', fontWeight: 700, borderTop: '2px solid #94a3b8' }}>
                         {colActual.map(col => (
@@ -652,10 +653,12 @@ export default function Reportes() {
                             : col.key === 'subtotal' ? `C$ ${sumSubtotal.toFixed(2)}`
                             : col.key === 'descuento' ? `C$ ${sumDescuento.toFixed(2)}`
                             : col.key === 'costo' ? `C$ ${sumCosto.toFixed(2)}`
+                            : col.key === 'valorTotal' ? `C$ ${sumValorTotal.toFixed(2)}`
                             : col.key === 'ganancia' ? `C$ ${sumGanancia.toFixed(2)}`
                             : col.key === 'precio' ? `C$ ${sumTotal.toFixed(2)}`
                             : modulo === 'ventas' && col.key === 'cliente' ? 'TOTALES'
                             : modulo === 'ganancias' && col.key === 'producto' ? 'TOTALES'
+                            : modulo === 'inventario' && col.key === 'producto' ? 'TOTALES'
                             : ''}
                           </td>
                         ))}
