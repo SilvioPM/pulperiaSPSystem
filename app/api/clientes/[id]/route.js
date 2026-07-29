@@ -1,6 +1,20 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
+export async function DELETE(request, { params }) {
+  try {
+    const id = parseInt(params.id)
+    const facturas = await prisma.factura.findMany({ where: { clienteId: id }, select: { id: true }, take: 1 })
+    if (facturas.length > 0) {
+      return NextResponse.json({ error: 'No se puede eliminar un cliente con facturas asociadas' }, { status: 400 })
+    }
+    await prisma.cliente.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Error al eliminar cliente' }, { status: 500 })
+  }
+}
+
 export async function PUT(request, { params }) {
   try {
     const id = parseInt(params.id)

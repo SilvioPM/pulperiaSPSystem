@@ -1,5 +1,9 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useReactToPrint } from 'react-to-print'
+import Toast from '../components/Toast'
+import AbonoRecibo from '../components/AbonoRecibo'
+import { useToast } from '../hooks/useToast'
 import * as Icons from 'lucide-react'
 import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
@@ -13,8 +17,17 @@ export default function Deudas() {
   const [guardando, setGuardando]     = useState(false)
   const [cargando, setCargando]       = useState(true)
   const [filtro, setFiltro]           = useState('pendientes')
+  const [config, setConfig]           = useState({})
+  const [reciboAbono, setReciboAbono] = useState(null)
+  const { toast, mostrar, cerrar } = useToast()
+  const reciboRef = useRef(null)
+  const ultimoAbonoRef = useRef(null)
+  const imprimirAbono = useReactToPrint({ contentRef: reciboRef, documentTitle: 'Abono' })
 
-  useEffect(() => { cargarCompras().finally(() => setCargando(false)) }, [])
+  useEffect(() => {
+    cargarCompras().finally(() => setCargando(false))
+    fetch('/api/config').then(r => r.json()).then(setConfig).catch(() => {})
+  }, [])
 
   async function cargarCompras() {
     try {
@@ -72,16 +85,38 @@ export default function Deudas() {
       }
 
       if (res.ok) {
+        const nuevoSaldoPendiente = esSaldoInicial
+          ? 0
+          : (compraSeleccionada.saldoPendiente - monto)
+        setReciboAbono({
+          tipo: 'cxp',
+          numero: compraSeleccionada.numero,
+          entidad: compraSeleccionada.proveedor?.nombre || 'Proveedor',
+          montoOriginal: compraSeleccionada.total,
+          abonoMonto: monto,
+          saldoPendiente: Math.max(0, nuevoSaldoPendiente),
+          nota: formAbono.nota
+        })
+        ultimoAbonoRef.current = {
+          tipo: 'cxp',
+          numero: compraSeleccionada.numero,
+          entidad: compraSeleccionada.proveedor?.nombre || 'Proveedor',
+          montoOriginal: compraSeleccionada.total,
+          abonoMonto: monto,
+          saldoPendiente: Math.max(0, nuevoSaldoPendiente),
+          nota: formAbono.nota
+        }
         setMostrarAbono(false)
         setFormAbono({ monto: '', nota: '', fuente: 'caja' })
         setCompraSeleccionada(null)
         cargarCompras()
+        setTimeout(() => imprimirAbono(), 300)
       } else {
         const data = await res.json()
-        alert(data.error || 'Error al registrar abono')
+        mostrar(data.error || 'Error al registrar abono', 'error')
       }
     } catch {
-      alert('Error de red al registrar abono')
+      mostrar('Error de red al registrar abono', 'error')
     }
     setGuardando(false)
   }
@@ -100,8 +135,15 @@ export default function Deudas() {
 
   if (cargando) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Cargando...</div>
 
+  function reimprimirUltimoAbono() {
+    if (!ultimoAbonoRef.current) return
+    setReciboAbono(ultimoAbonoRef.current)
+    setTimeout(() => imprimirAbono(), 300)
+  }
+
   return (
     <div>
+      {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
       {/* Encabezado */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -122,6 +164,19 @@ export default function Deudas() {
           <div style={{ fontSize: '12px', color: '#94a3b8' }}>{pendientes.length} facturas por pagar</div>
         </div>
       </div>
+
+      {ultimoAbonoRef.current && (
+        <div style={{ marginBottom: '16px' }}>
+          <button onClick={reimprimirUltimoAbono}
+            style={{
+              padding: '10px 18px', borderRadius: '8px', border: '2px dashed #6b7280',
+              background: '#f3f4f6', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+              color: '#374151', display: 'inline-flex', alignItems: 'center', gap: 8
+            }}>
+            <Icons.Printer size={16} /> Reimprimir último abono
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
@@ -307,6 +362,12 @@ export default function Deudas() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {reciboAbono && (
+        <div style={{ display: 'none' }}>
+          <AbonoRecibo ref={reciboRef} config={config} {...reciboAbono} />
         </div>
       )}
     </div>

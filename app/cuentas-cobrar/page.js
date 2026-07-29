@@ -22,6 +22,7 @@ export default function CuentasCobrar() {
   const [reciboAbono, setReciboAbono] = useState(null)
   const { toast, mostrar, cerrar } = useToast()
   const reciboRef = useRef(null)
+  const ultimoAbonoRef = useRef(null)
   const imprimirAbono = useReactToPrint({ contentRef: reciboRef, documentTitle: 'Abono' })
 
   useEffect(() => {
@@ -95,13 +96,28 @@ export default function CuentasCobrar() {
         setMostrarAbono(false)
         setFormAbono({ monto: '', nota: '' })
         setFacturaSeleccionada(null)
-        cargarFacturas()
+          cargarFacturas()
+        ultimoAbonoRef.current = {
+          tipo: 'cxc',
+          numero: facturaSeleccionada.numero,
+          entidad: facturaSeleccionada.cliente?.nombre || 'General',
+          montoOriginal: facturaSeleccionada.total,
+          abonoMonto: monto,
+          saldoPendiente,
+          nota: formAbono.nota
+        }
         setTimeout(() => imprimirAbono(), 300)
       }
     } catch {
       mostrar('Error al registrar abono', 'error')
     }
     setGuardando(false)
+  }
+
+  function reimprimirUltimoAbono() {
+    if (!ultimoAbonoRef.current) return
+    setReciboAbono(ultimoAbonoRef.current)
+    setTimeout(() => imprimirAbono(), 300)
   }
 
   function formatearFecha(fecha) {
@@ -168,6 +184,19 @@ export default function CuentasCobrar() {
           <div style={{ fontSize: '12px', color: '#94a3b8' }}>{facturas.length} ventas al crédito</div>
         </div>
       </div>
+
+      {ultimoAbonoRef.current && (
+        <div style={{ marginBottom: '16px' }}>
+          <button onClick={reimprimirUltimoAbono}
+            style={{
+              padding: '10px 18px', borderRadius: '8px', border: '2px dashed #6b7280',
+              background: '#f3f4f6', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+              color: '#374151', display: 'inline-flex', alignItems: 'center', gap: 8
+            }}>
+            <Icons.Printer size={16} /> Reimprimir último abono
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
         {[
