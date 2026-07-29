@@ -20,6 +20,7 @@ export default function Clientes() {
     nombre: '', codigo: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: ''
   })
   const [mostrarImportar, setMostrarImportar] = useState(false)
+  const [confirmarEliminar, setConfirmarEliminar] = useState(null)
 
   useEffect(() => { cargarClientes(1) }, [])
 
@@ -36,7 +37,6 @@ export default function Clientes() {
   }
 
   async function eliminarCliente(cliente) {
-    if (!confirm(`¿Estás seguro de eliminar a "${cliente.nombre}"?`)) return
     try {
       const res = await fetch(`/api/clientes/${cliente.id}`, { method: 'DELETE' })
       const data = await res.json()
@@ -198,7 +198,7 @@ export default function Clientes() {
                         }}>
                         ✏️
                       </button>
-                      <button onClick={() => eliminarCliente(c)}
+                      <button onClick={() => setConfirmarEliminar(c)}
                         style={{
                           padding: '6px 10px', borderRadius: '6px', border: '1px solid #fecaca',
                           background: '#fef2f2', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#dc2626'
@@ -518,6 +518,57 @@ export default function Clientes() {
             { clave: 'saldoInicial', label: 'Saldo Inicial' },
           ]}
         />
+      )}
+
+      {/* Modal confirmar eliminar */}
+      {confirmarEliminar && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+        }}>
+          <div className="card" style={{ width: '380px', textAlign: 'center' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                background: '#fef2f2', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', margin: '0 auto 12px'
+              }}>
+                <Icons.AlertTriangle size={28} color="#dc2626" />
+              </div>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                Eliminar cliente
+              </h2>
+              <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.5 }}>
+                ¿Estás seguro de eliminar a <strong>{confirmarEliminar.nombre}</strong>?
+              </p>
+              <p style={{ fontSize: '13px', color: '#dc2626', marginTop: '8px' }}>
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setConfirmarEliminar(null)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                  background: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '14px'
+                }}>
+                Cancelar
+              </button>
+              <button onClick={async () => {
+                const c = confirmarEliminar
+                setConfirmarEliminar(null)
+                await eliminarCliente(c)
+              }}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '8px', border: 'none',
+                  background: '#dc2626', color: 'white', cursor: 'pointer',
+                  fontWeight: 600, fontSize: '14px'
+                }}>
+                <Icons.Trash2 size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
