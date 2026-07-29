@@ -23,8 +23,25 @@ export async function GET(request) {
       prisma.cliente.count({ where })
     ])
 
+    const ids = clientes.map(c => c.id)
+    const deudas = ids.length > 0
+      ? await prisma.factura.groupBy({
+          by: ['clienteId'],
+          where: { clienteId: { in: ids }, esCredito: true, estado: { not: 'anulada' } },
+          _sum: { saldoPendiente: true }
+        })
+      : []
+
+    const deudaMap = {}
+    deudas.forEach(d => { deudaMap[d.clienteId] = d._sum.saldoPendiente || 0 })
+
+    const data = clientes.map(c => ({
+      ...c,
+      deuda: deudaMap[c.id] || 0
+    }))
+
     return NextResponse.json({
-      data: clientes,
+      data,
       total,
       page,
       totalPages: Math.ceil(total / limit)
@@ -40,6 +57,7 @@ export async function POST(request) {
     const cliente = await prisma.cliente.create({
       data: {
         nombre: body.nombre,
+        codigo: body.codigo || null,
         telefono: body.telefono || null,
         cedula: body.cedula || null,
         direccion: body.direccion || null,

@@ -69,6 +69,7 @@ model ProductoCodigo {
 
 model Cliente {
   id                 Int        @id @default(autoincrement())
+  codigo             String?    @unique
   nombre             String
   telefono           String?
   cedula             String?

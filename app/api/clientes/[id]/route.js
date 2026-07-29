@@ -9,6 +9,7 @@ export async function PUT(request, { params }) {
       where: { id },
       data: {
         nombre: body.nombre,
+        codigo: body.codigo || null,
         telefono: body.telefono || null,
         cedula: body.cedula || null,
         direccion: body.direccion || null,

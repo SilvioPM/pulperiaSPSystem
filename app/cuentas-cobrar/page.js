@@ -16,6 +16,7 @@ export default function CuentasCobrar() {
   const [formAbono, setFormAbono]     = useState({ monto: '', nota: '' })
   const [guardando, setGuardando]     = useState(false)
   const [filtro, setFiltro]           = useState('pendientes')
+  const [buscar, setBuscar]           = useState('')
   const [cargando, setCargando]       = useState(true)
   const [config, setConfig]           = useState({})
   const [reciboAbono, setReciboAbono] = useState(null)
@@ -117,7 +118,15 @@ export default function CuentasCobrar() {
 
   const pendientes = facturas.filter(f => f.saldoPendiente > 0)
   const pagadas    = facturas.filter(f => f.saldoPendiente <= 0)
-  const mostradas  = filtro === 'pendientes' ? pendientes : pagadas
+  const filtradas  = filtro === 'pendientes' ? pendientes : pagadas
+  const q = buscar.toLowerCase().trim()
+  const mostradas  = q
+    ? filtradas.filter(f =>
+        (f.cliente?.nombre || '').toLowerCase().includes(q) ||
+        (f.numero || '').toLowerCase().includes(q) ||
+        (f.cliente?.telefono || '').includes(q)
+      )
+    : filtradas
 
   const totalPendiente = pendientes.reduce((sum, f) => sum + f.saldoPendiente, 0)
   const totalCreditos  = facturas.reduce((sum, f) => sum + f.total, 0)
@@ -180,6 +189,21 @@ export default function CuentasCobrar() {
             </span>
           </button>
         ))}
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ position: 'relative' }}>
+          <Icons.Search size={18} style={{ position: 'absolute', left: 12, top: 11, color: '#94a3b8' }} />
+          <input type="text" value={buscar} onChange={e => setBuscar(e.target.value)}
+            placeholder="Buscar por cliente, factura o teléfono..."
+            style={{ width: '100%', padding: '10px 12px 10px 38px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+          {buscar && (
+            <button onClick={() => setBuscar('')}
+              style={{ position: 'absolute', right: 8, top: 8, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '16px' }}>
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>

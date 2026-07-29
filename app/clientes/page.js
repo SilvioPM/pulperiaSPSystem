@@ -17,7 +17,7 @@ export default function Clientes() {
   const [totalClientes, setTotalClientes] = useState(0)
   const [cargando, setCargando] = useState(true)
   const [form, setForm] = useState({
-    nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: ''
+    nombre: '', codigo: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: ''
   })
   const [mostrarImportar, setMostrarImportar] = useState(false)
 
@@ -42,7 +42,7 @@ export default function Clientes() {
     })
     if (res.ok) {
       setMostrarForm(false)
-      setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' })
+      setForm({ nombre: '', codigo: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' })
       cargarClientes(1)
     } else {
       alert('Error al guardar cliente')
@@ -50,10 +50,13 @@ export default function Clientes() {
   }
 
   async function verHistorial(cliente) {
-    const res  = await fetch('/api/facturas')
+    const res  = await fetch('/api/facturas?limit=10000')
     const data = await res.json()
     const facturasDel = (data.data || data || []).filter(f => f.clienteId === cliente.id)
-    setClienteVer({ ...cliente, facturas: facturasDel })
+    const deuda = facturasDel
+      .filter(f => f.esCredito && f.estado !== 'anulada')
+      .reduce((s, f) => s + (f.saldoPendiente || 0), 0)
+    setClienteVer({ ...cliente, facturas: facturasDel, deuda })
   }
 
   const clientesFiltrados = clientes
@@ -107,7 +110,7 @@ export default function Clientes() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-              {['Cliente', 'Teléfono', 'Cédula', 'Dirección', 'Límite Crédito', 'Registrado', 'Historial'].map(h => (
+              {['Cliente', 'Código', 'Teléfono', 'Deuda', 'Límite Crédito', 'Registrado', 'Historial'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
                   {h}
                 </th>
@@ -137,14 +140,19 @@ export default function Clientes() {
                       <span style={{ fontWeight: 600, fontSize: '14px' }}>{c.nombre}</span>
                     </div>
                   </td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b', fontFamily: 'monospace' }}>
+                    {c.codigo || <span style={{ color: '#cbd5e1' }}>—</span>}
+                  </td>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#475569' }}>
                     {c.telefono || <span style={{ color: '#cbd5e1' }}>—</span>}
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#475569' }}>
-                    {c.cedula || <span style={{ color: '#cbd5e1' }}>—</span>}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>
-                    {c.direccion || <span style={{ color: '#cbd5e1' }}>—</span>}
+                  <td style={{ padding: '12px 16px' }}>
+                    <span style={{
+                      fontWeight: 700, fontSize: '14px',
+                      color: c.deuda > 0 ? '#dc2626' : '#16a34a'
+                    }}>
+                      {c.deuda > 0 ? `C$ ${c.deuda.toFixed(2)}` : '—'}
+                    </span>
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: c.limiteCredito > 0 ? '#7c3aed' : '#94a3b8' }}>
                     {c.limiteCredito > 0 ? `C$ ${c.limiteCredito.toFixed(2)}` : '—'}
@@ -163,7 +171,7 @@ export default function Clientes() {
                       </button>
                       <button onClick={() => {
                       setClienteEditando(c)
-                      setForm({ nombre: c.nombre, telefono: c.telefono || '', cedula: c.cedula || '', direccion: c.direccion || '', limiteCredito: c.limiteCredito || '', saldoInicial: c.saldoInicial || '' })
+                      setForm({ nombre: c.nombre, codigo: c.codigo || '', telefono: c.telefono || '', cedula: c.cedula || '', direccion: c.direccion || '', limiteCredito: c.limiteCredito || '', saldoInicial: c.saldoInicial || '' })
                       }}
                         style={{
                           padding: '6px 10px', borderRadius: '6px', border: '1px solid #dbeafe',
@@ -217,6 +225,17 @@ export default function Clientes() {
                 <input required value={form.nombre}
                   onChange={e => setForm({...form, nombre: e.target.value})}
                   placeholder="Ej: Juan Pérez"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Código <span style={{ fontWeight: 400, color: '#94a3b8' }}>(identificador interno)</span>
+                </label>
+                <input value={form.codigo}
+                  onChange={e => setForm({...form, codigo: e.target.value})}
+                  placeholder="Ej: CLT-001"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
               </div>
@@ -277,7 +296,7 @@ export default function Clientes() {
               </div>
 
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => setMostrarForm(false)}
+                <button type="button" onClick={() => { setMostrarForm(false); setForm({ nombre: '', codigo: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' }) }}
                   style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
                   Cancelar
                 </button>
@@ -313,7 +332,7 @@ export default function Clientes() {
               })
               if (res.ok) {
                 setClienteEditando(null)
-                setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' })
+                setForm({ nombre: '', codigo: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' })
                 cargarClientes(1)
               } else {
                 alert('Error al actualizar cliente')
@@ -323,6 +342,15 @@ export default function Clientes() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Nombre completo *</label>
                 <input required value={form.nombre}
                   onChange={e => setForm({...form, nombre: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Código <span style={{ fontWeight: 400, color: '#94a3b8' }}>(identificador interno)</span>
+                </label>
+                <input value={form.codigo}
+                  onChange={e => setForm({...form, codigo: e.target.value})}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
               </div>
@@ -368,7 +396,7 @@ export default function Clientes() {
                 />
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => { setClienteEditando(null); setForm({ nombre: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' }) }}
+                <button type="button" onClick={() => { setClienteEditando(null); setForm({ nombre: '', codigo: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' }) }}
                   style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600 }}>
                   Cancelar
                 </button>
@@ -399,16 +427,29 @@ export default function Clientes() {
                 style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
 
-            {/* Total gastado */}
-            <div style={{
-              background: '#dcfce7', border: '1px solid #16a34a',
-              borderRadius: '10px', padding: '16px', marginBottom: '20px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              <span style={{ fontWeight: 600, color: '#15803d' }}>Total gastado</span>
-              <span style={{ fontSize: '22px', fontWeight: 700, color: '#16a34a' }}>
-                C$ {clienteVer.facturas.reduce((sum, f) => sum + f.total, 0).toFixed(2)}
-              </span>
+            {/* Total gastado y deuda */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <div style={{
+                background: '#dcfce7', border: '1px solid #16a34a',
+                borderRadius: '10px', padding: '16px',
+                display: 'flex', flexDirection: 'column', gap: '4px'
+              }}>
+                <span style={{ fontWeight: 600, color: '#15803d', fontSize: '13px' }}>Total gastado</span>
+                <span style={{ fontSize: '22px', fontWeight: 700, color: '#16a34a' }}>
+                  C$ {clienteVer.facturas.reduce((sum, f) => sum + f.total, 0).toFixed(2)}
+                </span>
+              </div>
+              <div style={{
+                background: clienteVer.deuda > 0 ? '#fef2f2' : '#f0fdf4',
+                border: `1px solid ${clienteVer.deuda > 0 ? '#dc2626' : '#16a34a'}`,
+                borderRadius: '10px', padding: '16px',
+                display: 'flex', flexDirection: 'column', gap: '4px'
+              }}>
+                <span style={{ fontWeight: 600, color: clienteVer.deuda > 0 ? '#dc2626' : '#16a34a', fontSize: '13px' }}>Deuda pendiente</span>
+                <span style={{ fontSize: '22px', fontWeight: 700, color: clienteVer.deuda > 0 ? '#dc2626' : '#16a34a' }}>
+                  C$ {(clienteVer.deuda || 0).toFixed(2)}
+                </span>
+              </div>
             </div>
 
             {clienteVer.facturas.length === 0 ? (
@@ -452,6 +493,7 @@ export default function Clientes() {
           titulo="Importar Clientes desde CSV"
           columnas={[
             { clave: 'nombre', label: 'Nombre *' },
+            { clave: 'codigo', label: 'Código' },
             { clave: 'telefono', label: 'Teléfono' },
             { clave: 'cedula', label: 'Cédula' },
             { clave: 'direccion', label: 'Dirección' },

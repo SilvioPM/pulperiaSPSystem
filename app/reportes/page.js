@@ -152,14 +152,13 @@ export default function Reportes() {
       }
 
       let url = mod.api
-      if (mod.id === 'inventario' || mod.id === 'productos') {
-        url += '?limit=10000'
-      } else if (mod.necesitaFechas && (desde || hasta)) {
-        const params = new URLSearchParams()
+      const params = new URLSearchParams()
+      params.set('limit', '10000')
+      if (mod.necesitaFechas && (desde || hasta)) {
         if (desde) params.set('desde', desde)
         if (hasta) params.set('hasta', hasta)
-        url += '?' + params.toString()
       }
+      url += '?' + params.toString()
 
       const res = await fetch(url)
       const data = await res.json()

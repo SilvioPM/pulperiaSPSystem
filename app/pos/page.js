@@ -932,10 +932,11 @@ export default function POS() {
                   <div key={c.id} onClick={async () => {
                     setClienteSeleccionado(c); setMostrarClientes(false); setBuscarCliente('')
                     try {
-                      const r = await fetch(`/api/facturas?clienteId=${c.id}&estado=credito&page=1&limit=1`)
+                      const r = await fetch(`/api/facturas?clienteId=${c.id}&estado=credito&page=1&limit=10000`)
                       const d = await r.json()
-                      const totalFacturas = d.total || 0
-                      setInfoCliente({ pendiente: totalFacturas, limite: c.limiteCredito || 0 })
+                      const facturas = d.data || d || []
+                      const totalPendiente = facturas.reduce((s, f) => s + (f.saldoPendiente || 0), 0)
+                      setInfoCliente({ pendiente: totalPendiente, limite: c.limiteCredito || 0 })
                     } catch { setInfoCliente(null) }
                   }}
                     style={{ padding: '14px 16px', cursor: 'pointer', fontSize: '14px', borderBottom: '1px solid #f1f5f9', minHeight: '44px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: clienteSeleccionado?.id === c.id ? '#dbeafe' : 'white', color: clienteSeleccionado?.id === c.id ? '#2563eb' : 'var(--texto)' }}>
