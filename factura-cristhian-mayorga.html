@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Factura — Cristhian Mayorga</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+      background: linear-gradient(135deg, #e8eaf0 0%, #d5d9e3 100%);
+      display: flex;
+      justify-content: center;
+      padding: 50px 20px;
+      min-height: 100vh;
+    }
+    .invoice {
+      width: 800px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .invoice-top {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%);
+      padding: 36px 44px 28px;
+      color: white;
+      position: relative;
+    }
+    .invoice-top::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    }
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: white;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    }
+    .brand-text h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-text .tagline {
+      font-size: 12px;
+      color: #94a3b8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      -webkit-text-fill-color: #94a3b8;
+    }
+    .badge {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #f1f5f9;
+    }
+    .badge.paid {
+      background: rgba(22,163,74,0.2);
+      border-color: rgba(22,163,74,0.3);
+      color: #4ade80;
+    }
+    .invoice-body {
+      padding: 32px 44px 40px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 2px dashed #e2e8f0;
+    }
+    .info-block h3 {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .info-block .value {
+      font-size: 18px;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    .info-block .sub {
+      font-size: 14px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .info-block.right {
+      text-align: right;
+    }
+    .info-block.right .value {
+      font-family: 'Courier New', monospace;
+      color: #3b82f6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 28px;
+    }
+    thead th {
+      text-align: left;
+      padding: 12px 8px 12px 0;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #94a3b8;
+      font-weight: 700;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    thead th:nth-child(2),
+    thead th:nth-child(3) { text-align: right; }
+    thead th:last-child,
+    tbody td:last-child { text-align: right; padding-right: 0; }
+    tbody td {
+      padding: 16px 8px 16px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+      color: #1e293b;
+    }
+    tbody td:first-child { font-weight: 600; padding-left: 0; }
+    tbody td:nth-child(2) { text-align: right; }
+    .desc-item {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 400;
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+    .totals-table { margin-bottom: 24px; }
+    .totals-table tr td {
+      padding: 6px 0;
+      border: none;
+      font-size: 14px;
+    }
+    .totals-table tr td:first-child { color: #64748b; font-weight: 500; }
+    .totals-table tr td:last-child { text-align: right; font-weight: 600; font-size: 15px; }
+    .totals-table .grand-total td {
+      padding-top: 12px;
+      padding-bottom: 12px;
+      border-top: 2px solid #1e293b;
+      font-size: 18px;
+    }
+    .totals-table .grand-total td:first-child { color: #0f172a; font-weight: 700; }
+    .totals-table .grand-total td:last-child { font-size: 24px; font-weight: 800; color: #0f172a; }
+    .payment-summary {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 1px solid #bbf7d0;
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+    .payment-item { text-align: center; }
+    .payment-item .label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+    .payment-item .amount { font-size: 22px; font-weight: 800; }
+    .payment-item .amount.total-amount { color: #0f172a; }
+    .payment-item .amount.paid { color: #16a34a; }
+    .payment-item .amount.due { color: #16a34a; }
+    .paid-box {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 2px solid #16a34a;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .paid-box .label {
+      font-size: 14px;
+      color: #166534;
+      font-weight: 600;
+    }
+    .paid-box .amount {
+      font-size: 28px;
+      font-weight: 800;
+      color: #16a34a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .paid-box .amount .check {
+      font-size: 32px;
+    }
+    .support-card {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      border: 1px solid #fde68a;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .support-card h4 {
+      font-size: 14px;
+      color: #92400e;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .support-plans {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    .support-plan {
+      background: white;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .support-plan .plan-name {
+      font-size: 12px;
+      color: #92400e;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .support-plan .plan-price {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .support-plan .plan-desc {
+      font-size: 11px;
+      color: #a16207;
+      margin-top: 4px;
+    }
+    .support-plan.active {
+      border-color: #16a34a;
+      background: #f0fdf4;
+      position: relative;
+    }
+    .support-plan.active::before {
+      content: 'INCLUIDO';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #16a34a;
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 10px;
+      letter-spacing: 0.5px;
+    }
+    .support-plan.active .plan-name { color: #166534; }
+    .support-plan.active .plan-desc { color: #166534; }
+    .footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.8;
+    }
+    .footer strong { color: #475569; }
+    .footer .social { margin-top: 8px; font-size: 12px; color: #94a3b8; letter-spacing: 0.3px; }
+    @media print {
+      body { background: white; padding: 0; }
+      .invoice { box-shadow: none; border-radius: 0; }
+      .invoice-top { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .payment-summary { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .paid-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .support-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .support-plan.active { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice">
+    <!-- Top bar -->
+    <div class="invoice-top">
+      <div class="top-row">
+        <div class="brand">
+          <div class="brand-icon">SP</div>
+          <div class="brand-text">
+            <h1>SPSystem</h1>
+            <div class="tagline">Punto de Venta • Facturación • Inventario</div>
+          </div>
+        </div>
+        <div class="badge paid">✓ Pagada</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="invoice-body">
+      <!-- Client & Invoice Info -->
+      <div class="info-grid">
+        <div class="info-block">
+          <h3>Facturar a</h3>
+          <div class="value">Cristhian Mayorga</div>
+          <div class="sub">Factura a nombre del cliente</div>
+        </div>
+        <div class="info-block right">
+          <h3>Factura N°</h3>
+          <div class="value">SP-2026-0002</div>
+          <div class="sub">Emitida: Julio 2026 • Pagada</div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <table>
+        <thead>
+          <tr>
+            <th style="width:58%">Descripción</th>
+            <th style="width:12%">Cant</th>
+            <th style="width:30%">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              Combo Completo POS
+              <div class="desc-item">Monitor, CPU, Caja Registradora, Scanner 2D, Impresora 80mm, Teclado y Mouse</div>
+            </td>
+            <td>1</td>
+            <td>$580.00</td>
+          </tr>
+          <tr>
+            <td>
+              SPSystem POS — Licencia
+              <div class="desc-item">Licencia del sistema de punto de venta y facturación</div>
+            </td>
+            <td>1</td>
+            <td>$200.00</td>
+          </tr>
+          <tr>
+            <td>
+              Costo de Transporte
+              <div class="desc-item">Traslado y entrega de los equipos</div>
+            </td>
+            <td>1</td>
+            <td>$20.00</td>
+          </tr>
+          <tr>
+            <td>
+              Soporte Técnico — 1er Mes
+              <div class="desc-item" style="color:#16a34a">Gratuito — Cortesía SPSystem</div>
+            </td>
+            <td>1</td>
+            <td style="color:#16a34a">$0.00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <table class="totals-table">
+        <tr>
+          <td>Subtotal</td>
+          <td>$800.00</td>
+        </tr>
+        <tr>
+          <td>Descuento</td>
+          <td>$0.00</td>
+        </tr>
+        <tr class="grand-total">
+          <td>Total Factura</td>
+          <td>$800.00</td>
+        </tr>
+      </table>
+
+      <!-- Payment Summary -->
+      <div class="payment-summary">
+        <div class="payment-item">
+          <div class="label">Total</div>
+          <div class="amount total-amount">$800.00</div>
+        </div>
+        <div class="payment-item">
+          <div class="label">Pagado</div>
+          <div class="amount paid">$800.00</div>
+        </div>
+        <div class="payment-item">
+          <div class="label">Pendiente</div>
+          <div class="amount due">$0.00</div>
+        </div>
+      </div>
+
+      <!-- Paid -->
+      <div class="paid-box">
+        <div>
+          <div class="label">Estado de la factura</div>
+          <div style="font-size:13px;color:#166534;margin-top:2px">Pagada en su totalidad — Sin saldo pendiente</div>
+        </div>
+        <div class="amount">
+          <span class="check">✓</span> CANCELADA
+        </div>
+      </div>
+
+      <!-- Support Plans -->
+      <div class="support-card">
+        <h4>🛠️ Planes de Soporte Técnico — Posterior al 1er mes gratis</h4>
+        <div class="support-plans">
+          <div class="support-plan active">
+            <div class="plan-name">Mes Gratis</div>
+            <div class="plan-price">$0</div>
+            <div class="plan-desc">Primer mes incluido</div>
+          </div>
+          <div class="support-plan">
+            <div class="plan-name">Mensual</div>
+            <div class="plan-price">$20</div>
+            <div class="plan-desc">Por mes — Soporte continuo</div>
+          </div>
+          <div class="support-plan">
+            <div class="plan-name">Por Día</div>
+            <div class="plan-price">$10</div>
+            <div class="plan-desc">Por día — Soporte bajo demanda</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:#92400e;margin-top:10px;text-align:center">
+          Después del primer mes gratis, podés elegir: <strong>$20/mes</strong> (soporte continuo) o <strong>$10/día</strong> (soporte bajo demanda cuando lo necesites)
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <strong>SPSystem</strong> — Soluciones Tecnológicas para tu Negocio<br>
+        Este documento es una factura de venta referencial. Productos cubiertos por garantía.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

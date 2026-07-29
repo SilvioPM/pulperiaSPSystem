@@ -42,7 +42,7 @@ export default function POS() {
   const [divisaMonto, setDivisaMonto] = useState('')
   const [divisaTasa, setDivisaTasa] = useState('')
   const [divisaResultado, setDivisaResultado] = useState(null)
-  const [nombreParked, setNombreParked]               = useState('')
+  const [confirmarPago, setConfirmarPago] = useState(null)
   const [presentacionSel, setPresentacionSel]         = useState({})
   const [errorCaja, setErrorCaja]                     = useState(false)
   const [genericoModal, setGenericoModal]             = useState(null)
@@ -153,7 +153,7 @@ export default function POS() {
       switch (e.key) {
         case 'F1': e.preventDefault(); searchRef.current?.focus(); break
         case 'F2': e.preventDefault(); pagoRef.current?.focus(); break
-        case 'F3': e.preventDefault(); if (carritoRef.current?.length > 0) procesarRef.current?.(); break
+        case 'F3': e.preventDefault(); if (carritoRef.current?.length > 0) handleCobrar(); break
         case 'Escape': e.preventDefault(); if (carritoRef.current?.length > 0 && confirm('¿Limpiar carrito?')) { setCarrito([]); setPagoCon(''); setDescuento(''); setDescPorc(false) }; break
         case 'F4': e.preventDefault(); document.getElementById('campo-descuento')?.focus(); break
         case 'F5': e.preventDefault(); setMostrarClientes(true); break
@@ -350,7 +350,7 @@ export default function POS() {
   const pagoConCordobas  = metodoPago === 'dolares' ? parseFloat(pagoCon || 0) * tasaCambio : parseFloat(pagoCon || 0)
   const cambio           = pagoConCordobas - total
 
-  async function procesarVenta() {
+  async function handleCobrar() {
     if (carrito.length === 0) return mostrar('Agregá productos al carrito', 'alerta')
     if (esCredito && !clienteSeleccionado) return mostrar('Seleccioná un cliente para venta al crédito', 'alerta')
     if (metodosPago.length > 1) {
@@ -368,7 +368,6 @@ export default function POS() {
         const enCordobas = parseFloat(pagoCon || 0) * tasaCambio
         if (enCordobas < total) return mostrar('El pago en dólares es menor al total', 'alerta')
       }
-
     }
     const esVentaCredito = esCredito || metodoPago === 'credito'
     if (esVentaCredito && clienteSeleccionado?.limiteCredito > 0) {
@@ -377,27 +376,34 @@ export default function POS() {
       const facturas = data.data || data || []
       const pendiente = facturas.reduce((s, f) => s + (f.saldoPendiente || 0), 0)
       if (pendiente + total > clienteSeleccionado.limiteCredito) {
-        setCargando(false)
         return mostrar(`Límite de crédito excedido.\nDisponible: C$ ${Math.max(0, clienteSeleccionado.limiteCredito - pendiente).toFixed(2)}\nTotal venta: C$ ${total.toFixed(2)}`, 'alerta')
       }
     }
-
     for (const item of carrito) {
       if (item.esGenerico) continue
-      // Leer cantidad REAL del DOM input (lo que el usuario ve/tipéo)
       const key = `${item.id}-${item._pres || 'base'}`
       const el = inputRefs.current[key]
       const cantidad = el ? (parseFloat(el.value.replace(',', '.')) || item.cantidad) : item.cantidad
       const factor = item.factorConversion || 1
       const stockReq = cantidad * factor
       if (item.stock !== undefined && item.stock < stockReq) {
-        // Resetear input al valor real del carrito
         if (el) el.value = item.cantidad
-        setCargando(false)
         return mostrar(`Stock insuficiente para "${item.nombre}". Disponible: ${item.stock} ${item.unidad}, necesitas ${stockReq} ${item.unidad}`, 'alerta')
       }
     }
 
+    setConfirmarPago({
+      total,
+      pagoCon: metodoPago === 'dolares' ? pagoConCordobas : (metodoPago === 'credito' ? total : parseFloat(pagoCon || 0)),
+      cambio: metodoPago === 'credito' ? 0 : Math.max(0, cambio),
+      metodoPago,
+      items: carrito.length,
+      pagoOriginal: pagoCon,
+      esCredito: esCredito || metodoPago === 'credito',
+    })
+  }
+
+  async function procesarVenta() {
     setCargando(true)
 
     try {
@@ -1014,7 +1020,7 @@ export default function POS() {
             style={{ flex: 1, padding: '14px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 600, color: '#dc2626', fontSize: '14px', minHeight: '48px' }}>
             <Trash2 size={16} style={{ marginRight: 4 }} /> Limpiar
           </button>
-          <button onClick={procesarVenta} disabled={cargando || carrito.length === 0}
+          <button onClick={handleCobrar} disabled={cargando || carrito.length === 0}
             className="btn-verde"
             style={{ flex: 2, padding: '14px 12px', fontSize: '16px', fontWeight: 700, minHeight: '48px' }}>
             {cargando ? <><Loader size={16} className="spin" /> Procesando...</> : <><CheckCircle size={18} /> Cobrar</>}
@@ -1498,6 +1504,85 @@ h2{text-align:center;font-size:14px;margin-bottom:4px}
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Confirmar pago */}
+      {confirmarPago && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200
+        }}>
+          <div className="card" style={{ width: 'min(95vw, 400px)', textAlign: 'center' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                background: confirmarPago.cambio >= 0 ? '#dcfce7' : '#fef2f2',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px'
+              }}>
+                {confirmarPago.cambio >= 0
+                  ? <CheckCircle size={32} color="#16a34a" />
+                  : <AlertTriangle size={32} color="#dc2626" />
+                }
+              </div>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
+                Confirmar cobro
+              </h2>
+              <p style={{ fontSize: '13px', color: '#64748b' }}>
+                {confirmarPago.items} producto{confirmarPago.items !== 1 ? 's' : ''} en el carrito
+                {confirmarPago.esCredito && ' — Venta al crédito'}
+              </p>
+            </div>
+
+            <div style={{
+              background: '#f8fafc', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', color: '#64748b' }}>Total</span>
+                <span style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>C$ {confirmarPago.total.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', color: '#64748b' }}>Pagó</span>
+                <span style={{ fontSize: '18px', fontWeight: 700, color: '#16a34a' }}>C$ {confirmarPago.pagoCon.toFixed(2)}</span>
+              </div>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', paddingTop: '8px',
+                borderTop: '2px dashed #e2e8f0'
+              }}>
+                <span style={{ fontSize: '16px', fontWeight: 600, color: confirmarPago.cambio >= 0 ? '#16a34a' : '#dc2626' }}>
+                  {confirmarPago.cambio >= 0 ? 'Vuelto' : 'Falta'}
+                </span>
+                <span style={{
+                  fontSize: '24px', fontWeight: 800,
+                  color: confirmarPago.cambio >= 0 ? '#16a34a' : '#dc2626'
+                }}>
+                  C$ {Math.abs(confirmarPago.cambio).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setConfirmarPago(null)}
+                style={{
+                  flex: 1, padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0',
+                  background: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: '#475569'
+                }}>
+                Cancelar
+              </button>
+              <button onClick={async () => {
+                setConfirmarPago(null)
+                await procesarVenta()
+              }}
+                style={{
+                  flex: 2, padding: '14px', borderRadius: '10px', border: 'none',
+                  background: '#16a34a', color: 'white', cursor: 'pointer',
+                  fontWeight: 700, fontSize: '15px'
+                }}>
+                <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                Cobrar C$ {confirmarPago.total.toFixed(2)}
+              </button>
+            </div>
           </div>
         </div>
       )}
