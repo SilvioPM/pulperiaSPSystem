@@ -183,13 +183,13 @@ export default function ComboModal({ onCerrar, onAgregarCombo, mostrar }) {
                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                       <div style={{ flex: 1 }}>
                         <label style={{ fontSize: '10px', color: '#94a3b8', display: 'block' }}>Cant</label>
-                        <input type="text" inputMode="decimal" value={item.cantidad}
+                        <input type="text" inputMode="text" value={item.cantidad}
                           onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v)) actualizarCantidad(item.productoId, v) }}
                           style={{ width: '100%', padding: '4px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <label style={{ fontSize: '10px', color: '#94a3b8', display: 'block' }}>Precio C$</label>
-                        <input type="text" inputMode="decimal" value={item.precio}
+                        <input type="text" inputMode="text" value={item.precio}
                           onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v)) actualizarPrecio(item.productoId, v) }}
                           style={{ width: '100%', padding: '4px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }} />
                       </div>
