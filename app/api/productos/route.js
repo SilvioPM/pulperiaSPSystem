@@ -11,6 +11,7 @@ export async function GET(request) {
     const incluirInactivos = searchParams.get('incluirInactivos') === 'true'
     const vencer = parseInt(searchParams.get('vencer') || 0)
     const vencidos = searchParams.get('vencidos') === 'true'
+    const sort = searchParams.get('sort')
     const page = Math.max(1, parseInt(searchParams.get('page') || 1))
     const limit = Math.min(10000, Math.max(1, parseInt(searchParams.get('limit') || 50)))
 
@@ -34,11 +35,15 @@ export async function GET(request) {
       ...(vencidos && !vencer ? { fechaVencimiento: { not: null, lt: new Date() } } : {})
     }
 
+    const orderBy = sort === 'ventas'
+      ? { detalles: { _count: 'desc' } }
+      : { nombre: 'asc' }
+
     const [productos, total] = await Promise.all([
       prisma.producto.findMany({
         where,
         include: { categoria: true, codigosAlias: true },
-        orderBy: { nombre: 'asc' },
+        orderBy,
         skip: (page - 1) * limit,
         take: limit
       }),
