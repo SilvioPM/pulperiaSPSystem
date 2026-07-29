@@ -271,7 +271,7 @@ export default function Reportes() {
           stock: item.stock || 0,
           costo: item.costo || 0,
           precio: item.precio || 0,
-          valorTotal: ((item.stock || 0) * (item.costo || 0)).toFixed(2),
+          valorTotal: (item.stock || 0) * (item.costo || 0),
           _raw: item
         }
       case 'proformas':
