@@ -21,9 +21,10 @@ export default function Clientes() {
   })
   const [mostrarImportar, setMostrarImportar] = useState(false)
 
-  useEffect(() => { cargarClientes(1).finally(() => setCargando(false)) }, [])
+  useEffect(() => { cargarClientes(1) }, [])
 
   async function cargarClientes(p) {
+    setCargando(true)
     const s = buscando ? `&buscar=${encodeURIComponent(buscando)}` : ''
     const res = await fetch(`/api/clientes?page=${p}&limit=10000${s}`)
     const data = await res.json()
@@ -31,25 +32,23 @@ export default function Clientes() {
     setTotalClientes(data.total || 0)
     setTotalPages(data.totalPages || 1)
     setPage(data.page || p)
+    setCargando(false)
   }
 
   async function eliminarCliente(cliente) {
     if (!confirm(`¿Estás seguro de eliminar a "${cliente.nombre}"?`)) return
-    setCargando(true)
     try {
       const res = await fetch(`/api/clientes/${cliente.id}`, { method: 'DELETE' })
       const data = await res.json()
       if (res.ok) {
         setClienteEditando(null)
         setForm({ nombre: '', codigo: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' })
-        cargarClientes(1)
+        await cargarClientes(1)
       } else {
         alert(data.error || 'Error al eliminar cliente')
-        setCargando(false)
       }
     } catch {
       alert('Error de red al eliminar cliente')
-      setCargando(false)
     }
   }
 
@@ -198,6 +197,13 @@ export default function Clientes() {
                           background: '#dbeafe', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#2563eb'
                         }}>
                         ✏️
+                      </button>
+                      <button onClick={() => eliminarCliente(c)}
+                        style={{
+                          padding: '6px 10px', borderRadius: '6px', border: '1px solid #fecaca',
+                          background: '#fef2f2', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#dc2626'
+                        }}>
+                        <Icons.Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -405,17 +411,6 @@ export default function Clientes() {
                   placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
-              </div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <button type="button"
-                  onClick={() => eliminarCliente(clienteEditando)}
-                  style={{
-                    padding: '12px', borderRadius: '8px', border: '1px solid #dc2626',
-                    background: '#fef2f2', cursor: 'pointer', fontWeight: 600, color: '#dc2626',
-                    display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '14px'
-                  }}>
-                  <Icons.Trash2 size={16} /> Eliminar
-                </button>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button type="button" onClick={() => { setClienteEditando(null); setForm({ nombre: '', codigo: '', telefono: '', cedula: '', direccion: '', limiteCredito: '', saldoInicial: '' }) }}
