@@ -11,8 +11,15 @@ export async function GET(req) {
     const limit = Math.min(10000, Math.max(1, parseInt(searchParams.get('limit') || 30)))
     const clienteId = searchParams.get('clienteId')
     const estado = searchParams.get('estado')
+    const buscar = searchParams.get('buscar')
 
     const where = {}
+    if (buscar) {
+      where.OR = [
+        { numero: { contains: buscar, mode: 'insensitive' } },
+        { cliente: { nombre: { contains: buscar, mode: 'insensitive' } } }
+      ]
+    }
     if (desde || hasta) {
       where.creadoEn = {}
       if (desde) where.creadoEn.gte = new Date(desde)

@@ -31,9 +31,13 @@ export default function Facturas() {
     ]).finally(() => setCargando(false))
   }, [])
 
+  useEffect(() => {
+    cargarFacturas(1)
+  }, [buscando])
+
   async function cargarFacturas(p) {
     try {
-      const res  = await fetch(`/api/facturas?page=${p || 1}&limit=30${buscando ? `&buscar=${buscando}` : ''}`)
+      const res  = await fetch(`/api/facturas?page=${p || 1}&limit=10000${buscando ? `&buscar=${buscando}` : ''}`)
       const data = await res.json()
       setFacturas(Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [])
       setTotalFacturas(data.total || 0)
@@ -121,11 +125,6 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
     }
   }
 
-  const facturasFiltradas = facturas.filter(f =>
-    f.numero.toLowerCase().includes(buscando.toLowerCase()) ||
-    f.cliente?.nombre?.toLowerCase().includes(buscando.toLowerCase())
-  )
-
   const hoy       = new Date().toDateString()
   const ventasHoy = facturasHoy.filter(f => new Date(f.creadoEn).toDateString() === hoy && f.estado !== 'anulada')
   const totalHoy  = ventasHoy.reduce((sum, f) => sum + f.total, 0)
@@ -184,14 +183,14 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
             </tr>
           </thead>
           <tbody>
-            {facturasFiltradas.length === 0 ? (
+            {facturas.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                   No hay facturas aún
                 </td>
               </tr>
             ) : (
-              facturasFiltradas.map((f, i) => (
+              facturas.map((f, i) => (
                 <tr key={f.id} style={{
                   borderBottom: '1px solid #f1f5f9',
                   background: i % 2 === 0 ? 'white' : '#fafafa',
