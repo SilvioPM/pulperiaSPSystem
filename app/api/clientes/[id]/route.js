@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { parseNumber } from '@/lib/number'
 
 export async function DELETE(request, { params }) {
   try {
@@ -27,8 +28,8 @@ export async function PUT(request, { params }) {
         telefono: body.telefono || null,
         cedula: body.cedula || null,
         direccion: body.direccion || null,
-        limiteCredito: parseFloat(body.limiteCredito || 0),
-        ...(body.saldoInicial !== undefined && { saldoInicial: parseFloat(body.saldoInicial || 0) })
+        limiteCredito: parseNumber(body.limiteCredito || 0),
+        ...(body.saldoInicial !== undefined && { saldoInicial: parseNumber(body.saldoInicial || 0) })
       }
     })
     return NextResponse.json(cliente)

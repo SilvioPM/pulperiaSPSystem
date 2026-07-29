@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { parseNumber } from '@/lib/number'
 
 export async function GET(request) {
   try {
@@ -69,8 +70,8 @@ export async function POST(request) {
         telefono: body.telefono || null,
         cedula: body.cedula || null,
         direccion: body.direccion || null,
-        limiteCredito: parseFloat(body.limiteCredito || 0),
-        saldoInicial: parseFloat(body.saldoInicial || 0)
+        limiteCredito: parseNumber(body.limiteCredito || 0),
+        saldoInicial: parseNumber(body.saldoInicial || 0)
       }
     })
     return NextResponse.json(cliente, { status: 201 })

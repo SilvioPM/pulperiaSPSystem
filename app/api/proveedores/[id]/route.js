@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { parseNumber } from '@/lib/number'
 
 export async function PUT(request, { params }) {
   try {
@@ -13,7 +14,7 @@ export async function PUT(request, { params }) {
         contacto:  body.contacto  || null,
         direccion: body.direccion || null,
         email:     body.email     || null,
-        ...(body.saldoInicialCxp !== undefined && { saldoInicialCxp: parseFloat(body.saldoInicialCxp || 0) })
+        ...(body.saldoInicialCxp !== undefined && { saldoInicialCxp: parseNumber(body.saldoInicialCxp || 0) })
       }
     })
     return NextResponse.json(proveedor)

@@ -39,29 +39,39 @@ export default function ComboModal({ onCerrar, onAgregarCombo, mostrar }) {
         productoId: producto.id,
         nombre: producto.nombre,
         unidad: producto.unidad,
-        cantidad: 1,
-        precio: 0,
+        cantidad: '',
+        precio: '',
       }]
     })
   }
 
   function actualizarCantidad(id, val) {
-    const cant = parseFloat(val)
-    if (isNaN(cant) || cant <= 0) return
-    setItems(prev => prev.map(i => i.productoId === id ? { ...i, cantidad: cant } : i))
+    const v = val.replace(',', '.')
+    if (v === '' || v === '.') {
+      setItems(prev => prev.map(i => i.productoId === id ? { ...i, cantidad: '' } : i))
+      return
+    }
+    const cant = parseFloat(v)
+    if (isNaN(cant) || cant < 0) return
+    setItems(prev => prev.map(i => i.productoId === id ? { ...i, cantidad: v } : i))
   }
 
   function actualizarPrecio(id, val) {
-    const p = parseFloat(val)
+    const v = val.replace(',', '.')
+    if (v === '' || v === '.') {
+      setItems(prev => prev.map(i => i.productoId === id ? { ...i, precio: '' } : i))
+      return
+    }
+    const p = parseFloat(v)
     if (isNaN(p) || p < 0) return
-    setItems(prev => prev.map(i => i.productoId === id ? { ...i, precio: p } : i))
+    setItems(prev => prev.map(i => i.productoId === id ? { ...i, precio: v } : i))
   }
 
   function quitarItem(id) {
     setItems(prev => prev.filter(i => i.productoId !== id))
   }
 
-  const totalCombo = items.reduce((s, i) => s + i.cantidad * i.precio, 0)
+  const totalCombo = items.reduce((s, i) => s + (parseFloat(i.cantidad) || 0) * (parseFloat(i.precio) || 0), 0)
   const hayItems = items.length > 0
   const totalValido = totalCombo > 0
 
@@ -174,19 +184,19 @@ export default function ComboModal({ onCerrar, onAgregarCombo, mostrar }) {
                       <div style={{ flex: 1 }}>
                         <label style={{ fontSize: '10px', color: '#94a3b8', display: 'block' }}>Cant</label>
                         <input type="text" inputMode="decimal" value={item.cantidad}
-                          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') actualizarCantidad(item.productoId, v || '0') }}
+                          onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v)) actualizarCantidad(item.productoId, v) }}
                           style={{ width: '100%', padding: '4px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <label style={{ fontSize: '10px', color: '#94a3b8', display: 'block' }}>Precio C$</label>
-                        <input type="text" inputMode="decimal" value={item.precio || ''}
-                          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') actualizarPrecio(item.productoId, v || '0') }}
+                        <input type="text" inputMode="decimal" value={item.precio}
+                          onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v)) actualizarPrecio(item.productoId, v) }}
                           style={{ width: '100%', padding: '4px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }} />
                       </div>
                     </div>
-                    {item.precio > 0 && (
+                    {(item.cantidad !== '' && item.precio !== '' && parseFloat(item.cantidad) > 0 && parseFloat(item.precio) > 0) && (
                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a', textAlign: 'right', marginTop: 2 }}>
-                        = C$ {(item.cantidad * item.precio).toFixed(2)}
+                        = C$ {((parseFloat(item.cantidad) || 0) * (parseFloat(item.precio) || 0)).toFixed(2)}
                       </div>
                     )}
                   </div>

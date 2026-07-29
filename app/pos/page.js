@@ -386,7 +386,7 @@ export default function POS() {
       // Leer cantidad REAL del DOM input (lo que el usuario ve/tipéo)
       const key = `${item.id}-${item._pres || 'base'}`
       const el = inputRefs.current[key]
-      const cantidad = el ? (parseFloat(el.value) || item.cantidad) : item.cantidad
+      const cantidad = el ? (parseFloat(el.value.replace(',', '.')) || item.cantidad) : item.cantidad
       const factor = item.factorConversion || 1
       const stockReq = cantidad * factor
       if (item.stock !== undefined && item.stock < stockReq) {
@@ -743,7 +743,7 @@ export default function POS() {
                       ref={el => { if (el) inputRefs.current[`${item.id}-${item._pres || 'base'}`] = el }}
                       onBlur={e => {
                         if (e.relatedTarget?.hasAttribute?.('data-tecla')) return
-                        const v = parseFloat(e.target.value)
+                        const v = parseFloat(e.target.value.replace(',', '.'))
                         if (!isNaN(v) && v > 0) cambiarCantidad(item.id, v, item._pres)
                         else e.target.value = item.cantidad
                       }}
@@ -826,7 +826,7 @@ export default function POS() {
                 {descPorc ? '%' : 'C$'}
               </button>
             </div>
-            <input id="campo-descuento" type="text" inputMode="none" value={descuento} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setDescuento(v) }} placeholder="0.00"
+            <input id="campo-descuento" type="text" inputMode="none" value={descuento} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setDescuento(v.replace(',', '.')) }} placeholder="0.00"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', minHeight: '40px' }} />
           </div>
           {/* Summary */}
@@ -862,7 +862,7 @@ export default function POS() {
                 <div key={p.metodo} style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 2 }}>
                   <span style={{ fontSize: '11px', color: 'var(--texto-secundario)', fontWeight: 600, minWidth: '68px', flex: '0 0 68px' }}>{p.metodo === 'efectivo' ? 'Córdobas (C$)' : p.metodo === 'dolares' ? 'Dólares ($)' : p.metodo === 'tarjeta' ? 'Tarjeta (C$)' : 'Transferencia (C$)'}</span>
                   <input type="text" inputMode="decimal" value={p.monto} placeholder="0.00"
-                    onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setMetodosPago(prev => prev.map(pm => pm.metodo === p.metodo ? { ...pm, monto: v } : pm)) }}
+                    onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setMetodosPago(prev => prev.map(pm => pm.metodo === p.metodo ? { ...pm, monto: v.replace(',', '.') } : pm)) }}
                     style={{ flex: 1, padding: '6px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', minWidth: 0 }} />
                 </div>
               ))}
@@ -968,7 +968,7 @@ export default function POS() {
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ flex: '0 0 45%' }}>
-                <input ref={pagoRef} type="text" inputMode="decimal" value={pagoCon} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setPagoCon(v) }} placeholder="0.00"
+                <input ref={pagoRef} type="text" inputMode="decimal" value={pagoCon} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setPagoCon(v.replace(',', '.')) }} placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none', minHeight: '42px' }} />
               </div>
               <div style={{ flex: 1 }}>
@@ -1224,11 +1224,11 @@ export default function POS() {
                 <input type="text" inputMode="decimal" autoFocus value={genCantidad}
                   onChange={e => {
                     const v = e.target.value
-                    if (/^\d*\.?\d*$/.test(v) || v === '') {
-                      setGenCantidad(v)
+                    if (/^\d*[.,]?\d*$/.test(v) || v === '') {
+                      setGenCantidad(v.replace(',', '.'))
                       if (genPrecioLibra && v) {
-                        const cant = parseFloat(v)
-                        const pl = parseFloat(genPrecioLibra)
+                        const cant = parseFloat(v.replace(',', '.'))
+                        const pl = parseFloat(genPrecioLibra.replace(',', '.'))
                         if (cant > 0 && pl > 0) setGenPrecio((cant * pl).toFixed(2))
                       }
                     }
@@ -1240,11 +1240,11 @@ export default function POS() {
                 <input type="text" inputMode="decimal" value={genPrecioLibra}
                   onChange={e => {
                     const v = e.target.value
-                    if (/^\d*\.?\d*$/.test(v) || v === '') {
-                      setGenPrecioLibra(v)
+                    if (/^\d*[.,]?\d*$/.test(v) || v === '') {
+                      setGenPrecioLibra(v.replace(',', '.'))
                       if (genCantidad && v) {
-                        const cant = parseFloat(genCantidad)
-                        const pl = parseFloat(v)
+                        const cant = parseFloat(genCantidad.replace(',', '.'))
+                        const pl = parseFloat(v.replace(',', '.'))
                         if (cant > 0 && pl > 0) setGenPrecio((cant * pl).toFixed(2))
                       }
                     }
@@ -1256,7 +1256,7 @@ export default function POS() {
                 <input type="text" inputMode="decimal" value={genPrecio}
                   onChange={e => {
                     const v = e.target.value
-                    if (/^\d*\.?\d*$/.test(v) || v === '') setGenPrecio(v)
+                    if (/^\d*[.,]?\d*$/.test(v) || v === '') setGenPrecio(v.replace(',', '.'))
                   }}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }} />
               </div>
@@ -1363,7 +1363,7 @@ export default function POS() {
                   <input type="text" inputMode="decimal" value={divisaMonto} placeholder="0.00"
                     onChange={e => {
                       const v = e.target.value
-                      if (/^\d*\.?\d*$/.test(v) || v === '') setDivisaMonto(v)
+                      if (/^\d*[.,]?\d*$/.test(v) || v === '') setDivisaMonto(v.replace(',', '.'))
                     }}
                     style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }}
                   />
@@ -1376,7 +1376,7 @@ export default function POS() {
                   <input type="text" inputMode="decimal" value={divisaTasa} placeholder={`Ej: ${tasaCambio > 0 ? tasaCambio.toFixed(2) : '36.50'}`}
                     onChange={e => {
                       const v = e.target.value
-                      if (/^\d*\.?\d*$/.test(v) || v === '') setDivisaTasa(v)
+                      if (/^\d*[.,]?\d*$/.test(v) || v === '') setDivisaTasa(v.replace(',', '.'))
                     }}
                     style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none' }}
                   />

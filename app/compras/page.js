@@ -132,7 +132,7 @@ async function crearProductoRapido(e) {
         item.unidad = item.unidadCompra
         return item
       }
-      const actualizado = { ...i, [campo]: parseFloat(valor) || 0 }
+      const actualizado = { ...i, [campo]: parseFloat(String(valor).replace(',', '.')) || 0 }
       actualizado.subtotal = actualizado.cantidad * actualizado.costo
       return actualizado
     }))
@@ -244,7 +244,7 @@ async function crearProductoRapido(e) {
     try {
       const res  = await fetch('/api/abonos-compra', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ compraId: compraVer.id, monto: parseFloat(formAbono.monto), nota: formAbono.nota })
+        body: JSON.stringify({ compraId: compraVer.id, monto: parseFloat(formAbono.monto.replace(',', '.')), nota: formAbono.nota })
       })
       const data = await res.json()
       if (res.ok) {
@@ -253,7 +253,7 @@ async function crearProductoRapido(e) {
           numero: compraVer.numero,
           entidad: compraVer.proveedor?.nombre || 'Proveedor',
           montoOriginal: compraVer.total,
-          abonoMonto: parseFloat(formAbono.monto),
+          abonoMonto: parseFloat(formAbono.monto.replace(',', '.')),
           saldoPendiente: data.nuevoSaldo,
           nota: formAbono.nota
         })
@@ -611,8 +611,8 @@ async function crearProductoRapido(e) {
                               {item.unidadVenta}s / 1 {item.unidadCompra}
                             </label>
                             <input type="text" inputMode="decimal" step="0.01" min="0.01" value={item.factorConversion}
-                              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setCarrito(prev => prev.map(i =>
-                                i.productoId === item.productoId ? { ...i, factorConversion: parseFloat(v) || 1 } : i
+                              onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setCarrito(prev => prev.map(i =>
+                                i.productoId === item.productoId ? { ...i, factorConversion: parseFloat(v.replace(',', '.')) || 1 } : i
                               )) }}
                               style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #7c3aed', fontSize: '12px', outline: 'none' }}
                             />
@@ -624,14 +624,14 @@ async function crearProductoRapido(e) {
                         <div>
                           <label style={{ fontSize: '11px', color: '#64748b' }}>Cantidad ({item.unidadCompra})</label>
                           <input type="text" inputMode="decimal" step="0.5" value={item.cantidad}
-                            onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') actualizarDetalle(item.productoId, 'cantidad', v) }}
+                            onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') actualizarDetalle(item.productoId, 'cantidad', v) }}
                             style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                           />
                         </div>
                         <div>
                           <label style={{ fontSize: '11px', color: '#64748b' }}>Costo por {item.unidadCompra}</label>
                           <input type="text" inputMode="decimal" step="0.01" value={item.costo}
-                            onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') actualizarDetalle(item.productoId, 'costo', v) }}
+                            onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') actualizarDetalle(item.productoId, 'costo', v) }}
                             style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                           />
                         </div>
@@ -733,7 +733,7 @@ async function crearProductoRapido(e) {
                           ¿Cuántas {formProd.unidadBase}s tiene 1 {formProd.unidadCompra}?
                         </label>
                         <input type="text" inputMode="decimal" step="0.001" value={formProd.factorConversion}
-                          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, factorConversion: v}) }}
+                          onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, factorConversion: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
                       </div>
@@ -745,7 +745,7 @@ async function crearProductoRapido(e) {
                           Precio venta por {formProd.unidadBase} (C$)
                         </label>
                         <input type="text" inputMode="decimal" step="0.01" value={formProd.precio}
-                          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precio: v}) }}
+                          onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, precio: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
                       </div>
@@ -754,7 +754,7 @@ async function crearProductoRapido(e) {
                           Costo por {formProd.unidadCompra} (C$)
                         </label>
                         <input type="text" inputMode="decimal" step="0.01" value={formProd.costo}
-                          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, costo: v}) }}
+                          onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, costo: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
                       </div>
@@ -896,7 +896,7 @@ async function crearProductoRapido(e) {
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Monto (C$) *</label>
                 <input required type="text" inputMode="decimal" step="0.01" max={compraVer.saldoPendiente}
-                  value={formAbono.monto} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
+                  value={formAbono.monto} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
                   placeholder={`Máx: C$ ${compraVer.saldoPendiente?.toFixed(2)}`}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />

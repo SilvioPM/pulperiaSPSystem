@@ -69,7 +69,7 @@ export default function CuentasCobrar() {
     setGuardando(true)
     try {
       const esSaldoInicial = facturaSeleccionada.tipo === 'saldo_inicial'
-      const monto = parseFloat(formAbono.monto)
+      const monto = parseFloat(formAbono.monto.replace(',', '.'))
       const url = esSaldoInicial
         ? `/api/clientes/${facturaSeleccionada.cliente.id}/abonar-inicial`
         : '/api/abonos'
@@ -417,7 +417,7 @@ export default function CuentasCobrar() {
                 <input required type="text" inputMode="decimal" step="0.01" min="0.01"
                   max={facturaSeleccionada.saldoPendiente}
                   value={formAbono.monto}
-                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
+                  onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
                   placeholder={`Máx: C$ ${facturaSeleccionada.saldoPendiente.toFixed(2)}`}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />

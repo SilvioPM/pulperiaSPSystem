@@ -1,11 +1,12 @@
-import { prisma } from '@/lib/prisma'
+﻿import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { parseNumber } from '@/lib/number'
 
 export async function POST(request) {
   try {
     const body = await request.json()
     const compraId = parseInt(body.compraId)
-    const monto = parseFloat(body.monto)
+    const monto = parseNumber(body.monto)
     const fuente = body.fuente || 'otro'
 
     if (!compraId || isNaN(monto) || monto <= 0) {

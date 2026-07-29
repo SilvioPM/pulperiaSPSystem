@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { parseNumber } from '@/lib/number'
 import { verificarToken, COOKIE_NAME } from '@/lib/auth'
 
 export async function POST(request, { params }) {
@@ -11,7 +12,7 @@ export async function POST(request, { params }) {
   try {
     const id = parseInt(params.id)
     const body = await request.json()
-    const monto = parseFloat(body.monto || 0)
+    const monto = parseNumber(body.monto || 0)
     if (monto <= 0) return NextResponse.json({ error: 'Monto inválido' }, { status: 400 })
 
     const cliente = await prisma.cliente.update({

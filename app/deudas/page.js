@@ -68,7 +68,7 @@ export default function Deudas() {
     setGuardando(true)
     try {
       const esSaldoInicial = compraSeleccionada.tipo === 'saldo_inicial'
-      const monto = parseFloat(formAbono.monto)
+      const monto = parseFloat(formAbono.monto.replace(',', '.'))
       let res
       if (esSaldoInicial) {
         res = await fetch(`/api/proveedores/${compraSeleccionada.proveedor.id}/abonar-inicial`, {
@@ -332,7 +332,7 @@ export default function Deudas() {
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Monto a pagar (C$)</label>
                 <input required type="text" inputMode="decimal" step="0.01" max={compraSeleccionada.saldoPendiente}
-                  value={formAbono.monto} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
+                  value={formAbono.monto} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
               </div>
               <div style={{ marginBottom: '20px' }}>

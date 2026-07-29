@@ -1,11 +1,12 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { parseNumber } from '@/lib/number'
 
 export async function POST(request) {
   try {
     const body = await request.json()
     const facturaId = parseInt(body.facturaId)
-    const monto = parseFloat(body.monto)
+    const monto = parseNumber(body.monto)
 
     if (!facturaId || isNaN(monto) || monto <= 0) {
       return NextResponse.json({ error: 'Datos de abono inválidos' }, { status: 400 })

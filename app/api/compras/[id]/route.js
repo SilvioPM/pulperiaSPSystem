@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { parseNumber } from '@/lib/number'
 
 export async function PUT(request, { params }) {
   try {
@@ -25,11 +26,11 @@ export async function PUT(request, { params }) {
         data: {
           facturaProveedor: body.facturaProveedor || null,
           proveedorId: parseInt(body.proveedorId),
-          subtotal: parseFloat(body.subtotal || 0),
-          iva: parseFloat(body.iva || 0),
-          total: parseFloat(body.total),
+          subtotal: parseNumber(body.subtotal || 0),
+          iva: parseNumber(body.iva || 0),
+          total: parseNumber(body.total),
           esCredito,
-          saldoPendiente: esBorrador ? 0 : (esCredito ? parseFloat(body.total) : 0),
+          saldoPendiente: esBorrador ? 0 : (esCredito ? parseNumber(body.total) : 0),
           estado: esBorrador ? 'borrador' : (esCredito ? 'credito' : 'pagada'),
           fechaVencimiento: body.fechaVencimiento ? new Date(body.fechaVencimiento) : null,
           nota: body.nota || null,

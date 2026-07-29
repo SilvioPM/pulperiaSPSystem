@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { parseNumber } from '@/lib/number'
 
 // GET — Obtener todas las facturas (con paginación)
 export async function GET(req) {
@@ -67,7 +68,7 @@ export async function POST(request) {
     if (!body.detalles || !Array.isArray(body.detalles) || body.detalles.length === 0) {
       return NextResponse.json({ error: 'La factura debe tener al menos un detalle' }, { status: 400 })
     }
-    const totalVal = parseFloat(body.total)
+    const totalVal = parseNumber(body.total)
     if (isNaN(totalVal) || totalVal < 0) {
       return NextResponse.json({ error: 'Total inválido' }, { status: 400 })
     }
@@ -88,19 +89,19 @@ export async function POST(request) {
       const pagoNoCredito = detallesPagoArr.length > 0
         ? detallesPagoArr
           .filter(p => p.metodo !== 'credito')
-          .reduce((s, p) => s + (p.metodo === 'dolares' ? parseFloat(p.monto || 0) * (parseFloat(body.tasaCambio || 0) || 1) : parseFloat(p.monto || 0)), 0)
-        : parseFloat(body.pagoCon || 0)
+          .reduce((s, p) => s + (p.metodo === 'dolares' ? parseFloat(p.monto || 0) * (parseNumber(body.tasaCambio || 0) || 1) : parseFloat(p.monto || 0)), 0)
+        : parseNumber(body.pagoCon || 0)
       const saldoPendiente = esCredito ? Math.max(0, totalVal - pagoNoCredito) : 0
       const creada = await tx.factura.create({
         data: {
           numero,
           clienteId: body.clienteId ? parseInt(body.clienteId) : null,
-          subtotal: parseFloat(body.subtotal),
-          descuento: parseFloat(body.descuento || 0),
-          iva: parseFloat(body.iva || 0),
+          subtotal: parseNumber(body.subtotal),
+          descuento: parseNumber(body.descuento || 0),
+          iva: parseNumber(body.iva || 0),
           total: totalVal,
-          pagoCon: parseFloat(body.pagoCon || 0),
-          cambio: parseFloat(body.cambio || 0),
+          pagoCon: parseNumber(body.pagoCon || 0),
+          cambio: parseNumber(body.cambio || 0),
           metodoPago: body.metodoPago || 'efectivo',
           esCredito,
           saldoPendiente,
@@ -196,13 +197,13 @@ export async function POST(request) {
         if (totalPagado > 0) updateCaja.totalVendido = { increment: totalPagado }
       } else {
         if (body.metodoPago === 'credito') {
-          updateCaja.ventasCredito = { increment: parseFloat(body.total) }
+          updateCaja.ventasCredito = { increment: parseNumber(body.total) }
         } else {
-          updateCaja.totalVendido = { increment: parseFloat(body.total) }
-          if (body.metodoPago === 'efectivo') updateCaja.ventasEfectivoCs = { increment: parseFloat(body.total) }
-          else if (body.metodoPago === 'dolares') updateCaja.ventasEfectivoUs = { increment: parseFloat(body.pagoEnUsd || body.pagoCon || 0) }
-          else if (body.metodoPago === 'tarjeta') updateCaja.ventasTarjeta = { increment: parseFloat(body.total) }
-          else if (body.metodoPago === 'transferencia') updateCaja.ventasTransfer = { increment: parseFloat(body.total) }
+          updateCaja.totalVendido = { increment: parseNumber(body.total) }
+          if (body.metodoPago === 'efectivo') updateCaja.ventasEfectivoCs = { increment: parseNumber(body.total) }
+          else if (body.metodoPago === 'dolares') updateCaja.ventasEfectivoUs = { increment: parseNumber(body.pagoEnUsd || body.pagoCon || 0) }
+          else if (body.metodoPago === 'tarjeta') updateCaja.ventasTarjeta = { increment: parseNumber(body.total) }
+          else if (body.metodoPago === 'transferencia') updateCaja.ventasTransfer = { increment: parseNumber(body.total) }
         }
       }
       if (Object.keys(updateCaja).length > 0) {

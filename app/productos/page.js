@@ -865,7 +865,7 @@ async function importarExcel(e) {
                     </label>
                     <input type="text" inputMode="decimal" required={campo.required}
                       value={formProd[campo.key]}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, [campo.key]: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, [campo.key]: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                     />
@@ -917,13 +917,13 @@ async function importarExcel(e) {
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio mayorista (C$)</label>
                     <input type="text" inputMode="decimal" min="0" value={formProd.precioMayor || ''}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precioMayor: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, precioMayor: v}) }}
                       placeholder="0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Cantidad mínima</label>
                     <input type="text" inputMode="decimal" min="0" value={formProd.cantidadMinimaMayor || ''}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, cantidadMinimaMayor: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, cantidadMinimaMayor: v}) }}
                       placeholder="Ej: 12" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
                   </div>
                 </div>
@@ -943,7 +943,7 @@ async function importarExcel(e) {
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
                     <input type="text" inputMode="decimal" value={formProd.precioVenta2 || ''}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta2: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta2: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -951,7 +951,7 @@ async function importarExcel(e) {
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
                     <input type="text" inputMode="decimal" value={formProd.costoVenta2 || ''}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta2: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta2: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -984,7 +984,7 @@ async function importarExcel(e) {
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
                     <input type="text" inputMode="decimal" value={formProd.precioVenta3 || ''}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta3: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta3: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -992,7 +992,7 @@ async function importarExcel(e) {
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
                     <input type="text" inputMode="decimal" value={formProd.costoVenta3 || ''}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta3: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta3: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -1022,7 +1022,7 @@ async function importarExcel(e) {
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
                     <input type="text" inputMode="decimal" value={formProd.precioVenta4 || ''}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta4: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta4: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -1030,7 +1030,7 @@ async function importarExcel(e) {
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
                     <input type="text" inputMode="decimal" value={formProd.costoVenta4 || ''}
-                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta4: v}) }}
+                      onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta4: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -1200,7 +1200,7 @@ async function importarExcel(e) {
               </label>
               <input type="text" inputMode="decimal"
                 value={productoEditar[campo.key]}
-                onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, [campo.key]: v}) }}
+                onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, [campo.key]: v}) }}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
               />
             </div>
@@ -1246,13 +1246,13 @@ async function importarExcel(e) {
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio mayorista (C$)</label>
                 <input type="text" inputMode="decimal" min="0" value={productoEditar.precioMayor || ''}
-                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioMayor: v}) }}
+                  onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioMayor: v}) }}
                   placeholder="0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Cantidad mínima</label>
                 <input type="text" inputMode="decimal" min="0" value={productoEditar.cantidadMinimaMayor || ''}
-                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, cantidadMinimaMayor: v}) }}
+                  onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, cantidadMinimaMayor: v}) }}
                   placeholder="Ej: 12" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
               </div>
             </div>
@@ -1273,7 +1273,7 @@ async function importarExcel(e) {
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
             <input type="text" inputMode="decimal" value={productoEditar.precioVenta2 || ''}
-              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta2: v}) }}
+              onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta2: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
@@ -1281,7 +1281,7 @@ async function importarExcel(e) {
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
             <input type="text" inputMode="decimal" value={productoEditar.costoVenta2 || ''}
-              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta2: v}) }}
+              onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta2: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
@@ -1314,7 +1314,7 @@ async function importarExcel(e) {
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
             <input type="text" inputMode="decimal" value={productoEditar.precioVenta3 || ''}
-              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta3: v}) }}
+              onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta3: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
@@ -1322,7 +1322,7 @@ async function importarExcel(e) {
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
             <input type="text" inputMode="decimal" value={productoEditar.costoVenta3 || ''}
-              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta3: v}) }}
+              onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta3: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
@@ -1352,7 +1352,7 @@ async function importarExcel(e) {
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
             <input type="text" inputMode="decimal" value={productoEditar.precioVenta4 || ''}
-              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta4: v}) }}
+              onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta4: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
@@ -1360,7 +1360,7 @@ async function importarExcel(e) {
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
             <input type="text" inputMode="decimal" value={productoEditar.costoVenta4 || ''}
-              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta4: v}) }}
+              onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta4: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />

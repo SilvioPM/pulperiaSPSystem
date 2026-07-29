@@ -144,7 +144,7 @@ export default function Configuracion() {
             <div>
               <label style={labelStyle}>Tasa de IVA (%)</label>
               <input type="text" inputMode="decimal" step="0.01" min="0" max="100"
-                value={config.tasaIva} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setConfig({ ...config, tasaIva: v }) }}
+                value={config.tasaIva} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setConfig({ ...config, tasaIva: v }) }}
                 placeholder="15" style={{ ...inputStyle, maxWidth: '200px' }} />
             </div>
           )}
