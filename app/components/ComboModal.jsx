@@ -46,6 +46,8 @@ export default function ComboModal({ onCerrar, onAgregarCombo, mostrar }) {
         precio: '',
       }]
     })
+    setBuscar('')
+    cargarProductos('')
   }
 
   function actualizarCantidad(id, val) {

@@ -516,7 +516,7 @@ export default function POS() {
             <Search size={18} color="#94a3b8" />
             <input
               ref={searchRef}
-              type="text" inputMode="none"
+              type="text" inputMode="text" autoFocus
               placeholder="Buscar producto..."
               value={buscar}
               onChange={e => setBuscar(e.target.value)}
