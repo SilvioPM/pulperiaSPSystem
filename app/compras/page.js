@@ -446,7 +446,7 @@ async function crearProductoRapido(e) {
 
       {/* Modal nueva compra */}
       {mostrarForm && (
-        <div onClick={() => { setMostrarForm(false); limpiarForm() }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', boxSizing: 'border-box', zIndex: 50 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', boxSizing: 'border-box', zIndex: 50 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px', padding: '24px', width: 'min(95vw, 900px)', maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 40}px)` : '90vh', overflowY: 'auto', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
 
             {/* Panel izquierdo — productos */}
