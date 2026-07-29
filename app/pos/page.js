@@ -989,7 +989,7 @@ export default function POS() {
         {/* Actions */}
         <div style={{ display: 'flex', gap: '6px' }}>
           <button onClick={() => setComboModalOpen(true)}
-            style={{ flex: 1, padding: '10px 6px', borderRadius: '8px', border: '1px solid #7c3aed', background: '#f3e8ff', cursor: 'pointer', fontWeight: 600, color: '#7c3aed', fontSize: '12px', minHeight: '40px' }}>
+            style={{ flex: 1, padding: '10px 6px', borderRadius: '8px', border: '1px solid #0891b2', background: '#ecfeff', cursor: 'pointer', fontWeight: 600, color: '#0891b2', fontSize: '12px', minHeight: '40px' }}>
             <Boxes size={14} style={{ marginRight: 2 }} /> Combo
           </button>
           <button onClick={() => setMostrarParked(true)} disabled={carrito.length === 0}
