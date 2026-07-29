@@ -658,7 +658,7 @@ export default function Reportes() {
                             : col.key === 'precio' ? `C$ ${sumTotal.toFixed(2)}`
                             : modulo === 'ventas' && col.key === 'cliente' ? 'TOTALES'
                             : modulo === 'ganancias' && col.key === 'producto' ? 'TOTALES'
-                            : modulo === 'inventario' && col.key === 'producto' ? 'TOTALES'
+                            : modulo === 'inventario' && col.key === 'producto' ? `${datos.length} producto${datos.length !== 1 ? 's' : ''}`
                             : ''}
                           </td>
                         ))}
