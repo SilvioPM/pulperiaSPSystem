@@ -466,7 +466,7 @@ _Esta es una cotización, no una factura oficial._
                         {item.nombre} <span style={{ fontWeight: 400, color: '#64748b', fontSize: '11px' }}>{item.unidad}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input type="text" inputMode="decimal" defaultValue={item.cantidad}
+                        <input type="text" inputMode="text" defaultValue={item.cantidad}
                           ref={el => { if (el) inputRefs.current[`${item.productoId}-${item._pres || 'base'}`] = el }}
                           onBlur={e => {
                             const v = parseFloat(e.target.value)
@@ -477,7 +477,7 @@ _Esta es una cotización, no una factura oficial._
                           style={{ width: '50px', padding: '4px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none', textAlign: 'center' }}
                         />
                         <span style={{ fontSize: '12px', color: '#64748b' }}>× C$</span>
-                        <input type="text" inputMode="decimal" defaultValue={item.precio}
+                        <input type="text" inputMode="text" defaultValue={item.precio}
                           onBlur={e => {
                             const v = parseFloat(e.target.value)
                             if (v > 0) cambiarPrecio(item.productoId, item._pres, v)

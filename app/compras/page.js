@@ -23,6 +23,7 @@ export default function Compras() {
   const [carrito, setCarrito]         = useState([])
   const [filtro, setFiltro]           = useState('todas')
   const [editandoCompraId, setEditandoCompraId] = useState(null)
+  const [editandoCompraEstado, setEditandoCompraEstado] = useState(null)
   const [form, setForm] = useState({
     proveedorId: '', facturaProveedor: '', esCredito: false, fechaVencimiento: '', nota: ''
   })
@@ -143,6 +144,7 @@ async function crearProductoRapido(e) {
 
   function limpiarForm() {
     setEditandoCompraId(null)
+    setEditandoCompraEstado(null)
     setCarrito([])
     setForm({ proveedorId: '', facturaProveedor: '', esCredito: false, fechaVencimiento: '', nota: '' })
   }
@@ -171,7 +173,7 @@ async function crearProductoRapido(e) {
       })
       const data = await res.json()
       if (res.ok) {
-        mostrar(`Compra ${data.numero} registrada exitosamente`, 'exito')
+        mostrar(editandoCompraId ? `Compra ${data.numero} actualizada exitosamente` : `Compra ${data.numero} registrada exitosamente`, 'exito')
         setMostrarForm(false)
         limpiarForm()
         cargarTodo()
@@ -217,6 +219,32 @@ async function crearProductoRapido(e) {
 
   function continuarBorrador(c) {
     setEditandoCompraId(c.id)
+    setEditandoCompraEstado(c.estado)
+    setForm({
+      proveedorId: c.proveedorId,
+      facturaProveedor: c.facturaProveedor || '',
+      esCredito: c.esCredito,
+      fechaVencimiento: c.fechaVencimiento ? c.fechaVencimiento.split('T')[0] : '',
+      nota: c.nota || ''
+    })
+    setCarrito(c.detalles.map(d => ({
+      productoId: d.productoId,
+      nombre: d.producto.nombre,
+      unidad: d.unidad,
+      unidadCompra: d.unidad || d.producto.unidadCompra || 'unidad',
+      unidadVenta: d.producto.unidadBase || 'unidad',
+      factorConversion: d.producto.factorConversion || 1,
+      cantidad: d.cantidad,
+      costo: d.costo,
+      subtotal: d.subtotal,
+      fechaVencimiento: d.producto.fechaVencimiento ? d.producto.fechaVencimiento.split('T')[0] : ''
+    })))
+    setMostrarForm(true)
+  }
+
+  function editarCompra(c) {
+    setEditandoCompraId(c.id)
+    setEditandoCompraEstado(c.estado)
     setForm({
       proveedorId: c.proveedorId,
       facturaProveedor: c.facturaProveedor || '',
@@ -421,6 +449,12 @@ async function crearProductoRapido(e) {
                             style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '13px' }}>
                             <Icons.Eye size={16} />
                           </button>
+                          {c.estado !== 'anulada' && (
+                            <button onClick={() => editarCompra(c)}
+                              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '13px', color: '#6366f1' }}>
+                              <Icons.Edit size={16} />
+                            </button>
+                          )}
                           {c.saldoPendiente > 0 && c.estado !== 'anulada' && (
                             <button onClick={() => { setCompraVer(c); setMostrarAbono(true) }}
                               style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
@@ -610,7 +644,7 @@ async function crearProductoRapido(e) {
                             <label style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 600 }}>
                               {item.unidadVenta}s / 1 {item.unidadCompra}
                             </label>
-                            <input type="text" inputMode="decimal" step="0.01" min="0.01" value={item.factorConversion}
+                            <input type="text" inputMode="text" step="0.01" min="0.01" value={item.factorConversion}
                               onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setCarrito(prev => prev.map(i =>
                                 i.productoId === item.productoId ? { ...i, factorConversion: parseFloat(v.replace(',', '.')) || 1 } : i
                               )) }}
@@ -623,14 +657,14 @@ async function crearProductoRapido(e) {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
                         <div>
                           <label style={{ fontSize: '11px', color: '#64748b' }}>Cantidad ({item.unidadCompra})</label>
-                          <input type="text" inputMode="decimal" step="0.5" value={item.cantidad}
+                          <input type="text" inputMode="text" step="0.5" value={item.cantidad}
                             onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') actualizarDetalle(item.productoId, 'cantidad', v) }}
                             style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                           />
                         </div>
                         <div>
                           <label style={{ fontSize: '11px', color: '#64748b' }}>Costo por {item.unidadCompra}</label>
-                          <input type="text" inputMode="decimal" step="0.01" value={item.costo}
+                          <input type="text" inputMode="text" step="0.01" value={item.costo}
                             onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') actualizarDetalle(item.productoId, 'costo', v) }}
                             style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                           />
@@ -666,14 +700,34 @@ async function crearProductoRapido(e) {
               />
 
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={guardarBorrador}
-                  style={{ flex: 1, padding: '14px', fontSize: '15px', borderRadius: '10px', border: '2px solid #f59e0b', background: 'white', color: '#f59e0b', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  <Icons.Save size={16} /> {editandoCompraId ? 'Actualizar' : 'Guardar'} Borrador
-                </button>
-                <button onClick={guardarCompra}
-                  className="btn-verde" style={{ flex: 1, padding: '14px', fontSize: '15px' }}>
-                  <Icons.CheckCircle size={16} /> {editandoCompraId ? 'Finalizar y Registrar' : 'Registrar Compra'}
-                </button>
+                {editandoCompraEstado === 'borrador' ? (
+                  <>
+                    <button onClick={guardarBorrador}
+                      style={{ flex: 1, padding: '14px', fontSize: '15px', borderRadius: '10px', border: '2px solid #f59e0b', background: 'white', color: '#f59e0b', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <Icons.Save size={16} /> Actualizar Borrador
+                    </button>
+                    <button onClick={guardarCompra}
+                      className="btn-verde" style={{ flex: 1, padding: '14px', fontSize: '15px' }}>
+                      <Icons.CheckCircle size={16} /> Finalizar y Registrar
+                    </button>
+                  </>
+                ) : editandoCompraId ? (
+                  <button onClick={guardarCompra}
+                    className="btn-verde" style={{ flex: 1, padding: '14px', fontSize: '15px' }}>
+                    <Icons.CheckCircle size={16} /> Guardar Cambios
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={guardarBorrador}
+                      style={{ flex: 1, padding: '14px', fontSize: '15px', borderRadius: '10px', border: '2px solid #f59e0b', background: 'white', color: '#f59e0b', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <Icons.Save size={16} /> Guardar Borrador
+                    </button>
+                    <button onClick={guardarCompra}
+                      className="btn-verde" style={{ flex: 1, padding: '14px', fontSize: '15px' }}>
+                      <Icons.CheckCircle size={16} /> Registrar Compra
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -732,7 +786,7 @@ async function crearProductoRapido(e) {
                         <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                           ¿Cuántas {formProd.unidadBase}s tiene 1 {formProd.unidadCompra}?
                         </label>
-                        <input type="text" inputMode="decimal" step="0.001" value={formProd.factorConversion}
+                        <input type="text" inputMode="text" step="0.001" value={formProd.factorConversion}
                           onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, factorConversion: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
@@ -744,7 +798,7 @@ async function crearProductoRapido(e) {
                         <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                           Precio venta por {formProd.unidadBase} (C$)
                         </label>
-                        <input type="text" inputMode="decimal" step="0.01" value={formProd.precio}
+                        <input type="text" inputMode="text" step="0.01" value={formProd.precio}
                           onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, precio: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
@@ -753,7 +807,7 @@ async function crearProductoRapido(e) {
                         <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                           Costo por {formProd.unidadCompra} (C$)
                         </label>
-                        <input type="text" inputMode="decimal" step="0.01" value={formProd.costo}
+                        <input type="text" inputMode="text" step="0.01" value={formProd.costo}
                           onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormProd({...formProd, costo: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
@@ -895,7 +949,7 @@ async function crearProductoRapido(e) {
             <form onSubmit={registrarAbono}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Monto (C$) *</label>
-                <input required type="text" inputMode="decimal" step="0.01" max={compraVer.saldoPendiente}
+                <input required type="text" inputMode="text" step="0.01" max={compraVer.saldoPendiente}
                   value={formAbono.monto} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
                   placeholder={`Máx: C$ ${compraVer.saldoPendiente?.toFixed(2)}`}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}

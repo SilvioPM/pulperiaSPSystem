@@ -414,7 +414,7 @@ export default function CuentasCobrar() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Monto del abono (C$) *
                 </label>
-                <input required type="text" inputMode="decimal" step="0.01" min="0.01"
+                <input required type="text" inputMode="text" step="0.01" min="0.01"
                   max={facturaSeleccionada.saldoPendiente}
                   value={formAbono.monto}
                   onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}

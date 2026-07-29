@@ -160,14 +160,14 @@ export default function CajaPage() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: 13, color: '#64748b', marginBottom: 4 }}>Monto inicial C$</label>
-                <input type="text" inputMode="decimal" step="0.01" value={montoApertura} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setMontoApertura(v.replace(',', '.')) }}
+                <input type="text" inputMode="text" step="0.01" value={montoApertura} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setMontoApertura(v.replace(',', '.')) }}
                   placeholder="0.00" required
                   style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%' }}
                 />
               </div>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: 13, color: '#64748b', marginBottom: 4 }}>Monto inicial $</label>
-                <input type="text" inputMode="decimal" step="0.01" value={montoAperturaUs} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setMontoAperturaUs(v.replace(',', '.')) }}
+                <input type="text" inputMode="text" step="0.01" value={montoAperturaUs} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setMontoAperturaUs(v.replace(',', '.')) }}
                   placeholder="0.00"
                   style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%' }}
                 />
@@ -232,7 +232,7 @@ export default function CajaPage() {
                   <option value="C$">C$</option>
                   <option value="$">$</option>
                 </select>
-                <input type="text" inputMode="decimal" step="0.01" min="0" value={movForm.monto} placeholder="Monto"
+                <input type="text" inputMode="text" step="0.01" min="0" value={movForm.monto} placeholder="Monto"
                   onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setMovForm({ ...movForm, monto: v.replace(',', '.') }) }}
                   style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, width: 100 }} required
                 />

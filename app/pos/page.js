@@ -736,7 +736,7 @@ export default function POS() {
                       style={{ width: '40px', height: '40px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '18px' }}>
                       −
                     </button>
-                    <input type="text" inputMode="decimal"
+                    <input type="text" inputMode="text"
                       defaultValue={item.cantidad}
                       ref={el => { if (el) inputRefs.current[`${item.id}-${item._pres || 'base'}`] = el }}
                       onBlur={e => {
@@ -859,7 +859,7 @@ export default function POS() {
               {metodosPago.filter(p => p.metodo !== 'credito').map(p => (
                 <div key={p.metodo} style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 2 }}>
                   <span style={{ fontSize: '11px', color: 'var(--texto-secundario)', fontWeight: 600, minWidth: '68px', flex: '0 0 68px' }}>{p.metodo === 'efectivo' ? 'Córdobas (C$)' : p.metodo === 'dolares' ? 'Dólares ($)' : p.metodo === 'tarjeta' ? 'Tarjeta (C$)' : 'Transferencia (C$)'}</span>
-                  <input type="text" inputMode="decimal" value={p.monto} placeholder="0.00"
+                  <input type="text" inputMode="text" value={p.monto} placeholder="0.00"
                     onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setMetodosPago(prev => prev.map(pm => pm.metodo === p.metodo ? { ...pm, monto: v.replace(',', '.') } : pm)) }}
                     style={{ flex: 1, padding: '6px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', minWidth: 0 }} />
                 </div>
@@ -966,7 +966,7 @@ export default function POS() {
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ flex: '0 0 45%' }}>
-                <input ref={pagoRef} type="text" inputMode="decimal" value={pagoCon} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setPagoCon(v.replace(',', '.')) }} placeholder="0.00"
+                <input ref={pagoRef} type="text" inputMode="text" value={pagoCon} onChange={e => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v) || v === '') setPagoCon(v.replace(',', '.')) }} placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none', minHeight: '42px' }} />
               </div>
               <div style={{ flex: 1 }}>
@@ -1219,7 +1219,7 @@ export default function POS() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Peso / Cantidad ({genericoModal.unidad})</label>
-                <input type="text" inputMode="decimal" autoFocus value={genCantidad}
+                <input type="text" inputMode="text" autoFocus value={genCantidad}
                   onChange={e => {
                     const v = e.target.value
                     if (/^\d*[.,]?\d*$/.test(v) || v === '') {
@@ -1235,7 +1235,7 @@ export default function POS() {
               </div>
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Precio por {genericoModal.unidad} (C$)</label>
-                <input type="text" inputMode="decimal" value={genPrecioLibra}
+                <input type="text" inputMode="text" value={genPrecioLibra}
                   onChange={e => {
                     const v = e.target.value
                     if (/^\d*[.,]?\d*$/.test(v) || v === '') {
@@ -1251,7 +1251,7 @@ export default function POS() {
               </div>
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Total a cobrar (C$) *</label>
-                <input type="text" inputMode="decimal" value={genPrecio}
+                <input type="text" inputMode="text" value={genPrecio}
                   onChange={e => {
                     const v = e.target.value
                     if (/^\d*[.,]?\d*$/.test(v) || v === '') setGenPrecio(v.replace(',', '.'))
@@ -1408,7 +1408,7 @@ export default function POS() {
                   <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                     Monto en dólares ($)
                   </label>
-                  <input type="text" inputMode="decimal" value={divisaMonto} placeholder="0.00"
+                  <input type="text" inputMode="text" value={divisaMonto} placeholder="0.00"
                     onChange={e => {
                       const v = e.target.value
                       if (/^\d*[.,]?\d*$/.test(v) || v === '') setDivisaMonto(v.replace(',', '.'))
@@ -1421,7 +1421,7 @@ export default function POS() {
                   <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                     Tasa de cambio
                   </label>
-                  <input type="text" inputMode="decimal" value={divisaTasa} placeholder={`Ej: ${tasaCambio > 0 ? tasaCambio.toFixed(2) : '36.50'}`}
+                  <input type="text" inputMode="text" value={divisaTasa} placeholder={`Ej: ${tasaCambio > 0 ? tasaCambio.toFixed(2) : '36.50'}`}
                     onChange={e => {
                       const v = e.target.value
                       if (/^\d*[.,]?\d*$/.test(v) || v === '') setDivisaTasa(v.replace(',', '.'))
