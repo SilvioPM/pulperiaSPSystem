@@ -1,8 +1,11 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { Search, XCircle, Package, CheckCircle, DollarSign, Plus } from 'lucide-react'
+import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
 
 export default function ComboModal({ onCerrar, onAgregarCombo, mostrar }) {
+  const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
+  const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [productos, setProductos] = useState([])
   const [buscar, setBuscar] = useState('')
   const [items, setItems] = useState([])
@@ -106,7 +109,9 @@ export default function ComboModal({ onCerrar, onAgregarCombo, mostrar }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+      display: 'flex', alignItems: tecladoVisible ? 'flex-start' : 'center', justifyContent: 'center',
+      paddingTop: tecladoVisible ? 20 : 0, paddingBottom: tecladoVisible ? tecladoAltura + 20 : 0,
+      overflow: tecladoVisible ? 'auto' : 'hidden', boxSizing: 'border-box', zIndex: 100
     }}>
       <div className="card" style={{ width: '520px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
