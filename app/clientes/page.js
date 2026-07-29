@@ -229,17 +229,6 @@ export default function Clientes() {
                 />
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
-                  Código <span style={{ fontWeight: 400, color: '#94a3b8' }}>(identificador interno)</span>
-                </label>
-                <input value={form.codigo}
-                  onChange={e => setForm({...form, codigo: e.target.value})}
-                  placeholder="Ej: CLT-001"
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
-                />
-              </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>
                   <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
@@ -347,12 +336,14 @@ export default function Clientes() {
               </div>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
-                  Código <span style={{ fontWeight: 400, color: '#94a3b8' }}>(identificador interno)</span>
+                  Código
                 </label>
-                <input value={form.codigo}
-                  onChange={e => setForm({...form, codigo: e.target.value})}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
-                />
+                <div style={{
+                  width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                  fontSize: '14px', background: '#f8fafc', color: '#1e293b', fontFamily: 'monospace', boxSizing: 'border-box'
+                }}>
+                  {form.codigo || '—'}
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>

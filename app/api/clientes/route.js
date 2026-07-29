@@ -54,10 +54,18 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json()
+
+    let codigo = body.codigo || null
+    if (!codigo) {
+      const ultimo = await prisma.cliente.findFirst({ orderBy: { id: 'desc' }, select: { id: true } })
+      const secuencia = (ultimo?.id || 0) + 1
+      codigo = `CLT-${String(secuencia).padStart(5, '0')}`
+    }
+
     const cliente = await prisma.cliente.create({
       data: {
         nombre: body.nombre,
-        codigo: body.codigo || null,
+        codigo,
         telefono: body.telefono || null,
         cedula: body.cedula || null,
         direccion: body.direccion || null,
