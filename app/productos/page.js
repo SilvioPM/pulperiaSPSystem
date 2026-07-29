@@ -863,9 +863,9 @@ async function importarExcel(e) {
                     <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                       {campo.label}
                     </label>
-                    <input type="number" step="0.01" required={campo.required}
+                    <input type="text" inputMode="decimal" required={campo.required}
                       value={formProd[campo.key]}
-                      onChange={e => setFormProd({...formProd, [campo.key]: e.target.value})}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, [campo.key]: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                     />
@@ -916,14 +916,14 @@ async function importarExcel(e) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio mayorista (C$)</label>
-                    <input type="number" step="0.01" min="0" value={formProd.precioMayor || ''}
-                      onChange={e => setFormProd({...formProd, precioMayor: e.target.value})}
+                    <input type="text" inputMode="decimal" min="0" value={formProd.precioMayor || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precioMayor: v}) }}
                       placeholder="0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Cantidad mínima</label>
-                    <input type="number" step="0.5" min="0" value={formProd.cantidadMinimaMayor || ''}
-                      onChange={e => setFormProd({...formProd, cantidadMinimaMayor: e.target.value})}
+                    <input type="text" inputMode="decimal" min="0" value={formProd.cantidadMinimaMayor || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, cantidadMinimaMayor: v}) }}
                       placeholder="Ej: 12" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
                   </div>
                 </div>
@@ -942,24 +942,24 @@ async function importarExcel(e) {
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
-                    <input type="number" step="0.01" value={formProd.precioVenta2 || ''}
-                      onChange={e => setFormProd({...formProd, precioVenta2: e.target.value})}
+                    <input type="text" inputMode="decimal" value={formProd.precioVenta2 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta2: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
-                    <input type="number" step="0.01" value={formProd.costoVenta2 || ''}
-                      onChange={e => setFormProd({...formProd, costoVenta2: e.target.value})}
+                    <input type="text" inputMode="decimal" value={formProd.costoVenta2 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta2: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
-                    <input type="number" step="1" value={formProd.factorVenta2 || ''}
-                      onChange={e => setFormProd({...formProd, factorVenta2: e.target.value})}
+                    <input type="text" inputMode="numeric" value={formProd.factorVenta2 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setFormProd({...formProd, factorVenta2: v}) }}
                       placeholder="100"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -983,24 +983,24 @@ async function importarExcel(e) {
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
-                    <input type="number" step="0.01" value={formProd.precioVenta3 || ''}
-                      onChange={e => setFormProd({...formProd, precioVenta3: e.target.value})}
+                    <input type="text" inputMode="decimal" value={formProd.precioVenta3 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta3: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
-                    <input type="number" step="0.01" value={formProd.costoVenta3 || ''}
-                      onChange={e => setFormProd({...formProd, costoVenta3: e.target.value})}
+                    <input type="text" inputMode="decimal" value={formProd.costoVenta3 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta3: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
-                    <input type="number" step="1" value={formProd.factorVenta3 || ''}
-                      onChange={e => setFormProd({...formProd, factorVenta3: e.target.value})}
+                    <input type="text" inputMode="numeric" value={formProd.factorVenta3 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setFormProd({...formProd, factorVenta3: v}) }}
                       placeholder="100"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -1021,24 +1021,24 @@ async function importarExcel(e) {
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
-                    <input type="number" step="0.01" value={formProd.precioVenta4 || ''}
-                      onChange={e => setFormProd({...formProd, precioVenta4: e.target.value})}
+                    <input type="text" inputMode="decimal" value={formProd.precioVenta4 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precioVenta4: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
-                    <input type="number" step="0.01" value={formProd.costoVenta4 || ''}
-                      onChange={e => setFormProd({...formProd, costoVenta4: e.target.value})}
+                    <input type="text" inputMode="decimal" value={formProd.costoVenta4 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, costoVenta4: v}) }}
                       placeholder="0"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
-                    <input type="number" step="1" value={formProd.factorVenta4 || ''}
-                      onChange={e => setFormProd({...formProd, factorVenta4: e.target.value})}
+                    <input type="text" inputMode="numeric" value={formProd.factorVenta4 || ''}
+                      onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setFormProd({...formProd, factorVenta4: v}) }}
                       placeholder="100"
                       style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                     />
@@ -1198,9 +1198,9 @@ async function importarExcel(e) {
               <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                 {campo.label}
               </label>
-              <input type="number" step="0.01"
+              <input type="text" inputMode="decimal"
                 value={productoEditar[campo.key]}
-                onChange={e => setProductoEditar({...productoEditar, [campo.key]: e.target.value})}
+                onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, [campo.key]: v}) }}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
               />
             </div>
@@ -1245,14 +1245,14 @@ async function importarExcel(e) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio mayorista (C$)</label>
-                <input type="number" step="0.01" min="0" value={productoEditar.precioMayor || ''}
-                  onChange={e => setProductoEditar({...productoEditar, precioMayor: e.target.value})}
+                <input type="text" inputMode="decimal" min="0" value={productoEditar.precioMayor || ''}
+                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioMayor: v}) }}
                   placeholder="0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Cantidad mínima</label>
-                <input type="number" step="0.5" min="0" value={productoEditar.cantidadMinimaMayor || ''}
-                  onChange={e => setProductoEditar({...productoEditar, cantidadMinimaMayor: e.target.value})}
+                <input type="text" inputMode="decimal" min="0" value={productoEditar.cantidadMinimaMayor || ''}
+                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, cantidadMinimaMayor: v}) }}
                   placeholder="Ej: 12" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }} />
               </div>
             </div>
@@ -1272,24 +1272,24 @@ async function importarExcel(e) {
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
-            <input type="number" step="0.01" value={productoEditar.precioVenta2 || ''}
-              onChange={e => setProductoEditar({...productoEditar, precioVenta2: e.target.value})}
+            <input type="text" inputMode="decimal" value={productoEditar.precioVenta2 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta2: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
-            <input type="number" step="0.01" value={productoEditar.costoVenta2 || ''}
-              onChange={e => setProductoEditar({...productoEditar, costoVenta2: e.target.value})}
+            <input type="text" inputMode="decimal" value={productoEditar.costoVenta2 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta2: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
-            <input type="number" step="1" value={productoEditar.factorVenta2 || ''}
-              onChange={e => setProductoEditar({...productoEditar, factorVenta2: e.target.value})}
+            <input type="text" inputMode="numeric" value={productoEditar.factorVenta2 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, factorVenta2: v}) }}
               placeholder="100"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
@@ -1313,24 +1313,24 @@ async function importarExcel(e) {
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
-            <input type="number" step="0.01" value={productoEditar.precioVenta3 || ''}
-              onChange={e => setProductoEditar({...productoEditar, precioVenta3: e.target.value})}
+            <input type="text" inputMode="decimal" value={productoEditar.precioVenta3 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta3: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
-            <input type="number" step="0.01" value={productoEditar.costoVenta3 || ''}
-              onChange={e => setProductoEditar({...productoEditar, costoVenta3: e.target.value})}
+            <input type="text" inputMode="decimal" value={productoEditar.costoVenta3 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta3: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
-            <input type="number" step="1" value={productoEditar.factorVenta3 || ''}
-              onChange={e => setProductoEditar({...productoEditar, factorVenta3: e.target.value})}
+            <input type="text" inputMode="numeric" value={productoEditar.factorVenta3 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, factorVenta3: v}) }}
               placeholder="100"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
@@ -1351,24 +1351,24 @@ async function importarExcel(e) {
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Precio (C$)</label>
-            <input type="number" step="0.01" value={productoEditar.precioVenta4 || ''}
-              onChange={e => setProductoEditar({...productoEditar, precioVenta4: e.target.value})}
+            <input type="text" inputMode="decimal" value={productoEditar.precioVenta4 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, precioVenta4: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Costo (C$)</label>
-            <input type="number" step="0.01" value={productoEditar.costoVenta4 || ''}
-              onChange={e => setProductoEditar({...productoEditar, costoVenta4: e.target.value})}
+            <input type="text" inputMode="decimal" value={productoEditar.costoVenta4 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, costoVenta4: v}) }}
               placeholder="0"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />
           </div>
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Equivale a (en unidades base)</label>
-            <input type="number" step="1" value={productoEditar.factorVenta4 || ''}
-              onChange={e => setProductoEditar({...productoEditar, factorVenta4: e.target.value})}
+            <input type="text" inputMode="numeric" value={productoEditar.factorVenta4 || ''}
+              onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setProductoEditar({...productoEditar, factorVenta4: v}) }}
               placeholder="100"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
             />

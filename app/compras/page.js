@@ -610,10 +610,10 @@ async function crearProductoRapido(e) {
                             <label style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 600 }}>
                               {item.unidadVenta}s / 1 {item.unidadCompra}
                             </label>
-                            <input type="number" step="0.01" min="0.01" value={item.factorConversion}
-                              onChange={e => setCarrito(prev => prev.map(i =>
-                                i.productoId === item.productoId ? { ...i, factorConversion: parseFloat(e.target.value) || 1 } : i
-                              ))}
+                            <input type="text" inputMode="decimal" step="0.01" min="0.01" value={item.factorConversion}
+                              onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setCarrito(prev => prev.map(i =>
+                                i.productoId === item.productoId ? { ...i, factorConversion: parseFloat(v) || 1 } : i
+                              )) }}
                               style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #7c3aed', fontSize: '12px', outline: 'none' }}
                             />
                           </div>
@@ -623,15 +623,15 @@ async function crearProductoRapido(e) {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
                         <div>
                           <label style={{ fontSize: '11px', color: '#64748b' }}>Cantidad ({item.unidadCompra})</label>
-                          <input type="number" step="0.5" value={item.cantidad}
-                            onChange={e => actualizarDetalle(item.productoId, 'cantidad', e.target.value)}
+                          <input type="text" inputMode="decimal" step="0.5" value={item.cantidad}
+                            onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') actualizarDetalle(item.productoId, 'cantidad', v) }}
                             style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                           />
                         </div>
                         <div>
                           <label style={{ fontSize: '11px', color: '#64748b' }}>Costo por {item.unidadCompra}</label>
-                          <input type="number" step="0.01" value={item.costo}
-                            onChange={e => actualizarDetalle(item.productoId, 'costo', e.target.value)}
+                          <input type="text" inputMode="decimal" step="0.01" value={item.costo}
+                            onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') actualizarDetalle(item.productoId, 'costo', v) }}
                             style={{ width: '100%', padding: '5px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none' }}
                           />
                         </div>
@@ -732,8 +732,8 @@ async function crearProductoRapido(e) {
                         <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                           ¿Cuántas {formProd.unidadBase}s tiene 1 {formProd.unidadCompra}?
                         </label>
-                        <input type="number" step="0.001" value={formProd.factorConversion}
-                          onChange={e => setFormProd({...formProd, factorConversion: e.target.value})}
+                        <input type="text" inputMode="decimal" step="0.001" value={formProd.factorConversion}
+                          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, factorConversion: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
                       </div>
@@ -744,8 +744,8 @@ async function crearProductoRapido(e) {
                         <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                           Precio venta por {formProd.unidadBase} (C$)
                         </label>
-                        <input type="number" step="0.01" value={formProd.precio}
-                          onChange={e => setFormProd({...formProd, precio: e.target.value})}
+                        <input type="text" inputMode="decimal" step="0.01" value={formProd.precio}
+                          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, precio: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
                       </div>
@@ -753,8 +753,8 @@ async function crearProductoRapido(e) {
                         <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                           Costo por {formProd.unidadCompra} (C$)
                         </label>
-                        <input type="number" step="0.01" value={formProd.costo}
-                          onChange={e => setFormProd({...formProd, costo: e.target.value})}
+                        <input type="text" inputMode="decimal" step="0.01" value={formProd.costo}
+                          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormProd({...formProd, costo: v}) }}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                         />
                       </div>
@@ -895,8 +895,8 @@ async function crearProductoRapido(e) {
             <form onSubmit={registrarAbono}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Monto (C$) *</label>
-                <input required type="number" step="0.01" max={compraVer.saldoPendiente}
-                  value={formAbono.monto} onChange={e => setFormAbono({...formAbono, monto: e.target.value})}
+                <input required type="text" inputMode="decimal" step="0.01" max={compraVer.saldoPendiente}
+                  value={formAbono.monto} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
                   placeholder={`Máx: C$ ${compraVer.saldoPendiente?.toFixed(2)}`}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />

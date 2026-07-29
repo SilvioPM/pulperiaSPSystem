@@ -2,10 +2,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/app/context/AuthContext'
 import { useTecladoVirtual } from '@/app/context/TecladoVirtualContext'
-import { Search, Shirt, Coffee, Wheat, Candy, ShoppingBag, AlertTriangle, ShoppingCart, FileText, User, CheckCircle, Loader, Trash2, PauseCircle, ClipboardList, DollarSign, CreditCard, Smartphone, Star, Package, UserPlus, Play, XCircle, Save, Printer } from 'lucide-react'
+import { Search, Shirt, Coffee, Wheat, Candy, ShoppingBag, AlertTriangle, ShoppingCart, FileText, User, CheckCircle, Loader, Trash2, PauseCircle, ClipboardList, DollarSign, CreditCard, Smartphone, Star, Package, UserPlus, Play, XCircle, Save, Printer, Boxes } from 'lucide-react'
 import Toast from '../components/Toast'
 
 import FacturaRecibo from '../components/FacturaRecibo'
+import ComboModal from '../components/ComboModal'
 import { useReactToPrint } from 'react-to-print'
 import { useToast } from '../hooks/useToast'
 
@@ -55,6 +56,7 @@ export default function POS() {
   const [proformasPendientes, setProformasPendientes] = useState([])
   const [proformaActiva, setProformaActiva]           = useState(null)
   const [cargandoProformas, setCargandoProformas]     = useState(false)
+  const [comboModalOpen, setComboModalOpen]           = useState(false)
   const [esPhone, setEsPhone]                         = useState(false)
   const [mostrarCats, setMostrarCats]                 = useState(false)
 
@@ -279,6 +281,11 @@ export default function POS() {
     setBuscar('')
   }
 
+  function agregarComboAlCarrito(comboItem) {
+    setComboModalOpen(false)
+    setCarrito(prev => [...prev, comboItem])
+  }
+
   // Sincroniza inputs no enfocados cuando carrito cambia (ej: clicks +/-)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -426,15 +433,30 @@ export default function POS() {
           esCredito: esVentaCredito,
           fechaVencimiento: esVentaCredito ? fechaVencimiento : null,
           detallesPago: metodosPago.filter(p => parseFloat(p.monto || 0) > 0),
-          detalles: carrito.map(item => ({
-            productoId: item.id,
-            cantidad: item.cantidad,
-            precio: item.precio,
-            costo: item._pres === 'venta2' ? parseFloat(item.costoVenta2 || 0) || (item.costo || 0) * (item.factorConversion || 1) : item._pres === 'venta3' ? parseFloat(item.costoVenta3 || 0) || (item.costo || 0) * (item.factorConversion || 1) : item._pres === 'venta4' ? parseFloat(item.costoVenta4 || 0) || (item.costo || 0) * (item.factorConversion || 1) : (item.costo || 0),
-            subtotal: item.precio * item.cantidad,
-            unidadVenta: item.unidadVenta || item.unidad,
-            factorConversion: item.factorConversion || 1
-          }))
+          detalles: carrito.flatMap(item => {
+            if (item._esCombo) {
+              return item._comboDetalles.map(d => ({
+                productoId: d.productoId,
+                cantidad: d.cantidad,
+                precio: d.precioUnitario,
+                costo: 0,
+                subtotal: d.subtotal,
+                unidadVenta: d.unidad,
+                factorConversion: 1,
+                comboId: item._comboId,
+              }))
+            }
+            return [{
+              productoId: item.id,
+              cantidad: item.cantidad,
+              precio: item.precio,
+              costo: item._pres === 'venta2' ? parseFloat(item.costoVenta2 || 0) || (item.costo || 0) * (item.factorConversion || 1) : item._pres === 'venta3' ? parseFloat(item.costoVenta3 || 0) || (item.costo || 0) * (item.factorConversion || 1) : item._pres === 'venta4' ? parseFloat(item.costoVenta4 || 0) || (item.costo || 0) * (item.factorConversion || 1) : (item.costo || 0),
+              subtotal: item.precio * item.cantidad,
+              unidadVenta: item.unidadVenta || item.unidad,
+              factorConversion: item.factorConversion || 1,
+              comboId: null,
+            }]
+          })
         })
       })
       const factura = await res.json()
@@ -690,18 +712,27 @@ export default function POS() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
-              {carrito.map(item => (
-                <div key={`${item.id}-${item._pres || 'base'}`} style={{
+              {carrito.map(item => {
+                const isCombo = item._esCombo
+                return (
+                <div key={item._comboId || `${item.id}-${item._pres || 'base'}`} style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
                   padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px',
-                  background: '#f8fafc', fontSize: '13px', flexShrink: 0
+                  background: isCombo ? '#f5f3ff' : '#f8fafc', fontSize: '13px', flexShrink: 0
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{item.nombre}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--texto-secundario)' }}>
-                      C$ {item.precio.toFixed(2)} / {item.unidadVenta || item.unidad}
+                    <div style={{ fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {isCombo && <Package size={14} color="#7c3aed" />}
+                      {isCombo ? 'COMBO' : item.nombre}
+                    </div>
+                    <div style={{ fontSize: '11px', color: isCombo ? '#7c3aed' : 'var(--texto-secundario)' }}>
+                      {isCombo
+                        ? item._comboDetalles.map(d => d.nombre + ' x' + d.cantidad).join(', ')
+                        : `C$ ${item.precio.toFixed(2)} / ${item.unidadVenta || item.unidad}`
+                      }
                     </div>
                   </div>
+                  {!isCombo && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <button onClick={() => cambiarCantidad(item.id, Math.max(0, item.cantidad - 0.5), item._pres)}
                       style={{ width: '40px', height: '40px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '18px' }}>
@@ -723,15 +754,20 @@ export default function POS() {
                       +
                     </button>
                   </div>
+                  )}
                   <div style={{ fontSize: '13px', fontWeight: 700, minWidth: '60px', textAlign: 'right' }}>
                     C$ {(item.precio * item.cantidad).toFixed(2)}
                   </div>
-                  <button onClick={() => eliminarDelCarrito(item.id, item._pres)}
+                  <button onClick={() => {
+                    if (isCombo) setCarrito(prev => prev.filter(i => i._comboId !== item._comboId))
+                    else eliminarDelCarrito(item.id, item._pres)
+                  }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <XCircle size={16} />
                   </button>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -790,7 +826,7 @@ export default function POS() {
                 {descPorc ? '%' : 'C$'}
               </button>
             </div>
-            <input id="campo-descuento" type="number" inputMode="none" value={descuento} onChange={e => setDescuento(e.target.value)} placeholder="0.00"
+            <input id="campo-descuento" type="text" inputMode="none" value={descuento} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setDescuento(v) }} placeholder="0.00"
               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', minHeight: '40px' }} />
           </div>
           {/* Summary */}
@@ -825,8 +861,8 @@ export default function POS() {
               {metodosPago.filter(p => p.metodo !== 'credito').map(p => (
                 <div key={p.metodo} style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: 2 }}>
                   <span style={{ fontSize: '11px', color: 'var(--texto-secundario)', fontWeight: 600, minWidth: '68px', flex: '0 0 68px' }}>{p.metodo === 'efectivo' ? 'Córdobas (C$)' : p.metodo === 'dolares' ? 'Dólares ($)' : p.metodo === 'tarjeta' ? 'Tarjeta (C$)' : 'Transferencia (C$)'}</span>
-                  <input type="number" inputMode="none" value={p.monto} placeholder="0.00"
-                    onChange={e => setMetodosPago(prev => prev.map(pm => pm.metodo === p.metodo ? { ...pm, monto: e.target.value } : pm))}
+                  <input type="text" inputMode="decimal" value={p.monto} placeholder="0.00"
+                    onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setMetodosPago(prev => prev.map(pm => pm.metodo === p.metodo ? { ...pm, monto: v } : pm)) }}
                     style={{ flex: 1, padding: '6px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', minWidth: 0 }} />
                 </div>
               ))}
@@ -931,7 +967,7 @@ export default function POS() {
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ flex: '0 0 45%' }}>
-                <input ref={pagoRef} type="number" inputMode="none" value={pagoCon} onChange={e => setPagoCon(e.target.value)} placeholder="0.00"
+                <input ref={pagoRef} type="text" inputMode="decimal" value={pagoCon} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setPagoCon(v) }} placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '16px', outline: 'none', minHeight: '42px' }} />
               </div>
               <div style={{ flex: 1 }}>
@@ -953,9 +989,13 @@ export default function POS() {
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '6px' }}>
+          <button onClick={() => setComboModalOpen(true)}
+            style={{ flex: 1, padding: '10px 6px', borderRadius: '8px', border: '1px solid #7c3aed', background: '#f3e8ff', cursor: 'pointer', fontWeight: 600, color: '#7c3aed', fontSize: '12px', minHeight: '40px' }}>
+            <Boxes size={14} style={{ marginRight: 2 }} /> Combo
+          </button>
           <button onClick={() => setMostrarParked(true)} disabled={carrito.length === 0}
             style={{ flex: 1, padding: '10px 6px', borderRadius: '8px', border: '1px solid #7c3aed', background: carrito.length === 0 ? '#f1f5f9' : '#f3e8ff', cursor: carrito.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 600, color: carrito.length === 0 ? '#94a3b8' : '#7c3aed', fontSize: '12px', opacity: carrito.length === 0 ? 0.5 : 1, minHeight: '40px' }}>
-            <PauseCircle size={14} style={{ marginRight: 2 }} /> Pausar ticket
+            <PauseCircle size={14} style={{ marginRight: 2 }} /> Pausar
           </button>
           <button onClick={async () => { await cargarParked(); setMostrarParked(true) }} disabled={parkedSessions.length === 0}
             style={{ flex: 1, padding: '10px 6px', borderRadius: '8px', border: '1px solid #2563eb', background: parkedSessions.length === 0 ? '#f1f5f9' : '#dbeafe', cursor: parkedSessions.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 600, color: parkedSessions.length === 0 ? '#94a3b8' : '#2563eb', fontSize: '12px', opacity: parkedSessions.length === 0 ? 0.5 : 1, minHeight: '40px' }}>
@@ -1156,6 +1196,14 @@ export default function POS() {
             </div>
           </div>
         </div>
+      )}
+
+      {comboModalOpen && (
+        <ComboModal
+          mostrar={comboModalOpen}
+          onCerrar={() => setComboModalOpen(false)}
+          onAgregarCombo={agregarComboAlCarrito}
+        />
       )}
 
       {genericoModal && (

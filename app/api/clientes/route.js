@@ -6,7 +6,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const buscar = searchParams.get('buscar')
     const page = Math.max(1, parseInt(searchParams.get('page') || 1))
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || 30)))
+    const limit = Math.min(10000, Math.max(1, parseInt(searchParams.get('limit') || 30)))
 
     const where = buscar ? { nombre: { contains: buscar, mode: 'insensitive' } } : {}
 

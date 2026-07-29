@@ -160,14 +160,14 @@ export default function CajaPage() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: 13, color: '#64748b', marginBottom: 4 }}>Monto inicial C$</label>
-                <input type="number" step="0.01" value={montoApertura} onChange={e => setMontoApertura(e.target.value)}
+                <input type="text" inputMode="decimal" step="0.01" value={montoApertura} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setMontoApertura(v) }}
                   placeholder="0.00" required
                   style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%' }}
                 />
               </div>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: 13, color: '#64748b', marginBottom: 4 }}>Monto inicial $</label>
-                <input type="number" step="0.01" value={montoAperturaUs} onChange={e => setMontoAperturaUs(e.target.value)}
+                <input type="text" inputMode="decimal" step="0.01" value={montoAperturaUs} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setMontoAperturaUs(v) }}
                   placeholder="0.00"
                   style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%' }}
                 />
@@ -232,8 +232,8 @@ export default function CajaPage() {
                   <option value="C$">C$</option>
                   <option value="$">$</option>
                 </select>
-                <input type="number" step="0.01" min="0" value={movForm.monto} placeholder="Monto"
-                  onChange={e => setMovForm({ ...movForm, monto: e.target.value })}
+                <input type="text" inputMode="decimal" step="0.01" min="0" value={movForm.monto} placeholder="Monto"
+                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setMovForm({ ...movForm, monto: v }) }}
                   style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, width: 100 }} required
                 />
                 <input type="text" value={movForm.concepto} placeholder="Concepto"
@@ -306,7 +306,7 @@ export default function CajaPage() {
                 {DENOMINACIONES_CS.map(d => (
                   <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span style={{ fontSize: 13, color: '#475569', minWidth: 40 }}>C$ {d}</span>
-                    <input type="number" min="0" value={arqueo.cs[d]} onChange={e => setDenominacion('cs', d, e.target.value)}
+                    <input type="text" inputMode="numeric" min="0" value={arqueo.cs[d]} onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setDenominacion('cs', d, v) }}
                       style={{ width: '60px', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }}
                     />
                     <span style={{ fontSize: 12, color: '#94a3b8' }}>= C$ {(d * (arqueo.cs[d] || 0)).toFixed(2)}</span>
@@ -324,7 +324,7 @@ export default function CajaPage() {
                 {DENOMINACIONES_US.map(d => (
                   <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span style={{ fontSize: 13, color: '#475569', minWidth: 40 }}>$ {d}</span>
-                    <input type="number" min="0" value={arqueo.us[d]} onChange={e => setDenominacion('us', d, e.target.value)}
+                    <input type="text" inputMode="numeric" min="0" value={arqueo.us[d]} onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setDenominacion('us', d, v) }}
                       style={{ width: '60px', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }}
                     />
                     <span style={{ fontSize: 12, color: '#94a3b8' }}>= $ {(d * (arqueo.us[d] || 0)).toFixed(0)}</span>

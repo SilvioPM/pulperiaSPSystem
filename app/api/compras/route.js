@@ -7,7 +7,7 @@ export async function GET(req) {
     const desde = searchParams.get('desde')
     const hasta = searchParams.get('hasta')
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
+    const limit = Math.min(10000, Math.max(1, parseInt(searchParams.get('limit') || '20')))
 
     const where = {}
     if (desde || hasta) {

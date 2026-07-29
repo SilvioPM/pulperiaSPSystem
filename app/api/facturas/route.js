@@ -8,7 +8,7 @@ export async function GET(req) {
     const desde = searchParams.get('desde')
     const hasta = searchParams.get('hasta')
     const page = Math.max(1, parseInt(searchParams.get('page') || 1))
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || 30)))
+    const limit = Math.min(10000, Math.max(1, parseInt(searchParams.get('limit') || 30)))
     const clienteId = searchParams.get('clienteId')
     const estado = searchParams.get('estado')
 
@@ -108,7 +108,8 @@ export async function POST(request) {
               precio: parseFloat(d.precio),
               costo: parseFloat(d.costo || 0),
               subtotal: parseFloat(d.subtotal),
-              factorConversion: parseFloat(d.factorConversion || 1)
+              factorConversion: parseFloat(d.factorConversion || 1),
+              comboId: d.comboId || null,
             }))
           }
         },

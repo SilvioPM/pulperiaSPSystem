@@ -259,8 +259,8 @@ export default function Clientes() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Límite de Crédito (C$)
                 </label>
-                <input type="number" step="0.01" min="0" value={form.limiteCredito}
-                  onChange={e => setForm({...form, limiteCredito: e.target.value})}
+                <input type="text" inputMode="decimal" step="0.01" min="0" value={form.limiteCredito}
+                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setForm({...form, limiteCredito: v}) }}
                   placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
@@ -269,8 +269,8 @@ export default function Clientes() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Saldo inicial (C$) — <span style={{ fontWeight: 400 }}>adeudo anterior del cliente</span>
                 </label>
-                <input type="number" step="0.01" min="0" value={form.saldoInicial}
-                  onChange={e => setForm({...form, saldoInicial: e.target.value})}
+                <input type="text" inputMode="decimal" step="0.01" min="0" value={form.saldoInicial}
+                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setForm({...form, saldoInicial: v}) }}
                   placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
@@ -351,8 +351,8 @@ export default function Clientes() {
               </div>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>Límite de Crédito (C$)</label>
-                <input type="number" step="0.01" min="0" value={form.limiteCredito}
-                  onChange={e => setForm({...form, limiteCredito: e.target.value})}
+                <input type="text" inputMode="decimal" step="0.01" min="0" value={form.limiteCredito}
+                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setForm({...form, limiteCredito: v}) }}
                   placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />
@@ -361,8 +361,8 @@ export default function Clientes() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Saldo inicial (C$) — <span style={{ fontWeight: 400 }}>adeudo anterior del cliente</span>
                 </label>
-                <input type="number" step="0.01" min="0" value={form.saldoInicial}
-                  onChange={e => setForm({...form, saldoInicial: e.target.value})}
+                <input type="text" inputMode="decimal" step="0.01" min="0" value={form.saldoInicial}
+                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setForm({...form, saldoInicial: v}) }}
                   placeholder="0.00"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />

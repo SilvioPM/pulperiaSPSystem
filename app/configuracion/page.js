@@ -143,8 +143,8 @@ export default function Configuracion() {
           {config.ivaActivo === 'true' && (
             <div>
               <label style={labelStyle}>Tasa de IVA (%)</label>
-              <input type="number" step="0.01" min="0" max="100"
-                value={config.tasaIva} onChange={e => setConfig({ ...config, tasaIva: e.target.value })}
+              <input type="text" inputMode="decimal" step="0.01" min="0" max="100"
+                value={config.tasaIva} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setConfig({ ...config, tasaIva: v }) }}
                 placeholder="15" style={{ ...inputStyle, maxWidth: '200px' }} />
             </div>
           )}
@@ -220,12 +220,12 @@ export default function Configuracion() {
               </div>
               <div>
                 <label style={labelStyle}>Rango factura inicial</label>
-                <input type="number" value={config.rangoInicio} onChange={e => setConfig({ ...config, rangoInicio: e.target.value })}
+                <input type="text" inputMode="numeric" value={config.rangoInicio} onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setConfig({ ...config, rangoInicio: v }) }}
                   placeholder="Ej: 1" style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Rango factura final</label>
-                <input type="number" value={config.rangoFin} onChange={e => setConfig({ ...config, rangoFin: e.target.value })}
+                <input type="text" inputMode="numeric" value={config.rangoFin} onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setConfig({ ...config, rangoFin: v }) }}
                   placeholder="Ej: 1000" style={inputStyle} />
               </div>
               <div style={{ gridColumn: '1 / -1', fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>

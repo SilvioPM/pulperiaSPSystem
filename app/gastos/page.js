@@ -107,7 +107,7 @@ export default function Gastos() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <input required type="number" step="0.01" min="0.01" placeholder="Monto (C$) *" value={form.monto} onChange={e => setForm({...form, monto: e.target.value})}
+                <input required type="text" inputMode="decimal" step="0.01" min="0.01" placeholder="Monto (C$) *" value={form.monto} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setForm({...form, monto: v}) }}
                   style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }} />
                 <input required type="date" value={form.fecha} onChange={e => setForm({...form, fecha: e.target.value})}
                   style={{ padding: 10, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }} />

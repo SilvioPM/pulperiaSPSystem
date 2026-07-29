@@ -19,7 +19,7 @@ export default function Deudas() {
   async function cargarCompras() {
     try {
       const [resCompras, resProveedores] = await Promise.all([
-        fetch('/api/compras'),
+        fetch('/api/compras?limit=10000'),
         fetch('/api/proveedores')
       ])
       const dataCompras = await resCompras.json()
@@ -276,8 +276,8 @@ export default function Deudas() {
             <form onSubmit={registrarAbono}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Monto a pagar (C$)</label>
-                <input required type="number" step="0.01" max={compraSeleccionada.saldoPendiente}
-                  value={formAbono.monto} onChange={e => setFormAbono({...formAbono, monto: e.target.value})}
+                <input required type="text" inputMode="decimal" step="0.01" max={compraSeleccionada.saldoPendiente}
+                  value={formAbono.monto} onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
               </div>
               <div style={{ marginBottom: '20px' }}>

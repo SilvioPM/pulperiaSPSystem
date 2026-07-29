@@ -343,8 +343,8 @@ export default function Inventario() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Cantidad *
                 </label>
-                <input required type="number" min="1" value={form.cantidad}
-                  onChange={e => setForm({...form, cantidad: e.target.value})}
+                <input required type="text" inputMode="numeric" min="1" value={form.cantidad}
+                  onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setForm({...form, cantidad: v}) }}
                   placeholder="0"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />

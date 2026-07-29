@@ -32,7 +32,7 @@ export default function CuentasCobrar() {
   async function cargarFacturas() {
     try {
       const [resFacturas, resClientes] = await Promise.all([
-        fetch('/api/facturas'),
+        fetch('/api/facturas?limit=10000'),
         fetch('/api/clientes')
       ])
       const dataFacturas = await resFacturas.json()
@@ -361,10 +361,10 @@ export default function CuentasCobrar() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Monto del abono (C$) *
                 </label>
-                <input required type="number" step="0.01" min="0.01"
+                <input required type="text" inputMode="decimal" step="0.01" min="0.01"
                   max={facturaSeleccionada.saldoPendiente}
                   value={formAbono.monto}
-                  onChange={e => setFormAbono({...formAbono, monto: e.target.value})}
+                  onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) || v === '') setFormAbono({...formAbono, monto: v}) }}
                   placeholder={`Máx: C$ ${facturaSeleccionada.saldoPendiente.toFixed(2)}`}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none' }}
                 />

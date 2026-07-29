@@ -123,6 +123,7 @@ model DetalleFac {
   costo      Float    @default(0)
   subtotal   Float
   factorConversion Float @default(1)
+  comboId    String?
 
   @@index([facturaId])
   @@index([productoId])

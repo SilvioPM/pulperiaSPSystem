@@ -105,14 +105,46 @@ const FacturaRecibo = forwardRef(({ factura, config }, ref) => {
             <span style={{ flex: 1, textAlign: 'right' }}>Precio</span>
             <span style={{ flex: 1, textAlign: 'right' }}>Sub</span>
           </div>
-          {factura?.detalles?.map(d => (
-            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontSize: '10px' }}>
-              <span style={{ flex: 2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{d.producto?.nombre}</span>
-              <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad} {d.unidadVenta || ''}</span>
-              <span style={{ flex: 1, textAlign: 'right' }}>{d.precio.toFixed(2)}</span>
-              <span style={{ flex: 1, textAlign: 'right' }}>{d.subtotal.toFixed(2)}</span>
-            </div>
-          ))}
+          {(() => {
+            const detalles = factura?.detalles || []
+            const combos = {}
+            const normales = []
+            for (const d of detalles) {
+              if (d.comboId) {
+                if (!combos[d.comboId]) combos[d.comboId] = []
+                combos[d.comboId].push(d)
+              } else {
+                normales.push(d)
+              }
+            }
+            const rows = []
+            for (const [comboId, items] of Object.entries(combos)) {
+              rows.push(
+                <div key={comboId} style={{ marginBottom: '4px' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '10px', marginBottom: '2px' }}>COMBO:</div>
+                  {items.map(d => (
+                    <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', paddingLeft: '8px', marginBottom: '1px' }}>
+                      <span style={{ flex: 2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>─ {d.producto?.nombre}</span>
+                      <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad} {d.unidadVenta || ''}</span>
+                      <span style={{ flex: 1, textAlign: 'right' }}>{d.precio.toFixed(2)}</span>
+                      <span style={{ flex: 1, textAlign: 'right' }}>{d.subtotal.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+            normales.forEach(d => {
+              rows.push(
+                <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontSize: '10px' }}>
+                  <span style={{ flex: 2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{d.producto?.nombre}</span>
+                  <span style={{ flex: 1, textAlign: 'center' }}>{d.cantidad} {d.unidadVenta || ''}</span>
+                  <span style={{ flex: 1, textAlign: 'right' }}>{d.precio.toFixed(2)}</span>
+                  <span style={{ flex: 1, textAlign: 'right' }}>{d.subtotal.toFixed(2)}</span>
+                </div>
+              )
+            })
+            return rows
+          })()}
         </div>
 
         {/* Totales */}
