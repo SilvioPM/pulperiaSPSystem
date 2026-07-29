@@ -42,7 +42,6 @@ export default function POS() {
   const [divisaMonto, setDivisaMonto] = useState('')
   const [divisaTasa, setDivisaTasa] = useState('')
   const [divisaResultado, setDivisaResultado] = useState(null)
-  const [confirmarPago, setConfirmarPago] = useState(null)
   const [presentacionSel, setPresentacionSel]         = useState({})
   const [errorCaja, setErrorCaja]                     = useState(false)
   const [genericoModal, setGenericoModal]             = useState(null)
@@ -392,19 +391,12 @@ export default function POS() {
       }
     }
 
-    setConfirmarPago({
-      total,
-      pagoCon: metodoPago === 'dolares' ? pagoConCordobas : (metodoPago === 'credito' ? total : parseFloat(pagoCon || 0)),
-      cambio: metodoPago === 'credito' ? 0 : Math.max(0, cambio),
-      metodoPago,
-      items: carrito.length,
-      pagoOriginal: pagoCon,
-      esCredito: esCredito || metodoPago === 'credito',
-    })
+    await procesarVenta()
   }
 
   async function procesarVenta() {
     setCargando(true)
+    const esVentaCredito = esCredito || metodoPago === 'credito'
 
     try {
       const rCaja = await fetch('/api/caja')
@@ -484,7 +476,6 @@ export default function POS() {
       setFechaVencimiento('')
       setMetodosPago([{ metodo: 'efectivo', monto: '' }])
       cargarProductos()
-      setTimeout(() => setFacturaExitosa(null), 6000)
       setTimeout(imprimirTicket, 300)
     } catch (error) {
       mostrar(error?.message || 'Error al procesar la venta', 'error')
@@ -1298,20 +1289,70 @@ export default function POS() {
       )}
 
       {facturaExitosa && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '16px', padding: '40px 48px',
-            textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+        <div onClick={() => setFacturaExitosa(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
           }}>
-            <Star size={48} color="#16a34a" style={{ marginBottom: '12px' }} />
-            <div style={{ fontSize: '22px', fontWeight: 700, color: '#16a34a', marginBottom: '8px' }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'white', borderRadius: '20px', padding: '36px 44px',
+            textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            width: 'min(90vw, 380px)'
+          }}>
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '50%',
+              background: '#dcfce7', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', margin: '0 auto 16px'
+            }}>
+              <CheckCircle size={40} color="#16a34a" />
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: '#16a34a', marginBottom: '4px' }}>
               ¡Venta exitosa!
             </div>
-            <div style={{ fontSize: '15px', color: '#15803d' }}>
+            <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px' }}>
               Factura: {facturaExitosa.numero}
+            </div>
+
+            <div style={{
+              background: '#f0fdf4', borderRadius: '14px', padding: '20px', marginBottom: '20px',
+              border: '2px solid #bbf7d0'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '15px' }}>
+                <span style={{ color: '#475569' }}>Total</span>
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>C$ {(facturaExitosa.total || 0).toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '15px' }}>
+                <span style={{ color: '#475569' }}>Pagó</span>
+                <span style={{ fontWeight: 700, color: '#16a34a' }}>C$ {(facturaExitosa.pagoCon || 0).toFixed(2)}</span>
+              </div>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', paddingTop: '10px',
+                borderTop: '2px dashed #bbf7d0', fontSize: '18px'
+              }}>
+                <span style={{ fontWeight: 700, color: '#16a34a' }}>Vuelto</span>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#16a34a' }}>
+                  C$ {(facturaExitosa.cambio || 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setFacturaExitosa(null)}
+                style={{
+                  flex: 1, padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0',
+                  background: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '15px'
+                }}>
+                Cerrar
+              </button>
+              <button onClick={() => { setFacturaExitosa(null); setCarrito([]); setPagoCon(''); setDescuento(''); setEsCredito(false); setFechaVencimiento(''); setMetodosPago([{ metodo: 'efectivo', monto: '' }]); searchRef.current?.focus() }}
+                style={{
+                  flex: 2, padding: '14px', borderRadius: '10px', border: 'none',
+                  background: '#16a34a', color: 'white', cursor: 'pointer',
+                  fontWeight: 700, fontSize: '15px'
+                }}>
+                <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                Nueva Venta
+              </button>
             </div>
           </div>
         </div>
@@ -1509,83 +1550,6 @@ h2{text-align:center;font-size:14px;margin-bottom:4px}
       )}
 
       {/* Confirmar pago */}
-      {confirmarPago && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200
-        }}>
-          <div className="card" style={{ width: 'min(95vw, 400px)', textAlign: 'center' }}>
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                background: confirmarPago.cambio >= 0 ? '#dcfce7' : '#fef2f2',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px'
-              }}>
-                {confirmarPago.cambio >= 0
-                  ? <CheckCircle size={32} color="#16a34a" />
-                  : <AlertTriangle size={32} color="#dc2626" />
-                }
-              </div>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
-                Confirmar cobro
-              </h2>
-              <p style={{ fontSize: '13px', color: '#64748b' }}>
-                {confirmarPago.items} producto{confirmarPago.items !== 1 ? 's' : ''} en el carrito
-                {confirmarPago.esCredito && ' — Venta al crédito'}
-              </p>
-            </div>
-
-            <div style={{
-              background: '#f8fafc', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', color: '#64748b' }}>Total</span>
-                <span style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>C$ {confirmarPago.total.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', color: '#64748b' }}>Pagó</span>
-                <span style={{ fontSize: '18px', fontWeight: 700, color: '#16a34a' }}>C$ {confirmarPago.pagoCon.toFixed(2)}</span>
-              </div>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', paddingTop: '8px',
-                borderTop: '2px dashed #e2e8f0'
-              }}>
-                <span style={{ fontSize: '16px', fontWeight: 600, color: confirmarPago.cambio >= 0 ? '#16a34a' : '#dc2626' }}>
-                  {confirmarPago.cambio >= 0 ? 'Vuelto' : 'Falta'}
-                </span>
-                <span style={{
-                  fontSize: '24px', fontWeight: 800,
-                  color: confirmarPago.cambio >= 0 ? '#16a34a' : '#dc2626'
-                }}>
-                  C$ {Math.abs(confirmarPago.cambio).toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setConfirmarPago(null)}
-                style={{
-                  flex: 1, padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0',
-                  background: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '15px', color: '#475569'
-                }}>
-                Cancelar
-              </button>
-              <button onClick={async () => {
-                setConfirmarPago(null)
-                await procesarVenta()
-              }}
-                style={{
-                  flex: 2, padding: '14px', borderRadius: '10px', border: 'none',
-                  background: '#16a34a', color: 'white', cursor: 'pointer',
-                  fontWeight: 700, fontSize: '15px'
-                }}>
-                <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: 6 }} />
-                Cobrar C$ {confirmarPago.total.toFixed(2)}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
       {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
