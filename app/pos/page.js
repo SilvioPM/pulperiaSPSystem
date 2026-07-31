@@ -37,6 +37,7 @@ export default function POS() {
   const [fechaVencimiento, setFechaVencimiento]         = useState('')
   const [parkedSessions, setParkedSessions]           = useState([])
   const [mostrarParked, setMostrarParked] = useState(false)
+  const [nombreParked, setNombreParked]               = useState('')
   const [mostrarDivisas, setMostrarDivisas] = useState(false)
   const [divisaTipo, setDivisaTipo] = useState('comprar') // 'comprar' o 'vender'
   const [divisaMonto, setDivisaMonto] = useState('')
