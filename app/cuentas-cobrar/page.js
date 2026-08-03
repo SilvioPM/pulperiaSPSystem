@@ -120,6 +120,23 @@ export default function CuentasCobrar() {
     setTimeout(() => imprimirAbono(), 300)
   }
 
+  function reimprimirAbono(a) {
+    if (!facturaSeleccionada) return
+    const abonosOrdenados = [...(facturaSeleccionada.abonos || [])].sort((x, y) => new Date(x.creadoEn) - new Date(y.creadoEn))
+    const hastaAqui = abonosOrdenados.filter(x => new Date(x.creadoEn) <= new Date(a.creadoEn))
+    const totalAbonado = hastaAqui.reduce((s, x) => s + x.monto, 0)
+    setReciboAbono({
+      tipo: 'cxc',
+      numero: facturaSeleccionada.numero,
+      entidad: facturaSeleccionada.cliente?.nombre || 'General',
+      montoOriginal: facturaSeleccionada.total,
+      abonoMonto: a.monto,
+      saldoPendiente: Math.max(0, facturaSeleccionada.total - totalAbonado),
+      nota: a.nota
+    })
+    setTimeout(() => imprimirAbono(), 300)
+  }
+
   function formatearFecha(fecha) {
     return new Date(fecha).toLocaleDateString('es-NI', {
       day: '2-digit', month: '2-digit', year: 'numeric'
@@ -394,15 +411,22 @@ export default function CuentasCobrar() {
                 </div>
                 {facturaSeleccionada.abonos.map(a => (
                   <div key={a.id} style={{
-                    display: 'flex', justifyContent: 'space-between',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px'
                   }}>
                     <span style={{ color: '#64748b' }}>
                       {new Date(a.creadoEn).toLocaleDateString('es-NI')}
                       {a.nota && ` — ${a.nota}`}
                     </span>
-                    <span style={{ fontWeight: 600, color: '#16a34a' }}>
-                      C$ {a.monto.toFixed(2)}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: '#16a34a' }}>
+                        C$ {a.monto.toFixed(2)}
+                      </span>
+                      <button type="button" onClick={() => reimprimirAbono(a)}
+                        title="Reimprimir recibo"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 2, display: 'inline-flex' }}>
+                        <Icons.Printer size={14} />
+                      </button>
                     </span>
                   </div>
                 ))}
@@ -506,15 +530,22 @@ export default function CuentasCobrar() {
                 </div>
                 {facturaSeleccionada.abonos.map(a => (
                   <div key={a.id} style={{
-                    display: 'flex', justifyContent: 'space-between',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px'
                   }}>
                     <span style={{ color: '#64748b' }}>
                       {new Date(a.creadoEn).toLocaleDateString('es-NI')}
                       {a.nota && ` — ${a.nota}`}
                     </span>
-                    <span style={{ fontWeight: 600, color: '#16a34a' }}>
-                      C$ {a.monto.toFixed(2)}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: '#16a34a' }}>
+                        C$ {a.monto.toFixed(2)}
+                      </span>
+                      <button onClick={() => reimprimirAbono(a)}
+                        title="Reimprimir recibo"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 2, display: 'inline-flex' }}>
+                        <Icons.Printer size={14} />
+                      </button>
                     </span>
                   </div>
                 ))}

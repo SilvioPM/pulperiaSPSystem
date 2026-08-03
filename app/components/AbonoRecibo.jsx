@@ -11,6 +11,16 @@ const AbonoRecibo = forwardRef(({ config, tipo, numero, entidad, montoOriginal, 
     })
   }
 
+  function tamanoMonto(monto) {
+    const s = `C$ ${monto.toFixed(2)}`.length
+    if (s > 17) return '10px'
+    if (s > 13) return '11px'
+    return null
+  }
+
+  const estiloValor = { textAlign: 'right', wordBreak: 'break-word', minWidth: 0, marginLeft: '6px' }
+  const estiloMonto = monto => ({ ...estiloValor, whiteSpace: 'nowrap', fontSize: tamanoMonto(monto) })
+
   return (
     <div ref={ref} style={{
       width: '80mm',
@@ -56,8 +66,8 @@ const AbonoRecibo = forwardRef(({ config, tipo, numero, entidad, montoOriginal, 
             <span>{numero}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 'bold' }}>{tipo === 'cxc' ? 'Cliente' : 'Proveedor'}:</span>
-            <span>{entidad}</span>
+            <span style={{ fontWeight: 'bold', flexShrink: 0 }}>{tipo === 'cxc' ? 'Cliente' : 'Proveedor'}:</span>
+            <span style={estiloValor}>{entidad}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontWeight: 'bold' }}>Fecha:</span>
@@ -67,15 +77,15 @@ const AbonoRecibo = forwardRef(({ config, tipo, numero, entidad, montoOriginal, 
 
         <div style={{ marginBottom: '8px', borderBottom: '1px dashed #000', paddingBottom: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span>Monto original:</span>
-            <span>C$ {montoOriginal.toFixed(2)}</span>
+            <span style={{ flexShrink: 0 }}>Monto original:</span>
+            <span style={estiloMonto(montoOriginal)}>C$ {montoOriginal.toFixed(2)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span>Abono realizado:</span>
-            <span style={{ color: '#16a34a', fontWeight: 'bold' }}>- C$ {abonoMonto.toFixed(2)}</span>
+            <span style={{ flexShrink: 0 }}>Abono realizado:</span>
+            <span style={{ ...estiloMonto(abonoMonto), color: '#16a34a', fontWeight: 'bold' }}>- C$ {abonoMonto.toFixed(2)}</span>
           </div>
           {nota && (
-            <div style={{ fontSize: '11px', marginBottom: '4px', color: '#666' }}>
+            <div style={{ fontSize: '11px', marginBottom: '4px', color: '#666', wordBreak: 'break-word' }}>
               Nota: {nota}
             </div>
           )}
@@ -84,8 +94,8 @@ const AbonoRecibo = forwardRef(({ config, tipo, numero, entidad, montoOriginal, 
             fontSize: '14px', fontWeight: 'bold', marginTop: '4px',
             borderTop: '1px solid #000', paddingTop: '4px'
           }}>
-            <span>Saldo pendiente:</span>
-            <span>C$ {saldoPendiente.toFixed(2)}</span>
+            <span style={{ flexShrink: 0 }}>Saldo pendiente:</span>
+            <span style={{ ...estiloMonto(saldoPendiente), fontSize: tamanoMonto(saldoPendiente) || '14px' }}>C$ {saldoPendiente.toFixed(2)}</span>
           </div>
         </div>
 

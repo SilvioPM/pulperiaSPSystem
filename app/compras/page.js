@@ -296,6 +296,23 @@ async function crearProductoRapido(e) {
     } catch { mostrar('Error al registrar abono', 'error') }
   }
 
+  function reimprimirAbono(a) {
+    if (!compraVer) return
+    const abonosOrdenados = [...(compraVer.abonosCompra || [])].sort((x, y) => new Date(x.creadoEn) - new Date(y.creadoEn))
+    const hastaAqui = abonosOrdenados.filter(x => new Date(x.creadoEn) <= new Date(a.creadoEn))
+    const totalAbonado = hastaAqui.reduce((s, x) => s + x.monto, 0)
+    setReciboAbono({
+      tipo: 'cxp',
+      numero: compraVer.numero,
+      entidad: compraVer.proveedor?.nombre || 'Proveedor',
+      montoOriginal: compraVer.total,
+      abonoMonto: a.monto,
+      saldoPendiente: Math.max(0, compraVer.total - totalAbonado),
+      nota: a.nota
+    })
+    setTimeout(() => imprimirAbono(), 300)
+  }
+
   const borradores = compras.filter(c => c.estado === 'borrador')
   const comprasFiltradas = compras.filter(c =>
     filtro === 'todas'    ? true :
@@ -901,9 +918,16 @@ async function crearProductoRapido(e) {
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px' }}>Abonos realizados:</div>
                 {compraVer.abonosCompra.map(a => (
-                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
                     <span style={{ color: '#64748b' }}>{new Date(a.creadoEn).toLocaleDateString('es-NI')} {a.nota && `— ${a.nota}`}</span>
-                    <span style={{ fontWeight: 600, color: '#16a34a' }}>C$ {a.monto?.toFixed(2)}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: '#16a34a' }}>C$ {a.monto?.toFixed(2)}</span>
+                      <button onClick={() => reimprimirAbono(a)}
+                        title="Reimprimir recibo"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 2, display: 'inline-flex' }}>
+                        <Icons.Printer size={14} />
+                      </button>
+                    </span>
                   </div>
                 ))}
               </div>

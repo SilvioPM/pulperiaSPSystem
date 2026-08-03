@@ -141,6 +141,23 @@ export default function Deudas() {
     setTimeout(() => imprimirAbono(), 300)
   }
 
+  function reimprimirAbono(a) {
+    if (!compraSeleccionada) return
+    const abonosOrdenados = [...(compraSeleccionada.abonos || [])].sort((x, y) => new Date(x.creadoEn) - new Date(y.creadoEn))
+    const hastaAqui = abonosOrdenados.filter(x => new Date(x.creadoEn) <= new Date(a.creadoEn))
+    const totalAbonado = hastaAqui.reduce((s, x) => s + x.monto, 0)
+    setReciboAbono({
+      tipo: 'cxp',
+      numero: compraSeleccionada.numero,
+      entidad: compraSeleccionada.proveedor?.nombre || 'Proveedor',
+      montoOriginal: compraSeleccionada.total,
+      abonoMonto: a.monto,
+      saldoPendiente: Math.max(0, compraSeleccionada.total - totalAbonado),
+      nota: a.nota
+    })
+    setTimeout(() => imprimirAbono(), 300)
+  }
+
   return (
     <div>
       {toast && <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={cerrar} />}
@@ -313,15 +330,22 @@ export default function Deudas() {
                 </div>
                 {compraSeleccionada.abonos.map(a => (
                   <div key={a.id} style={{
-                    display: 'flex', justifyContent: 'space-between',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px'
                   }}>
                     <span style={{ color: '#64748b' }}>
                       {new Date(a.creadoEn).toLocaleDateString('es-NI')}
                       {a.nota && ` — ${a.nota}`}
                     </span>
-                    <span style={{ fontWeight: 600, color: '#dc2626' }}>
-                      C$ {a.monto.toFixed(2)}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: '#dc2626' }}>
+                        C$ {a.monto.toFixed(2)}
+                      </span>
+                      <button type="button" onClick={() => reimprimirAbono(a)}
+                        title="Reimprimir recibo"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 2, display: 'inline-flex' }}>
+                        <Icons.Printer size={14} />
+                      </button>
                     </span>
                   </div>
                 ))}
