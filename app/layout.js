@@ -21,6 +21,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body>
+        <Script src="/limpiar-cache.js" strategy="afterInteractive" />
         <Script src="/sw-register.js" strategy="afterInteractive" />
         <AuthProvider>
           <AppShell>

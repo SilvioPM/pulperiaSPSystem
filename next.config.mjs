@@ -14,6 +14,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: "default-src 'self'; img-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' http://localhost:* https://*.dgi.gob.ni;"
           },
+          { key: 'Cache-Control', value: 'no-store, max-age=0, must-revalidate' },
         ],
       },
       {
