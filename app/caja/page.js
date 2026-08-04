@@ -26,6 +26,12 @@ export default function CajaPage() {
   const [observacion, setObservacion] = useState('')
   const [cerrando, setCerrando] = useState(false)
 
+  // Detalle / edición de cierre
+  const [detalleCaja, setDetalleCaja] = useState(null)
+  const [editandoArqueo, setEditandoArqueo] = useState(false)
+  const [arqueoEditar, setArqueoEditar] = useState({ cs: {}, us: {} })
+  const [obsEditar, setObsEditar] = useState('')
+
   // Movimientos
   const [movimientos, setMovimientos] = useState([])
   const [movForm, setMovForm] = useState({ tipo: 'entrada', concepto: '', moneda: 'C$', monto: '' })
@@ -136,6 +142,64 @@ export default function CajaPage() {
     auditar(user?.username, 'editar', 'caja', `Caja cerrada - Diferencia: C$ ${d.diferencia}`)
     setMsg('Caja cerrada exitosamente')
     setCerrando(false)
+    cargar()
+  }
+
+  function verDetalle(h) {
+    setDetalleCaja(h)
+    setEditandoArqueo(false)
+  }
+
+  function initEditarArqueo() {
+    const cs = {}
+    DENOMINACIONES_CS.forEach(d => { cs[d] = 0 })
+    const us = {}
+    DENOMINACIONES_US.forEach(d => { us[d] = 0 })
+    ;(detalleCaja.arqueo || []).forEach(a => {
+      if (a.moneda === 'C$') cs[a.denominacion] = a.cantidad
+      else us[a.denominacion] = a.cantidad
+    })
+    setArqueoEditar({ cs, us })
+    setObsEditar(detalleCaja.observacion || '')
+    setEditandoArqueo(true)
+  }
+
+  function setDenomEditar(moneda, denom, val) {
+    setArqueoEditar(prev => ({
+      ...prev,
+      [moneda]: { ...prev[moneda], [denom]: Math.max(0, parseInt(val) || 0) }
+    }))
+  }
+
+  function totalArqueoEditar(moneda) {
+    return Object.entries(arqueoEditar[moneda]).reduce((sum, [den, cant]) => sum + parseFloat(den) * cant, 0)
+  }
+
+  async function guardarArqueo(e) {
+    e.preventDefault()
+    setError('')
+    const data = {
+      arqueo: [
+        ...Object.entries(arqueoEditar.cs).map(([den, cant]) => ({
+          moneda: 'C$', denominacion: parseFloat(den), cantidad: cant, subtotal: parseFloat(den) * cant
+        })),
+        ...Object.entries(arqueoEditar.us).map(([den, cant]) => ({
+          moneda: '$', denominacion: parseFloat(den), cantidad: cant, subtotal: parseFloat(den) * cant
+        }))
+      ],
+      observacion: obsEditar
+    }
+    const r = await fetch(`/api/caja/${detalleCaja.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    const d = await r.json()
+    if (!r.ok) { setError(d.error); return }
+    auditar(user?.username, 'editar', 'caja', `Arqueo editado caja #${detalleCaja.id} - Diferencia: C$ ${d.diferencia}`)
+    setMsg('Arqueo actualizado exitosamente')
+    setEditandoArqueo(false)
+    setDetalleCaja(null)
     cargar()
   }
 
@@ -372,7 +436,7 @@ export default function CajaPage() {
           <div style={{ marginTop: 32 }}>
             <h2 style={{ fontSize: 16, fontWeight: 600, color: '#1e293b', marginBottom: 12 }}>Historial de cierres</h2>
             <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 900 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 1150 }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Fecha</th>
@@ -380,13 +444,15 @@ export default function CajaPage() {
                     <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Cerró</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Inic. C$</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Inic. $</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Vendido</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Ventas C$</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Abonos C$</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Ing.Extra</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Egresos</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Efectivo C$</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Efectivo $</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Dif. C$</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Dif. $</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>Detalle</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -397,7 +463,8 @@ export default function CajaPage() {
                       <td style={{ padding: '10px 12px' }}>{h.usuarioCierre}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.montoInicial.toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>$ {h.montoInicialUs?.toFixed(2) || '0.00'}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.totalVendido.toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {(h.ventasEfectivoCs || 0).toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {(h.abonosTotal || 0).toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.ingresosExtra.toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>C$ {h.egresos.toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.efectivoRealCs?.toFixed(2) || '—'}</td>
@@ -408,10 +475,225 @@ export default function CajaPage() {
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: h.diferenciaUs < 0 ? '#dc2626' : h.diferenciaUs > 0 ? '#d97706' : '#16a34a', fontWeight: 600 }}>
                         $ {h.diferenciaUs?.toFixed(2) || '—'}
                       </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                        <button onClick={() => verDetalle(h)} style={{
+                          padding: '4px 10px', background: '#f3e8ff', color: '#7c3aed', border: '1px solid #d8b4fe',
+                          borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer'
+                        }}>Ver / Editar</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+        {/* Detalle / edición de arqueo */}
+        {detalleCaja && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20
+          }} onClick={() => { setDetalleCaja(null); setEditandoArqueo(false) }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: '#fff', borderRadius: 12, width: '100%', maxWidth: 860,
+              maxHeight: '90vh', overflowY: 'auto', padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', margin: 0 }}>Detalle de cierre</h2>
+                  <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
+                    {new Date(detalleCaja.abiertaEn).toLocaleString('es-NI')} → {new Date(detalleCaja.cerradaEn).toLocaleString('es-NI')}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                    Abrió: {detalleCaja.usuarioApertura} · Cerró: {detalleCaja.usuarioCierre}
+                  </div>
+                </div>
+                <button onClick={() => { setDetalleCaja(null); setEditandoArqueo(false) }} style={{
+                  background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b', lineHeight: 1
+                }}>&times;</button>
+              </div>
+
+              {!editandoArqueo ? (
+                <>
+                  {/* Desglose de ingresos */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: 12 }}>
+                      <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Desglose C$ (ingresado)</h4>
+                      {[
+                        { label: 'Ventas en efectivo', val: detalleCaja.ventasEfectivoCs || 0 },
+                        { label: 'Abonos de clientes', val: detalleCaja.abonosTotal || 0 },
+                        { label: 'Ingresos extra', val: detalleCaja.ingresosExtra },
+                        { label: 'Egresos', val: -detalleCaja.egresos },
+                        { label: 'Monto inicial', val: detalleCaja.montoInicial },
+                      ].map(f => (
+                        <div key={f.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}>
+                          <span style={{ color: '#475569' }}>{f.label}</span>
+                          <span style={{ fontWeight: 600, color: f.val < 0 ? '#dc2626' : '#1e293b' }}>
+                            {f.val < 0 ? '-C$ ' : 'C$ '}{Math.abs(f.val).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, paddingTop: 6, marginTop: 4, borderTop: '2px solid #e2e8f0', fontWeight: 700, color: '#1e293b' }}>
+                        <span>Esperado en caja</span>
+                        <span>C$ {(detalleCaja.montoInicial + (detalleCaja.ventasEfectivoCs || 0) + (detalleCaja.abonosTotal || 0) + detalleCaja.ingresosExtra - detalleCaja.egresos).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, paddingTop: 4 }}>
+                        <span style={{ color: '#475569' }}>Arqueo real</span>
+                        <span style={{ fontWeight: 700, color: '#166534' }}>C$ {(detalleCaja.efectivoRealCs || 0).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, paddingTop: 4, fontWeight: 700, color: detalleCaja.diferencia < 0 ? '#dc2626' : detalleCaja.diferencia > 0 ? '#d97706' : '#16a34a' }}>
+                        <span>Diferencia</span>
+                        <span>C$ {(detalleCaja.diferencia || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: 12 }}>
+                      <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Desglose USD (ingresado)</h4>
+                      {[
+                        { label: 'Ventas en efectivo USD', val: detalleCaja.ventasEfectivoUs || 0 },
+                        { label: 'Ingresos extra USD', val: detalleCaja.ingresosExtraUs },
+                        { label: 'Egresos USD', val: -detalleCaja.egresosUs },
+                        { label: 'Monto inicial USD', val: detalleCaja.montoInicialUs || 0 },
+                      ].map(f => (
+                        <div key={f.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}>
+                          <span style={{ color: '#475569' }}>{f.label}</span>
+                          <span style={{ fontWeight: 600, color: f.val < 0 ? '#dc2626' : '#1e293b' }}>
+                            {f.val < 0 ? '-$ ' : '$ '}{Math.abs(f.val).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, paddingTop: 6, marginTop: 4, borderTop: '2px solid #e2e8f0', fontWeight: 700, color: '#1e293b' }}>
+                        <span>Esperado en caja</span>
+                        <span>$ {((detalleCaja.montoInicialUs || 0) + (detalleCaja.ventasEfectivoUs || 0) + (detalleCaja.ingresosExtraUs || 0) - (detalleCaja.egresosUs || 0)).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, paddingTop: 4 }}>
+                        <span style={{ color: '#475569' }}>Arqueo real</span>
+                        <span style={{ fontWeight: 700, color: '#166534' }}>$ {(detalleCaja.efectivoRealUs || 0).toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, paddingTop: 4, fontWeight: 700, color: detalleCaja.diferenciaUs < 0 ? '#dc2626' : detalleCaja.diferenciaUs > 0 ? '#d97706' : '#16a34a' }}>
+                        <span>Diferencia</span>
+                        <span>$ {(detalleCaja.diferenciaUs || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Denominaciones contadas */}
+                  <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Arqueo contado (denominaciones)</h4>
+                  {(detalleCaja.arqueo || []).length === 0 ? (
+                    <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12 }}>Sin detalle de denominaciones registrado.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+                      <div>
+                        {detalleCaja.arqueo.filter(a => a.moneda === 'C$').map(a => (
+                          <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '2px 0' }}>
+                            <span style={{ color: '#475569' }}>C$ {a.denominacion} × {a.cantidad}</span>
+                            <span style={{ fontWeight: 600 }}>C$ {a.subtotal.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        {detalleCaja.arqueo.filter(a => a.moneda === '$').map(a => (
+                          <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '2px 0' }}>
+                            <span style={{ color: '#475569' }}>$ {a.denominacion} × {a.cantidad}</span>
+                            <span style={{ fontWeight: 600 }}>$ {a.subtotal.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Movimientos */}
+                  <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Movimientos de caja</h4>
+                  {(detalleCaja.movimientos || []).length === 0 ? (
+                    <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>Sin movimientos registrados.</div>
+                  ) : (
+                    <div style={{ maxHeight: 160, overflowY: 'auto', marginBottom: 16 }}>
+                      {detalleCaja.movimientos.map(m => (
+                        <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', borderBottom: '1px solid #f1f5f9' }}>
+                          <span style={{ color: '#475569' }}>{m.tipo === 'entrada' ? '+ ' : '- '}{m.concepto}</span>
+                          <span style={{ fontWeight: 600, color: m.tipo === 'entrada' ? '#16a34a' : '#dc2626' }}>
+                            {m.moneda} {m.monto.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {detalleCaja.observacion && (
+                    <div style={{ fontSize: 13, color: '#475569', background: '#fef9c3', border: '1px solid #fde047', borderRadius: 8, padding: '8px 12px', marginBottom: 16 }}>
+                      <b>Observación:</b> {detalleCaja.observacion}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button onClick={initEditarArqueo} style={{
+                      padding: '10px 20px', background: '#7c3aed', color: '#fff', border: 'none',
+                      borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                    }}>Editar Arqueo</button>
+                    <button onClick={() => { setDetalleCaja(null); setEditandoArqueo(false) }} style={{
+                      padding: '10px 20px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0',
+                      borderRadius: 8, fontSize: 14, cursor: 'pointer'
+                    }}>Cerrar</button>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={guardarArqueo}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Córdobas (C$)</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                        {DENOMINACIONES_CS.map(d => (
+                          <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 12, color: '#475569', minWidth: 38 }}>C$ {d}</span>
+                            <input type="text" inputMode="numeric" min="0" value={arqueoEditar.cs[d]}
+                              onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setDenomEditar('cs', d, v) }}
+                              style={{ width: '52px', padding: '5px 6px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: '#166534' }}>
+                        Total: C$ {totalArqueoEditar('cs').toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Dólares ($)</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                        {DENOMINACIONES_US.map(d => (
+                          <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 12, color: '#475569', minWidth: 38 }}>$ {d}</span>
+                            <input type="text" inputMode="numeric" min="0" value={arqueoEditar.us[d]}
+                              onChange={e => { const v = e.target.value; if (/^\d*$/.test(v) || v === '') setDenomEditar('us', d, v) }}
+                              style={{ width: '52px', padding: '5px 6px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: '#166534' }}>
+                        Total: $ {totalArqueoEditar('us').toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 13, color: '#64748b', marginBottom: 4 }}>Observación</label>
+                    <textarea value={obsEditar} onChange={e => setObsEditar(e.target.value)} rows={2}
+                      placeholder="Opcional"
+                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, resize: 'vertical' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button type="submit" style={{
+                      padding: '10px 20px', background: '#16a34a', color: '#fff', border: 'none',
+                      borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                    }}>Guardar cambios</button>
+                    <button type="button" onClick={() => setEditandoArqueo(false)} style={{
+                      padding: '10px 20px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0',
+                      borderRadius: 8, fontSize: 14, cursor: 'pointer'
+                    }}>Cancelar</button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         )}

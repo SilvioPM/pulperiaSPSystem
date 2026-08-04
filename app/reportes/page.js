@@ -24,6 +24,8 @@ const MODULOS = [
   { id: 'mermas', label: 'Mermas y ajustes', icono: 'AlertTriangle', necesitaFechas: true, api: '/api/reportes?tipo=mermas' },
   { id: 'pyl', label: 'Ganancias y pérdidas', icono: 'Wallet', necesitaFechas: true, api: '/api/reportes?tipo=ganancias' },
   { id: 'fiscal', label: 'Reporte fiscal', icono: 'FileText', necesitaFechas: true, api: '/api/reportes?tipo=fiscal' },
+  { id: 'abonos', label: 'Abonos recibidos', icono: 'HandCoins', necesitaFechas: true, api: '/api/reportes?tipo=abonos' },
+  { id: 'arqueos', label: 'Arqueos de caja', icono: 'Coins', necesitaFechas: true, api: '/api/reportes?tipo=arqueos' },
 ]
 
 const COLUMNAS = {
@@ -596,6 +598,10 @@ export default function Reportes() {
         reporte && <GananciasView data={reporte} />
       ) : modulo === 'fiscal' ? (
         reporte && <FiscalView data={reporte} />
+      ) : modulo === 'abonos' ? (
+        reporte && <AbonosView data={reporte} />
+      ) : modulo === 'arqueos' ? (
+        reporte && <ArqueosView data={reporte} />
       ) : (
         <>
           {cargando ? (
@@ -1317,6 +1323,169 @@ function GananciasView({ data }) {
               })
             )}
           </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function AbonosView({ data }) {
+  if (!data) return null
+  const r = data.resumen || {}
+  const items = data.items || []
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginBottom: 16 }}>
+        <div style={{ borderRadius: 10, padding: 14, background: '#dcfce7', border: '1px solid #bbf7d0' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#16a34a' }}>Abonos recibidos</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#15803d' }}>C$ {r.total?.toFixed(2)}</div>
+          <div style={{ fontSize: 11, color: '#64748b' }}>{r.cantidad || 0} abonos</div>
+        </div>
+        <div style={{ borderRadius: 10, padding: 14, background: '#dbeafe', border: '1px solid #bfdbfe' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#2563eb' }}>De clientes (CxC)</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#1d4ed8' }}>C$ {r.clientes?.toFixed(2)}</div>
+        </div>
+        <div style={{ borderRadius: 10, padding: 14, background: '#fef3c7', border: '1px solid #fde68a' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#d97706' }}>Pagos a proveedores (CxP)</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#92400e' }}>C$ {r.proveedores?.toFixed(2)}</div>
+        </div>
+        <div style={{ borderRadius: 10, padding: 14, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>Período</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>{r.desde} → {r.hasta}</div>
+        </div>
+      </div>
+
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+              {['Fecha', 'Tipo', 'Documento', 'Cliente / Proveedor', 'Monto', 'Nota'].map(h => (
+                <th key={h} style={{ padding: '10px 14px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', textAlign: h === 'Monto' ? 'right' : 'left' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Sin abonos en el período</td></tr>
+            ) : (
+              items.map((it, i) => (
+                <tr key={it.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                  <td style={{ padding: '10px 14px' }}>{new Date(it.fecha).toLocaleDateString('es-NI')}</td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <span style={{
+                      padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                      background: it.tipo === 'Cliente' ? '#dcfce7' : '#fef3c7',
+                      color: it.tipo === 'Cliente' ? '#16a34a' : '#d97706'
+                    }}>{it.tipo}</span>
+                  </td>
+                  <td style={{ padding: '10px 14px', fontWeight: 600 }}>{it.documento}</td>
+                  <td style={{ padding: '10px 14px' }}>{it.nombre}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: it.tipo === 'Cliente' ? '#16a34a' : '#d97706' }}>
+                    C$ {it.monto.toFixed(2)}
+                  </td>
+                  <td style={{ padding: '10px 14px', color: '#64748b', fontSize: 12 }}>{it.nota}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          {items.length > 0 && (
+            <tfoot>
+              <tr style={{ background: '#f1f5f9', fontWeight: 700, borderTop: '2px solid #94a3b8' }}>
+                <td style={{ padding: '10px 14px' }} colSpan={4}>TOTALES</td>
+                <td style={{ padding: '10px 14px', textAlign: 'right' }}>C$ {r.total?.toFixed(2)}</td>
+                <td style={{ padding: '10px 14px' }}></td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ArqueosView({ data }) {
+  if (!data) return null
+  const r = data.resumen || {}
+  const cajas = data.cajas || []
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginBottom: 16 }}>
+        <div style={{ borderRadius: 10, padding: 14, background: '#dcfce7', border: '1px solid #bbf7d0' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#16a34a' }}>Ventas efectivo C$</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#15803d' }}>C$ {r.ventasEfectivoCs?.toFixed(2)}</div>
+        </div>
+        <div style={{ borderRadius: 10, padding: 14, background: '#dbeafe', border: '1px solid #bfdbfe' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#2563eb' }}>Ventas efectivo USD</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#1d4ed8' }}>$ {r.ventasEfectivoUs?.toFixed(2)}</div>
+        </div>
+        <div style={{ borderRadius: 10, padding: 14, background: '#fef3c7', border: '1px solid #fde68a' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#d97706' }}>Abonos de clientes</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#92400e' }}>C$ {r.abonos?.toFixed(2)}</div>
+        </div>
+        <div style={{ borderRadius: 10, padding: 14, background: '#fce7f3', border: '1px solid #fbcfe8' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#db2777' }}>Tarjeta + Transfer</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#be185d' }}>C$ {((r.ventasTarjeta || 0) + (r.ventasTransfer || 0)).toFixed(2)}</div>
+        </div>
+        <div style={{ borderRadius: 10, padding: 14, background: '#f3e8ff', border: '1px solid #e9d5ff' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed' }}>Diferencia total C$</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: (r.diferencia || 0) >= 0 ? '#7c3aed' : '#dc2626' }}>C$ {r.diferencia?.toFixed(2)}</div>
+        </div>
+        <div style={{ borderRadius: 10, padding: 14, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>Cierres</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#334155' }}>{r.cantidad || 0}</div>
+        </div>
+      </div>
+
+      <div className="card table-wrap" style={{ padding: 0, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+              {['Fecha cierre', 'Cerró', 'Ventas C$', 'Abonos C$', 'Ing.Extra C$', 'Egresos C$', 'Real C$', 'Dif. C$', 'Real $', 'Dif. $'].map(h => (
+                <th key={h} style={{ padding: '10px 12px', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', textAlign: h === 'Fecha cierre' || h === 'Cerró' ? 'left' : 'right' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cajas.length === 0 ? (
+              <tr><td colSpan={10} style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Sin cierres en el período</td></tr>
+            ) : (
+              cajas.map((c, i) => (
+                <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                  <td style={{ padding: '10px 12px', fontWeight: 600 }}>{new Date(c.cerradaEn).toLocaleDateString('es-NI')}</td>
+                  <td style={{ padding: '10px 12px' }}>{c.usuarioCierre}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {(c.ventasEfectivoCs || 0).toFixed(2)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {(c.abonosTotal || 0).toFixed(2)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {(c.ingresosExtra || 0).toFixed(2)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>C$ {(c.egresos || 0).toFixed(2)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>C$ {(c.efectivoRealCs || 0).toFixed(2)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: (c.diferencia || 0) < 0 ? '#dc2626' : (c.diferencia || 0) > 0 ? '#d97706' : '#16a34a' }}>
+                    C$ {(c.diferencia || 0).toFixed(2)}
+                  </td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right' }}>$ {(c.efectivoRealUs || 0).toFixed(2)}</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: (c.diferenciaUs || 0) < 0 ? '#dc2626' : (c.diferenciaUs || 0) > 0 ? '#d97706' : '#16a34a' }}>
+                    $ {(c.diferenciaUs || 0).toFixed(2)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          {cajas.length > 0 && (
+            <tfoot>
+              <tr style={{ background: '#f1f5f9', fontWeight: 700, borderTop: '2px solid #94a3b8' }}>
+                <td style={{ padding: '10px 12px' }} colSpan={2}>TOTALES</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {r.ventasEfectivoCs?.toFixed(2)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {r.abonos?.toFixed(2)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {r.ingresosExtra?.toFixed(2)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {r.egresos?.toFixed(2)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {r.efectivoRealCs?.toFixed(2)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {r.diferencia?.toFixed(2)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>$ {r.efectivoRealUs?.toFixed(2)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right' }}>$ {r.diferenciaUs?.toFixed(2)}</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>

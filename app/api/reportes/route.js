@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { calcularCajaStats } from '@/lib/cajaStats'
 
 function parseFechas(searchParams) {
   let desde = searchParams.get('desde')
@@ -29,6 +30,8 @@ export async function GET(req) {
     if (tipo === 'mermas') return mermas(req)
     if (tipo === 'fiscal') return fiscal(req)
     if (tipo === 'ganancias') return ganancias(req)
+    if (tipo === 'abonos') return abonosReporte(searchParams)
+    if (tipo === 'arqueos') return arqueosReporte(searchParams)
 
     // ── Resumen original ─────────────────────────────────────────
     const { desde, hasta, where } = parseFechas(searchParams)
@@ -550,6 +553,109 @@ async function ganancias(req) {
       gastos: totalGastos,
       gananciaNeta: totalNeto,
       margenNeto: totalVentas > 0 ? (totalNeto / totalVentas * 100) : 0,
+    }
+  })
+}
+
+async function abonosReporte(searchParams) {
+  const { desde, hasta } = parseFechas(searchParams)
+  const rango = { gte: new Date(desde), lte: new Date(hasta + 'T23:59:59.999Z') }
+
+  const [abonos, abonosCompra] = await Promise.all([
+    prisma.abono.findMany({
+      where: { creadoEn: rango },
+      include: { factura: { include: { cliente: true } } },
+      orderBy: { creadoEn: 'asc' }
+    }),
+    prisma.abonoCompra.findMany({
+      where: { creadoEn: rango },
+      include: { compra: { include: { proveedor: true } } },
+      orderBy: { creadoEn: 'asc' }
+    })
+  ])
+
+  const items = [
+    ...abonos.map(a => ({
+      id: a.id,
+      tipo: 'Cliente',
+      documento: a.factura.numero,
+      nombre: a.factura.cliente?.nombre || 'Sin cliente',
+      monto: a.monto,
+      nota: a.nota || '',
+      fecha: a.creadoEn
+    })),
+    ...abonosCompra.map(a => ({
+      id: 'c' + a.id,
+      tipo: 'Proveedor',
+      documento: a.compra.numero,
+      nombre: a.compra.proveedor?.nombre || 'Sin proveedor',
+      monto: a.monto,
+      nota: a.nota || '',
+      fecha: a.creadoEn
+    }))
+  ].sort((x, y) => new Date(x.fecha) - new Date(y.fecha))
+
+  const porDia = {}
+  items.forEach(it => {
+    const d = new Date(it.fecha).toISOString().split('T')[0]
+    if (!porDia[d]) porDia[d] = { dia: d, cantidad: 0, total: 0, clientes: 0, proveedores: 0 }
+    porDia[d].cantidad++
+    porDia[d].total += it.monto
+    if (it.tipo === 'Cliente') porDia[d].clientes += it.monto
+    else porDia[d].proveedores += it.monto
+  })
+
+  const totalClientes = abonos.reduce((s, a) => s + a.monto, 0)
+  const totalProveedores = abonosCompra.reduce((s, a) => s + a.monto, 0)
+
+  return NextResponse.json({
+    items,
+    porDia: Object.values(porDia).sort((a, b) => a.dia.localeCompare(b.dia)),
+    resumen: {
+      total: totalClientes + totalProveedores,
+      clientes: totalClientes,
+      proveedores: totalProveedores,
+      cantidad: items.length,
+      desde, hasta
+    }
+  })
+}
+
+async function arqueosReporte(searchParams) {
+  const { desde, hasta } = parseFechas(searchParams)
+  const rango = { gte: new Date(desde), lte: new Date(hasta + 'T23:59:59.999Z') }
+
+  const cajas = await prisma.caja.findMany({
+    where: { estado: 'cerrada', cerradaEn: rango },
+    include: { arqueo: true, movimientos: { orderBy: { creadoEn: 'asc' } } },
+    orderBy: { cerradaEn: 'asc' }
+  })
+
+  const conStats = await Promise.all(cajas.map(async c => {
+    const stats = await calcularCajaStats(c)
+    return { ...c, ...stats }
+  }))
+
+  const sum = (arr, key) => arr.reduce((s, c) => s + (c[key] || 0), 0)
+
+  return NextResponse.json({
+    cajas: conStats,
+    resumen: {
+      cantidad: conStats.length,
+      desde, hasta,
+      ventasEfectivoCs: sum(conStats, 'ventasEfectivoCs'),
+      ventasEfectivoUs: sum(conStats, 'ventasEfectivoUs'),
+      abonos: sum(conStats, 'abonosTotal'),
+      ventasTarjeta: sum(conStats, 'ventasTarjeta'),
+      ventasTransfer: sum(conStats, 'ventasTransfer'),
+      ingresosExtra: sum(conStats, 'ingresosExtra'),
+      ingresosExtraUs: sum(conStats, 'ingresosExtraUs'),
+      egresos: sum(conStats, 'egresos'),
+      egresosUs: sum(conStats, 'egresosUs'),
+      efectivoRealCs: sum(conStats, 'efectivoRealCs'),
+      efectivoRealUs: sum(conStats, 'efectivoRealUs'),
+      diferencia: sum(conStats, 'diferencia'),
+      diferenciaUs: sum(conStats, 'diferenciaUs')
     }
   })
 }
