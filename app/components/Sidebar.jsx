@@ -111,6 +111,7 @@ export default function Sidebar() {
         {!collapsed && <div style={{ color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', padding: '16px 10px 8px', fontWeight: 600 }}>Ayuda</div>}
         {[
           { href: '/manual', icono: 'BookOpen', label: 'Manual' },
+          { href: '/movil', icono: 'Smartphone', label: 'Vista Móvil' },
         ].map(item => {
           const activo = pathname === item.href
           const IconComp = Icons[item.icono]

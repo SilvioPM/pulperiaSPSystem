@@ -32,6 +32,7 @@ export async function GET(req) {
     if (tipo === 'ganancias') return ganancias(req)
     if (tipo === 'abonos') return abonosReporte(searchParams)
     if (tipo === 'arqueos') return arqueosReporte(searchParams)
+    if (tipo === 'hoy') return hoyReporte()
 
     // ── Resumen original ─────────────────────────────────────────
     const { desde, hasta, where } = parseFechas(searchParams)
@@ -658,4 +659,98 @@ async function arqueosReporte(searchParams) {
       diferenciaUs: sum(conStats, 'diferenciaUs')
     }
   })
+}
+
+async function hoyReporte() {
+  const OFFSET_HORAS = 6 // Nicaragua UTC-6
+  const localNow = new Date(Date.now() - OFFSET_HORAS * 3600 * 1000)
+  const hoyStart = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate()))
+  const ayerStart = new Date(hoyStart.getTime() - 24 * 3600 * 1000)
+  const mananaStart = new Date(hoyStart.getTime() + 24 * 3600 * 1000)
+
+  async function dia(start, end) {
+    const [facturas, abonos, abonosCompra, gastos] = await Promise.all([
+      prisma.factura.findMany({
+        where: { creadoEn: { gte: start, lt: end }, estado: { not: 'anulada' } },
+        include: { detalles: { include: { producto: true } } }
+      }),
+      prisma.abono.findMany({ where: { creadoEn: { gte: start, lt: end } } }),
+      prisma.abonoCompra.findMany({ where: { creadoEn: { gte: start, lt: end } } }),
+      prisma.gasto.findMany({ where: { fecha: { gte: start, lt: end } } })
+    ])
+
+    let ventas = 0, costo = 0, efectivoCs = 0, efectivoUs = 0, tarjeta = 0, transfer = 0
+    for (const f of facturas) {
+      ventas += f.total
+      f.detalles.forEach(d => { costo += (d.costo > 0 ? d.costo : (d.producto?.costo || 0)) * d.cantidad })
+      let dp = []
+      try { dp = f.detallesPago ? JSON.parse(f.detallesPago) : [] } catch {}
+      if (dp.length > 0) {
+        for (const p of dp) {
+          if (p.metodo === 'credito') continue
+          const monto = parseFloat(p.monto || 0)
+          if (p.metodo === 'efectivo' && p.moneda === 'C$') efectivoCs += monto
+          else if (p.metodo === 'efectivo' && p.moneda === '$') efectivoUs += monto
+          else if (p.metodo === 'dolares') efectivoUs += monto
+          else if (p.metodo === 'tarjeta') tarjeta += monto
+          else if (p.metodo === 'transferencia') transfer += monto
+        }
+      } else {
+        if (f.metodoPago === 'credito') continue
+        const monto = f.metodoPago === 'dolares' ? (f.pagoEnUsd || f.pagoCon || 0) : f.total
+        if (f.metodoPago === 'efectivo') efectivoCs += monto
+        else if (f.metodoPago === 'dolares') efectivoUs += monto
+        else if (f.metodoPago === 'tarjeta') tarjeta += monto
+        else if (f.metodoPago === 'transferencia') transfer += monto
+      }
+    }
+
+    const abonosTotal = abonos.reduce((s, a) => s + a.monto, 0)
+    const gastosTotal = gastos.reduce((s, g) => s + g.monto, 0)
+
+    return {
+      ventas: parseFloat(ventas.toFixed(2)),
+      costo: parseFloat(costo.toFixed(2)),
+      ganancia: parseFloat((ventas - costo).toFixed(2)),
+      gastos: parseFloat(gastosTotal.toFixed(2)),
+      neto: parseFloat((ventas - costo - gastosTotal).toFixed(2)),
+      numFacturas: facturas.length,
+      ticketPromedio: facturas.length > 0 ? parseFloat((ventas / facturas.length).toFixed(2)) : 0,
+      efectivoCs: parseFloat(efectivoCs.toFixed(2)),
+      efectivoUs: parseFloat(efectivoUs.toFixed(2)),
+      tarjeta: parseFloat(tarjeta.toFixed(2)),
+      transfer: parseFloat(transfer.toFixed(2)),
+      abonos: parseFloat(abonosTotal.toFixed(2)),
+      abonosProveedores: parseFloat(abonosCompra.reduce((s, a) => s + a.monto, 0).toFixed(2))
+    }
+  }
+
+  const [hoy, ayer, cajaAbierta] = await Promise.all([
+    dia(hoyStart, mananaStart),
+    dia(ayerStart, hoyStart),
+    prisma.caja.findFirst({ where: { estado: 'abierta' }, orderBy: { id: 'desc' } })
+  ])
+
+  let caja = null
+  if (cajaAbierta) {
+    const stats = await calcularCajaStats(cajaAbierta)
+    caja = {
+      id: cajaAbierta.id,
+      abiertaEn: cajaAbierta.abiertaEn,
+      usuarioApertura: cajaAbierta.usuarioApertura,
+      montoInicial: cajaAbierta.montoInicial,
+      montoInicialUs: cajaAbierta.montoInicialUs,
+      ingresosExtra: cajaAbierta.ingresosExtra,
+      ingresosExtraUs: cajaAbierta.ingresosExtraUs,
+      egresos: cajaAbierta.egresos,
+      egresosUs: cajaAbierta.egresosUs,
+      ...stats
+    }
+  }
+
+  const comparacion = ayer.ventas > 0
+    ? parseFloat(((hoy.ventas - ayer.ventas) / ayer.ventas * 100).toFixed(1))
+    : (hoy.ventas > 0 ? 100 : 0)
+
+  return NextResponse.json({ hoy, ayer, comparacion, caja })
 }

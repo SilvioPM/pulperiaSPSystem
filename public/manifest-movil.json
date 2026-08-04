@@ -1,0 +1,23 @@
+{
+  "name": "SPSystem Móvil",
+  "short_name": "SPSystem",
+  "description": "Reportes y control del negocio desde el celular",
+  "start_url": "/movil",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

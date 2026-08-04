@@ -19,6 +19,7 @@ const MODULO_POR_RUTA = {
   '/proformas': 'proformas',
   '/gastos': 'gastos',
   '/reportes': 'reportes',
+  '/movil': 'reportes',
   '/configuracion': 'configuracion',
   '/usuarios': 'usuarios',
 }

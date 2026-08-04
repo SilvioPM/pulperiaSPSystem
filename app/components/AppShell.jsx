@@ -11,12 +11,18 @@ export default function AppShell({ children }) {
   const { user } = useAuth()
   const pathname = usePathname()
   const esPos = pathname?.startsWith('/pos')
+  const esMovil = pathname?.startsWith('/movil')
 
   return (
     <AuthGuard>
       <TecladoVirtualProvider>
         {user ? (
-          <div style={{ display: 'flex', minHeight: '100vh' }}>
+          esMovil ? (
+            <LicenseGuard>
+              {children}
+            </LicenseGuard>
+          ) : (
+            <div style={{ display: 'flex', minHeight: '100vh' }}>
             <Sidebar />
             <main id="main-content-area" className="compact-main" style={{
               flex: 1,
@@ -31,7 +37,8 @@ export default function AppShell({ children }) {
               </LicenseGuard>
             </main>
             <MobileNav />
-          </div>
+            </div>
+          )
         ) : (
           children
         )}
