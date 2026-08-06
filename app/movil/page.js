@@ -40,6 +40,31 @@ export default function MovilPage() {
   const [sinConexion, setSinConexion] = useState(false)
   const [ultima, setUltima] = useState(null)
   const [vistaGraf, setVistaGraf] = useState('7d')
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [mostrarInstrucciones, setMostrarInstrucciones] = useState(false)
+  const [esStandalone, setEsStandalone] = useState(false)
+
+  useEffect(() => {
+    function onPrompt(e) {
+      e.preventDefault()
+      setInstallPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    setEsStandalone(window.matchMedia('(display-mode: standalone)').matches)
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
+  }, [])
+
+  async function instalarApp() {
+    if (installPrompt) {
+      installPrompt.prompt()
+      try {
+        const { outcome } = await installPrompt.userChoice
+        if (outcome === 'accepted') setInstallPrompt(null)
+      } catch {}
+    } else {
+      setMostrarInstrucciones(true)
+    }
+  }
 
   async function refrescar() {
     const desde = fechaLocal(29)
@@ -89,8 +114,6 @@ export default function MovilPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9', maxWidth: 520, margin: '0 auto' }}>
-      <link rel="manifest" href="/manifest-movil.json" />
-
       {/* Header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20, background: '#1e293b', color: 'white',
@@ -104,6 +127,11 @@ export default function MovilPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
+          {!esStandalone && (
+            <button onClick={instalarApp} style={{ background: '#16a34a', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px 12px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700 }} title="Descargar app">
+              <Icons.Download size={16} /> Descargar
+            </button>
+          )}
           <button onClick={refrescar} style={{ background: 'none', border: 'none', color: '#e2e8f0', cursor: 'pointer', padding: 8 }} title="Actualizar">
             <Icons.RefreshCw size={19} />
           </button>
@@ -481,6 +509,47 @@ export default function MovilPage() {
           )
         })}
       </nav>
+
+      {/* Modal de instrucciones de instalación */}
+      {mostrarInstrucciones && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20
+        }} onClick={() => setMostrarInstrucciones(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: 14, width: '100%', maxWidth: 420,
+            padding: 20, maxHeight: '90vh', overflowY: 'auto'
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1e293b', marginBottom: 12 }}>Instalar la app</div>
+            <div style={{ fontSize: 13, color: '#475569', marginBottom: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, wordBreak: 'break-all' }}>
+              Dirección: <b>{typeof window !== 'undefined' ? window.location.origin : ''}/movil</b>
+            </div>
+            <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>
+              <b style={{ color: '#1e293b' }}>En Android (Chrome):</b>
+              <ol style={{ margin: '6px 0 14px', paddingLeft: 20 }}>
+                <li>Entrá a la dirección de arriba e iniciá sesión.</li>
+                <li>Tocá los tres puntos ⋮ (arriba a la derecha).</li>
+                <li>Elegí «Instalar aplicación» o «Agregar a pantalla de inicio».</li>
+                <li>Confirmá y el ícono quedará en tu pantalla de inicio.</li>
+              </ol>
+              <b style={{ color: '#1e293b' }}>En iPhone (Safari):</b>
+              <ol style={{ margin: '6px 0 14px', paddingLeft: 20 }}>
+                <li>Entrá a la dirección de arriba e iniciá sesión.</li>
+                <li>Tocá el botón Compartir (la flecha hacia arriba, abajo).</li>
+                <li>Elegí «Agregar a pantalla de inicio».</li>
+              </ol>
+              <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 12.5, color: '#92400e' }}>
+                Si ya tenés la app vieja instalada (la que abre el sistema completo del POS), eliminála del teléfono e
+                instalá de nuevo desde <b>/movil</b> para que abra solo la vista de reportes.
+              </div>
+            </div>
+            <button onClick={() => setMostrarInstrucciones(false)} style={{
+              marginTop: 16, width: '100%', padding: 12, background: '#16a34a', color: '#fff',
+              border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer'
+            }}>Entendido</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
