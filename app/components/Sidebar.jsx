@@ -31,7 +31,7 @@ export default function Sidebar() {
   const menu = modulosPermitidos().map(m => ({ href: m.path, icono: m.icono, label: m.label }))
 
   return (
-    <aside style={{
+    <aside className="sidebar-desktop" style={{
       width: collapsed ? '64px' : '220px',
       background: '#1e293b',
       color: 'white',

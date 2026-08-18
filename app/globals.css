@@ -118,6 +118,15 @@ input::placeholder {
   padding: 20px;
 }
 
+.mobile-nav {
+  display: none;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 380px;
+}
+
 table {
   background: var(--card-bg);
 }
@@ -180,6 +189,12 @@ td {
 @media (max-width: 768px) {
   body {
     overflow-x: hidden;
+  }
+  .sidebar-desktop {
+    display: none !important;
+  }
+  .mobile-nav {
+    display: flex !important;
   }
   .scroll-x {
     overflow-x: auto !important;

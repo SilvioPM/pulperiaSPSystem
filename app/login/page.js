@@ -69,9 +69,9 @@ export default function LoginPage() {
         top: '40%', right: '15%'
       }} />
 
-      <form onSubmit={handleSubmit} style={{
+      <form onSubmit={handleSubmit} className="login-form" style={{
         background: 'rgba(30,41,59,0.95)', padding: '48px 40px 40px',
-        borderRadius: '20px', width: '380px',
+        borderRadius: '20px',
         boxShadow: '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)',
         position: 'relative', backdropFilter: 'blur(10px)'
       }}>
