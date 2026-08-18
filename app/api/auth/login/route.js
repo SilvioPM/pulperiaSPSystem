@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { firmarToken, COOKIE_NAME } from '@/lib/auth'
+import { auditar } from '@/lib/auditar'
 
 const rateLimitMap = new Map()
 
@@ -38,19 +39,29 @@ export async function POST(req) {
       return Response.json({ error: 'Usuario y contraseña requeridos' }, { status: 400 })
     }
 
-    const usuario = await prisma.usuario.findUnique({ where: { username } })
-    if (!usuario || !usuario.activo) {
+    const usernameNormalizado = String(username || '').trim().replace(/\s+/g, ' ')
+    const usuario = await prisma.usuario.findFirst({
+      where: { username: { equals: usernameNormalizado, mode: 'insensitive' } }
+    })
+    if (!usuario) {
+      await auditar({ usuario: usernameNormalizado || 'desconocido', accion: 'login-fallido', entidad: 'usuario', detalle: `Usuario no encontrado (IP ${ip})` })
+      return Response.json({ error: 'Credenciales inválidas' }, { status: 401 })
+    }
+    if (!usuario.activo) {
+      await auditar({ usuario: usuario.username, accion: 'login-fallido', entidad: 'usuario', detalle: 'Usuario inactivo' })
       return Response.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
 
     if (usuario.bloqueadoHasta && new Date(usuario.bloqueadoHasta) > new Date()) {
       const falta = Math.ceil((new Date(usuario.bloqueadoHasta) - new Date()) / 1000 / 60)
+      await auditar({ usuario: usuario.username, accion: 'login-bloqueado', entidad: 'usuario', detalle: `Cuenta bloqueada, reintento con contraseña (IP ${ip})` })
       return Response.json({ error: `Usuario bloqueado. Intente de nuevo en ${falta} minuto(s)` }, { status: 423 })
     }
 
     const valido = await bcrypt.compare(password, usuario.password)
 
     if (!valido) {
+      await auditar({ usuario: usuario.username, accion: 'login-fallido', entidad: 'usuario', detalle: `Contraseña incorrecta (IP ${ip})` })
       const nuevos = (usuario.intentosFallidos || 0) + 1
       const data = { intentosFallidos: nuevos }
 

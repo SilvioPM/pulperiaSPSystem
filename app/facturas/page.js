@@ -7,6 +7,7 @@ import * as Icons from 'lucide-react'
 
 export default function Facturas() {
   const { user, puedeEditar } = useAuth()
+  const POR_PAGINA = 50
   const [facturas, setFacturas]     = useState([])
   const [facturasHoy, setFacturasHoy] = useState([])
   const [totalFacturas, setTotalFacturas] = useState(0)
@@ -37,7 +38,7 @@ export default function Facturas() {
 
   async function cargarFacturas(p) {
     try {
-      const res  = await fetch(`/api/facturas?page=${p || 1}&limit=10000${buscando ? `&buscar=${buscando}` : ''}`)
+      const res  = await fetch(`/api/facturas?page=${p || 1}&limit=${POR_PAGINA}${buscando ? `&buscar=${buscando}` : ''}`)
       const data = await res.json()
       setFacturas(Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [])
       setTotalFacturas(data.total || 0)
@@ -99,6 +100,20 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     })
+  }
+
+  function generarPaginas(actual, total) {
+    const set = new Set([1, total])
+    for (let i = Math.max(2, actual - 1); i <= Math.min(total - 1, actual + 1); i++) set.add(i)
+    const lista = [...set].sort((a, b) => a - b)
+    const out = []
+    let prev = 0
+    for (const p of lista) {
+      if (p - prev > 1) out.push('...')
+      out.push(p)
+      prev = p
+    }
+    return out
   }
 
   const puedeAnular = puedeEditar('facturas')
@@ -297,16 +312,29 @@ ${config?.mensajePie || '¡Gracias por su compra! 🙏'}
 
       {/* Paginación */}
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
-          <button onClick={() => cargarFacturas(page - 1)} disabled={page <= 1} style={{
-            padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page <= 1 ? '#f1f5f9' : '#fff',
-            cursor: page <= 1 ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, color: page <= 1 ? '#94a3b8' : '#1e293b'
-          }}>‹ Anterior</button>
-          <span style={{ fontSize: 13, color: '#475569' }}>Pág. {page} de {totalPages} ({totalFacturas} facturas)</span>
-          <button onClick={() => cargarFacturas(page + 1)} disabled={page >= totalPages} style={{
-            padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: page >= totalPages ? '#f1f5f9' : '#fff',
-            cursor: page >= totalPages ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, color: page >= totalPages ? '#94a3b8' : '#1e293b'
-          }}>Siguiente ›</button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <button onClick={() => cargarFacturas(page - 1)} disabled={page <= 1} style={{
+              padding: '8px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: page <= 1 ? '#f1f5f9' : '#fff',
+              cursor: page <= 1 ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, color: page <= 1 ? '#94a3b8' : '#1e293b'
+            }}>‹ Anterior</button>
+            {generarPaginas(page, totalPages).map((p, i) =>
+              p === '...' ? (
+                <span key={`e${i}`} style={{ color: '#94a3b8', padding: '0 2px', fontSize: 13 }}>…</span>
+              ) : (
+                <button key={p} onClick={() => cargarFacturas(p)} disabled={p === page} style={{
+                  minWidth: 36, height: 36, borderRadius: 8, border: p === page ? 'none' : '1px solid #e2e8f0',
+                  background: p === page ? '#16a34a' : '#fff', color: p === page ? '#fff' : '#1e293b',
+                  cursor: 'pointer', fontWeight: 600, fontSize: 13
+                }}>{p}</button>
+              )
+            )}
+            <button onClick={() => cargarFacturas(page + 1)} disabled={page >= totalPages} style={{
+              padding: '8px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: page >= totalPages ? '#f1f5f9' : '#fff',
+              cursor: page >= totalPages ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, color: page >= totalPages ? '#94a3b8' : '#1e293b'
+            }}>Siguiente ›</button>
+          </div>
+          <span style={{ fontSize: 12, color: '#94a3b8' }}>Pág. {page} de {totalPages} · {totalFacturas} facturas en total</span>
         </div>
       )}
 
