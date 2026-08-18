@@ -61,7 +61,7 @@ export default function Gastos() {
 
   return (
     <div style={{ padding: '24px', maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}><Icons.Wallet size={20} /> Gastos</h1>
           <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Registrá y controlá los gastos del negocio</p>

@@ -382,7 +382,7 @@ _Esta es una cotización, no una factura oficial._
       {/* Modal nueva proforma */}
       {mostrarForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', boxSizing: 'border-box', zIndex: 50 }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', width: 'min(95vw, 900px)', maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 40}px)` : '90vh', overflowY: 'auto', display: 'flex', gap: '20px' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '24px', width: 'min(95vw, 900px)', maxHeight: tecladoVisible ? `calc(100vh - ${tecladoAltura + 40}px)` : '90vh', overflowY: 'auto', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
 
             {/* Panel izquierdo — productos */}
             <div style={{ flex: 1 }}>
@@ -430,7 +430,7 @@ _Esta es una cotización, no una factura oficial._
             </div>
 
             {/* Panel derecho — detalle */}
-            <div style={{ width: '340px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ width: '100%', maxWidth: '340px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><Icons.FileText size={18} /> Detalle</h3>
                 <button onClick={() => { setMostrarForm(false); setCarrito([]); setPresentacionSel({}) }}

@@ -169,7 +169,8 @@ export default function UsuariosPage() {
         </form>
       )}
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <thead>
           <tr style={{ background: '#f8fafc' }}>
             <th style={thStyle}>Username</th>
@@ -200,6 +201,7 @@ export default function UsuariosPage() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

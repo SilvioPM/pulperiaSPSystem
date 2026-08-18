@@ -240,6 +240,29 @@ td {
   .card * {
     max-width: 100%;
   }
+
+  /* Modales y paneles de ancho fijo → caben en la pantalla */
+  [style*="width: 340px"],
+  [style*="width: 380px"],
+  [style*="width: 400px"],
+  [style*="width: 420px"],
+  [style*="width: 460px"],
+  [style*="width: 480px"],
+  [style*="width: 500px"],
+  [style*="width: 520px"],
+  [style*="width: 540px"] {
+    width: calc(100vw - 24px) !important;
+    max-width: 100vw !important;
+  }
+
+  /* Grids rígidos → menos columnas en celular */
+  [style*="grid-template-columns: repeat(2, 1fr)"] { grid-template-columns: 1fr !important; }
+  [style*="grid-template-columns: repeat(3, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="grid-template-columns: repeat(4, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="grid-template-columns: 1fr 1fr 1fr 1fr"] { grid-template-columns: repeat(2, 1fr) !important; }
+
+  .login-form { padding: 32px 20px !important; }
 }
 
 @media print {
