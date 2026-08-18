@@ -1,7 +1,10 @@
 /**
  * Genera un archivo .lic para un cliente.
- * Uso: node scripts/generar-licencia.js [machineId] [dias]
- *      node scripts/generar-licencia.js --interactivo
+ * Uso: node scripts/generar-licencia.js [machineId] [dias] [--secreto <secretoDelCliente>]
+ *      node scripts/generar-licencia.js --interactivo [--secreto <secretoDelCliente>]
+ *
+ * --secreto: secreto APP_LICENSE_SECRET del cliente (instalaciones nuevas con secretos unicos).
+ * Si no se pasa --secreto, usa el APP_LICENSE_SECRET del .env local (instalaciones viejas).
  */
 
 const crypto = require('crypto')
@@ -9,7 +12,8 @@ const fs = require('fs')
 const path = require('path')
 const readline = require('readline')
 
-const LICENCIA_SECRET = process.env.APP_LICENSE_SECRET
+const idxSecreto = process.argv.indexOf('--secreto')
+const LICENCIA_SECRET = idxSecreto > -1 ? process.argv[idxSecreto + 1] : process.env.APP_LICENSE_SECRET
 
 const OPCIONES_DIAS = [
   { label: '7 días (prueba)', dias: 7 },

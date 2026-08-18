@@ -2,6 +2,11 @@ param(
   [string[]]$ComputerName
 )
 
+# ADVERTENCIA: Este script es SOLO para instalaciones NUEVAS.
+# Para ACTUALIZAR un sistema ya instalado use:
+#   git pull + docker compose build app + docker compose up -d
+# (nunca borre volumenes: contienen la base de datos)
+
 $ErrorActionPreference = 'Stop'
 $logFile = "deploy-20260725-202508.log"
 $hostname = $env:COMPUTERNAME
@@ -13,15 +18,13 @@ function Log {
   Add-Content -Path $logFile -Value $line
 }
 
-# -- 1. Detener y limpiar Docker --
+# -- 1. Detener y limpiar Docker (sin borrar volumenes) --
 Log "Deteniendo contenedores..."
-docker compose down -v 2>&1 | Out-Null
+docker compose down 2>&1 | Out-Null
 Log "Eliminando contenedores antiguos..."
 docker container prune -f 2>&1 | Out-Null
 Log "Eliminando imagenes sin usar..."
-docker image prune -af 2>&1 | Out-Null
-Log "Eliminando volumenes huerfanos..."
-docker volume prune -f 2>&1 | Out-Null
+docker image prune -f 2>&1 | Out-Null
 
 # -- 2. Pull de imagenes base --
 $images = @("postgres:16-alpine", "node:20-bookworm-slim")
