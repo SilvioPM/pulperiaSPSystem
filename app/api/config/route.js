@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET() {
   try {
@@ -21,7 +22,7 @@ const CLAVES_BLOQUEADAS = ['licenciaToken', 'licenciaExpira', 'machineId']
 
 export async function POST(request) {
   try {
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 500)
     // Evitar que se sobrescriban claves sensibles vía mass assignment
     const entradas = Object.entries(body).filter(([clave]) =>
       !CLAVES_BLOQUEADAS.some(bloqueada => clave.toLowerCase().includes(bloqueada.toLowerCase()))

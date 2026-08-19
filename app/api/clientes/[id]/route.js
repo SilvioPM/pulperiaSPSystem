@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { parseNumber } from '@/lib/number'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function DELETE(request, { params }) {
   try {
@@ -19,7 +20,7 @@ export async function DELETE(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const id = parseInt(params.id)
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 300)
     const cliente = await prisma.cliente.update({
       where: { id },
       data: {

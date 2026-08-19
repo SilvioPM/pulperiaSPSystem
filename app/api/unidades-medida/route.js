@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET() {
   try {
@@ -14,7 +15,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 100)
     const nombre = String(body.nombre || '').trim()
     if (!nombre) return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 })
     const existe = await prisma.unidadMedida.findUnique({ where: { nombre } })
@@ -34,7 +35,7 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 100)
     const id = parseInt(body.id)
     const nombre = String(body.nombre || '').trim()
     if (!id || !nombre) return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })

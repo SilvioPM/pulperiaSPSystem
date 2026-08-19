@@ -19,4 +19,4 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy 2>&1; npx prisma db push --accept-data-loss 2>&1; npx prisma db seed 2>&1 || :; SPSYSTEM_BACKUP_DIR=${SPSYSTEM_BACKUP_DIR:-/app/respaldos} node /app/lib/backup-cron.mjs & exec npx next start"]
+CMD ["sh", "-c", "npx prisma migrate deploy 2>&1; npx prisma db push --accept-data-loss 2>&1; psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f /app/prisma/rls.sql 2>&1; npx prisma db seed 2>&1 || :; SPSYSTEM_BACKUP_DIR=${SPSYSTEM_BACKUP_DIR:-/app/respaldos} node /app/lib/backup-cron.mjs & exec npx next start"]

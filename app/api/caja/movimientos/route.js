@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET() {
   try {
@@ -15,7 +16,8 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const { tipo, concepto, moneda, monto } = await req.json()
+    const body = sanitizarEntrada(await req.json(), 300)
+    const { tipo, concepto, moneda, monto } = body
     if (!tipo || !concepto || !moneda || monto === undefined) {
       return NextResponse.json({ error: 'Todos los campos son requeridos' }, { status: 400 })
     }

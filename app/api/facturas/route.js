@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { parseNumber } from '@/lib/number'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 // GET — Obtener todas las facturas (con paginación)
 export async function GET(req) {
@@ -62,7 +63,7 @@ export async function GET(req) {
 // POST — Crear una nueva factura (venta)
 export async function POST(request) {
   try {
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 500, ['password'])
 
     // Validaciones básicas
     if (!body.detalles || !Array.isArray(body.detalles) || body.detalles.length === 0) {

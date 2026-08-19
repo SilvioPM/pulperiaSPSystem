@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { parseNumber } from '@/lib/number'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 // GET — Obtener todos los productos (con paginación)
 export async function GET(request) {
@@ -64,7 +65,7 @@ export async function GET(request) {
 // POST — Crear un nuevo producto
 export async function POST(request) {
   try {
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 200, ['codigosAlias'])
     const codigosAlias = Array.isArray(body.codigosAlias) ? body.codigosAlias.filter(c => c?.trim()) : []
 
     const producto = await prisma.producto.create({

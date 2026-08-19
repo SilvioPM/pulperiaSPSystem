@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 // GET - listar todos los tickets en espera
 export async function GET() {
@@ -22,7 +23,8 @@ export async function GET() {
 // POST - guardar un ticket en espera
 export async function POST(req) {
   try {
-    const { nombre, data } = await req.json()
+    const body = sanitizarEntrada(await req.json(), 100, ['data'])
+    const { nombre, data } = body
     const session = await prisma.cartSession.create({
       data: { nombre, data: JSON.stringify(data) }
     })

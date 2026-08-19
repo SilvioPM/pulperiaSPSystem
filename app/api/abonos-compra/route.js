@@ -1,10 +1,11 @@
 ﻿import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { parseNumber } from '@/lib/number'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function POST(request) {
   try {
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 300)
     const compraId = parseInt(body.compraId)
     const monto = parseNumber(body.monto)
     const fuente = body.fuente || 'otro'

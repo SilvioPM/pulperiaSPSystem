@@ -1,10 +1,12 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { calcularCajaStats } from '@/lib/cajaStats'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function POST(req) {
   try {
-    const { arqueo, observacion, usuario } = await req.json()
+    const body = sanitizarEntrada(await req.json(), 300, ['arqueo'])
+    const { arqueo, observacion, usuario } = body
 
     const caja = await prisma.caja.findFirst({ where: { estado: 'abierta' } })
     if (!caja) return NextResponse.json({ error: 'No hay caja abierta' }, { status: 400 })

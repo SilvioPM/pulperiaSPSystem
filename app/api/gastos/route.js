@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { parseNumber } from '@/lib/number'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET(req) {
   try {
@@ -36,7 +37,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const body = await req.json()
+    const body = sanitizarEntrada(await req.json(), 300)
     const metodoPago = body.metodoPago || 'efectivo'
     const gasto = await prisma.gasto.create({
       data: {

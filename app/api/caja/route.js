@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { calcularCajaStats } from '@/lib/cajaStats'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET() {
   try {
@@ -33,7 +34,8 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const { montoInicial, montoInicialUs, usuario } = await req.json()
+    const body = sanitizarEntrada(await req.json(), 200)
+    const { montoInicial, montoInicialUs, usuario } = body
 
     // Verificar que no haya una caja abierta
     const abierta = await prisma.caja.findFirst({ where: { estado: 'abierta' } })

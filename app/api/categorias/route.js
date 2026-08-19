@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET() {
   try {
@@ -15,7 +16,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const body     = await request.json()
+    const body     = sanitizarEntrada(await request.json(), 100)
     const categoria = await prisma.categoria.create({
       data: { nombre: body.nombre }
     })

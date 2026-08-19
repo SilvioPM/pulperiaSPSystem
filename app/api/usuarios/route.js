@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { obtenerUsuarioActual, filtrarCampos, CAMPOS_EDITABLES } from '@/lib/seguridad'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET() {
   try {
@@ -20,7 +21,7 @@ export async function POST(req) {
     const actual = await obtenerUsuarioActual()
     if (!actual) return Response.json({ error: 'No autorizado' }, { status: 401 })
 
-    let { username, password, nombre, esAdmin, rol, modulos } = await req.json()
+    let { username, password, nombre, esAdmin, rol, modulos } = sanitizarEntrada(await req.json(), 100, ['password', 'modulos'])
     username = username?.trim()
     nombre = nombre?.trim()
     if (!username || !password || !nombre) {
@@ -64,7 +65,7 @@ export async function PUT(req) {
     const actual = await obtenerUsuarioActual()
     if (!actual) return Response.json({ error: 'No autorizado' }, { status: 401 })
 
-    let { id, ...resto } = await req.json()
+    let { id, ...resto } = sanitizarEntrada(await req.json(), 100, ['password', 'modulos'])
     if (!id) return Response.json({ error: 'ID requerido' }, { status: 400 })
 
     // Protección contra mass assignment: solo campos permitidos según el rol

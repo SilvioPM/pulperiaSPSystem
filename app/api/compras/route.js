@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { parseNumber } from '@/lib/number'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET(req) {
   try {
@@ -52,7 +53,7 @@ export async function GET(req) {
 
 export async function POST(request) {
   try {
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 500)
     if (!body.detalles || !Array.isArray(body.detalles) || body.detalles.length === 0) {
       return NextResponse.json({ error: 'La compra debe tener al menos un detalle' }, { status: 400 })
     }

@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function PUT(request, { params }) {
   try {
     const id   = parseInt(params.id)
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 100)
 
     const proforma = await prisma.proforma.update({
       where: { id },
