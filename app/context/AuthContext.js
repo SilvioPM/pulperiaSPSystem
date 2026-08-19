@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
     verificar()
   }, [])
 
-  // Auto-logout por inactividad (30 min) + refresh de sesión cada 20 min
+  // Auto-logout por inactividad (5 min) + refresh de sesión cada 20 min
   useEffect(() => {
     if (!user) return
     let timer
@@ -55,9 +55,9 @@ export function AuthProvider({ children }) {
       timer = setTimeout(() => {
         logout()
         window.location.href = '/login'
-      }, 30 * 60 * 1000)
+      }, 5 * 60 * 1000)
     }
-    const eventos = ['mousedown', 'keydown', 'touchstart', 'scroll']
+    const eventos = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click']
     eventos.forEach(e => window.addEventListener(e, reiniciarTimer))
     reiniciarTimer()
     // Refrescar token cada 20 min

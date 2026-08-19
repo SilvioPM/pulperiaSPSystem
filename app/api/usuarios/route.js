@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { obtenerUsuarioActual, filtrarCampos, CAMPOS_EDITABLES } from '@/lib/seguridad'
 
 export async function GET() {
   try {
@@ -16,11 +17,21 @@ export async function GET() {
 
 export async function POST(req) {
   try {
+    const actual = await obtenerUsuarioActual()
+    if (!actual) return Response.json({ error: 'No autorizado' }, { status: 401 })
+
     let { username, password, nombre, esAdmin, rol, modulos } = await req.json()
     username = username?.trim()
     nombre = nombre?.trim()
     if (!username || !password || !nombre) {
       return Response.json({ error: 'Username, password y nombre requeridos' }, { status: 400 })
+    }
+
+    // Solo el administrador puede crear usuarios con privilegios
+    if (!actual.esAdmin) {
+      esAdmin = false
+      rol = 'cajero'
+      modulos = []
     }
 
     const existente = await prisma.usuario.findUnique({ where: { username } })
@@ -50,17 +61,28 @@ export async function POST(req) {
 
 export async function PUT(req) {
   try {
-    let { id, username, password, nombre, esAdmin, rol, modulos, activo } = await req.json()
+    const actual = await obtenerUsuarioActual()
+    if (!actual) return Response.json({ error: 'No autorizado' }, { status: 401 })
+
+    let { id, ...resto } = await req.json()
     if (!id) return Response.json({ error: 'ID requerido' }, { status: 400 })
 
+    // Protección contra mass assignment: solo campos permitidos según el rol
+    const permitidos = actual.esAdmin ? CAMPOS_EDITABLES.usuario.admin : CAMPOS_EDITABLES.usuario.estandar
+    const campos = filtrarCampos(resto, permitidos)
+
     const data = {}
-    if (username !== undefined) data.username = username.trim()
-    if (nombre !== undefined) data.nombre = nombre.trim()
-    if (esAdmin !== undefined) data.esAdmin = esAdmin
-    if (rol !== undefined) data.rol = rol
-    if (modulos !== undefined) data.modulos = JSON.stringify(modulos)
-    if (activo !== undefined) data.activo = activo
-    if (password) data.password = await bcrypt.hash(password, 10)
+    if (campos.username !== undefined) data.username = String(campos.username).trim()
+    if (campos.nombre !== undefined) data.nombre = String(campos.nombre).trim()
+    if (campos.esAdmin !== undefined) data.esAdmin = !!campos.esAdmin
+    if (campos.rol !== undefined) data.rol = campos.rol
+    if (campos.modulos !== undefined) data.modulos = JSON.stringify(campos.modulos)
+    if (campos.activo !== undefined) data.activo = !!campos.activo
+    if (campos.password) data.password = await bcrypt.hash(campos.password, 10)
+
+    if (Object.keys(data).length === 0) {
+      return Response.json({ error: 'No hay campos permitidos para actualizar' }, { status: 400 })
+    }
 
     const usuario = await prisma.usuario.update({ where: { id }, data })
     return Response.json({
