@@ -1,8 +1,15 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export async function POST(req, { params }) {
   try {
+    const ip = getClientIp(req)
+    const rl = rateLimit(ip, 3, 300000, 'anular-compra')
+    if (!rl.allowed) {
+      return Response.json({ error: `Demasiados intentos de anulación. Intente en ${rl.resetIn} segundos.` }, { status: 429 })
+    }
+
     const { id } = await params
     const { username, password } = await req.json()
 
@@ -25,20 +32,20 @@ export async function POST(req, { params }) {
       return Response.json({ error: 'No tiene permisos para anular compras' }, { status: 403 })
     }
 
-    const compraAnular = await prisma.compra.findUnique({
-      where: { id: parseInt(id) },
-      include: { detalles: true },
-    })
+    const resultado = await prisma.$transaction(async (tx) => {
+      const compraAnular = await tx.compra.findUnique({
+        where: { id: parseInt(id) },
+        include: { detalles: true },
+      })
 
-    if (!compraAnular) {
-      return Response.json({ error: 'Compra no encontrada' }, { status: 404 })
-    }
+      if (!compraAnular) {
+        throw new Error('Compra no encontrada')
+      }
 
-    if (compraAnular.estado === 'anulada') {
-      return Response.json({ error: 'La compra ya está anulada' }, { status: 400 })
-    }
+      if (compraAnular.estado === 'anulada') {
+        throw new Error('La compra ya está anulada')
+      }
 
-    await prisma.$transaction(async (tx) => {
       // Restaurar stock y registrar movimientos
       for (const detalle of compraAnular.detalles) {
         const producto = await tx.producto.findUnique({ where: { id: detalle.productoId } })
@@ -59,6 +66,20 @@ export async function POST(req, { params }) {
             motivo: `Anulación compra ${compraAnular.numero} (autorizado por ${autorizador.username})`,
           },
         })
+
+        // Revertir cambios en producto aplicados durante la compra
+        const revertData = {}
+        if (producto?.costo !== undefined && detalle.costo !== undefined) revertData.costo = producto.costo
+        if (producto?.fechaVencimiento && detalle.fechaVencimiento) revertData.fechaVencimiento = producto.fechaVencimiento
+        if (producto?.unidadBase && detalle.unidad) revertData.unidadBase = producto.unidadBase
+        if (producto?.unidadCompra && detalle.unidad) revertData.unidadCompra = producto.unidadCompra
+        if (producto?.factorConversion && detalle.factorConversion) revertData.factorConversion = producto.factorConversion
+        if (Object.keys(revertData).length > 0) {
+          await tx.producto.update({
+            where: { id: detalle.productoId },
+            data: revertData
+          })
+        }
       }
 
       await tx.compra.update({
@@ -74,11 +95,19 @@ export async function POST(req, { params }) {
           detalle: `Compra #${compraAnular.numero} - C$ ${compraAnular.total.toFixed(2)}`
         }
       })
+
+      return { mensaje: 'Compra anulada exitosamente' }
     })
 
-    return Response.json({ mensaje: 'Compra anulada exitosamente' })
+    return Response.json(resultado)
   } catch (error) {
     console.error('Error al anular compra:', error)
-    return Response.json({ error: 'Error interno del servidor' }, { status: 500 })
+    const mensaje = error.message === 'Compra no encontrada' ? 'Compra no encontrada'
+      : error.message === 'La compra ya está anulada' ? 'La compra ya está anulada'
+      : 'Error interno del servidor'
+    const status = error.message === 'Compra no encontrada' ? 404
+      : error.message === 'La compra ya está anulada' ? 400
+      : 500
+    return Response.json({ error: mensaje }, { status })
   }
 }

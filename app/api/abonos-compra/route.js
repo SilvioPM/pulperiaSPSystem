@@ -17,6 +17,9 @@ export async function POST(request) {
     const result = await prisma.$transaction(async (tx) => {
       const compra = await tx.compra.findUnique({ where: { id: compraId }, include: { proveedor: true } })
       if (!compra) throw new Error('Compra no encontrada')
+      if (compra.estado === 'anulada') {
+        throw new Error('No se puede abonar una compra anulada')
+      }
       if (monto > compra.saldoPendiente) {
         throw new Error(`El abono supera el saldo pendiente (C$ ${compra.saldoPendiente})`)
       }

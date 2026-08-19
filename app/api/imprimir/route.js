@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server'
 
 const AGENT_URL = process.env.PRINT_AGENT_URL || 'http://host.docker.internal:5123'
+const AGENT_TOKEN = process.env.PRINT_AGENT_TOKEN
 
 export async function POST(req) {
   try {
     const body = await req.json()
 
+    const headers = { 'Content-Type': 'application/json' }
+    if (AGENT_TOKEN) {
+      headers['Authorization'] = `Bearer ${AGENT_TOKEN}`
+    }
+
     const res = await fetch(AGENT_URL + '/print', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(15000),
     })

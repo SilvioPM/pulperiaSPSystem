@@ -68,9 +68,21 @@ export async function PUT(req) {
     let { id, ...resto } = sanitizarEntrada(await req.json(), 100, ['password', 'modulos'])
     if (!id) return Response.json({ error: 'ID requerido' }, { status: 400 })
 
+    // No-admin solo puede editar SU PROPIO registro
+    if (!actual.esAdmin && id !== actual.id) {
+      return Response.json({ error: 'No tiene permiso para editar a otro usuario' }, { status: 403 })
+    }
+
     // Protección contra mass assignment: solo campos permitidos según el rol
     const permitidos = actual.esAdmin ? CAMPOS_EDITABLES.usuario.admin : CAMPOS_EDITABLES.usuario.estandar
     const campos = filtrarCampos(resto, permitidos)
+
+    // Admin no puede auto-degradarse (evitar que el último admin se quite privilegios)
+    if (actual.esAdmin && id === actual.id) {
+      if (campos.esAdmin === false || campos.activo === false) {
+        return Response.json({ error: 'No puede degradarse ni desactivarse a sí mismo' }, { status: 400 })
+      }
+    }
 
     const data = {}
     if (campos.username !== undefined) data.username = String(campos.username).trim()

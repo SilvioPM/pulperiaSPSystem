@@ -17,6 +17,10 @@ export async function POST(request) {
       const factura = await tx.factura.findUnique({ where: { id: facturaId } })
       if (!factura) throw new Error('Factura no encontrada')
 
+      if (factura.estado === 'anulada') {
+        throw new Error('No se puede abonar una factura anulada')
+      }
+
       if (monto > factura.saldoPendiente) {
         throw new Error(`El abono (C$ ${monto}) supera el saldo pendiente (C$ ${factura.saldoPendiente})`)
       }

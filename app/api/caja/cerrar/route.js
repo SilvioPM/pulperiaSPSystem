@@ -33,31 +33,34 @@ export async function POST(req) {
     const diferenciaCs = parseFloat((efectivoRealCs - caja.montoInicial - ventasEfectivoCs - caja.ingresosExtra + caja.egresos).toFixed(2))
     const diferenciaUs = parseFloat((efectivoRealUs - caja.montoInicialUs - ventasEfectivoUs - caja.ingresosExtraUs + caja.egresosUs).toFixed(2))
 
-    // Guardar detalle del arqueo
-    if (arqueo?.length) {
-      await prisma.arqueoDetalle.createMany({
-        data: arqueo.map(a => ({ cajaId: caja.id, ...a }))
-      })
-    }
-
-    const cerrada = await prisma.caja.update({
-      where: { id: caja.id },
-      data: {
-        estado: 'cerrada',
-        usuarioCierre: usuario,
-        cerradaEn: new Date(),
-        efectivoRealCs,
-        efectivoRealUs,
-        diferencia: diferenciaCs,
-        diferenciaUs,
-        observacion,
-        ventasEfectivoCs: stats.ventasEfectivoCs,
-        ventasEfectivoUs: stats.ventasEfectivoUs,
-        ventasTarjeta: stats.ventasTarjeta,
-        ventasTransfer: stats.ventasTransfer,
-        ventasCredito: 0,
-        totalVendido: stats.totalVendido
+    // Cerrar caja en transacción: arqueo + update atómicos
+    const cerrada = await prisma.$transaction(async (tx) => {
+      // Guardar detalle del arqueo
+      if (arqueo?.length) {
+        await tx.arqueoDetalle.createMany({
+          data: arqueo.map(a => ({ cajaId: caja.id, ...a }))
+        })
       }
+
+      return await tx.caja.update({
+        where: { id: caja.id },
+        data: {
+          estado: 'cerrada',
+          usuarioCierre: usuario,
+          cerradaEn: new Date(),
+          efectivoRealCs,
+          efectivoRealUs,
+          diferencia: diferenciaCs,
+          diferenciaUs,
+          observacion,
+          ventasEfectivoCs: stats.ventasEfectivoCs,
+          ventasEfectivoUs: stats.ventasEfectivoUs,
+          ventasTarjeta: stats.ventasTarjeta,
+          ventasTransfer: stats.ventasTransfer,
+          ventasCredito: stats.ventasCredito, // mantener crédito real, no forzar 0
+          totalVendido: stats.totalVendido
+        }
+      })
     })
 
     return NextResponse.json(cerrada)

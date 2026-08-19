@@ -55,6 +55,7 @@ model Producto {
   @@index([nombre])
   @@index([categoriaId])
   @@index([activo])
+  @@index([fechaVencimiento])
 }
 
 model ProductoCodigo {
@@ -103,6 +104,7 @@ model Factura {
   anuladaPor       String?
   detallesPago     String?
   fechaVencimiento DateTime?
+  idempotencyKey   String?    @unique
   detalles         DetalleFac[]
   abonos           Abono[]
   creadoEn         DateTime   @default(now())
@@ -110,6 +112,8 @@ model Factura {
   @@index([creadoEn])
   @@index([clienteId])
   @@index([estado])
+  @@index([clienteId, estado])
+  @@index([creadoEn, estado])
 }
 
 model DetalleFac {
@@ -143,6 +147,7 @@ model MovInventario {
 
   @@index([productoId])
   @@index([creadoEn])
+  @@index([tipo, motivo, creadoEn])
 }
 
 model Abono {
@@ -152,6 +157,9 @@ model Abono {
   monto     Float
   nota      String?
   creadoEn  DateTime @default(now())
+
+  @@index([facturaId])
+  @@index([creadoEn])
 }
 
 model Proveedor {
@@ -189,6 +197,10 @@ model Compra {
   creadoEn         DateTime       @default(now())
 
   @@index([facturaProveedor])
+  @@index([creadoEn])
+  @@index([proveedorId])
+  @@index([estado])
+  @@index([creadoEn, estado])
 }
 
 model DetalleCompra {
@@ -201,6 +213,9 @@ model DetalleCompra {
   unidad    String   @default("unidad")
   costo     Float
   subtotal  Float
+
+  @@index([compraId])
+  @@index([productoId])
 }
 
 model UnidadMedida {
@@ -230,6 +245,9 @@ model AbonoCompra {
   monto     Float
   nota      String?
   creadoEn  DateTime @default(now())
+
+  @@index([compraId])
+  @@index([creadoEn])
 }
 
 model Proforma {
@@ -257,6 +275,9 @@ model DetalleProforma {
   precio     Float
   subtotal   Float
   unidad     String?
+
+  @@index([proformaId])
+  @@index([productoId])
 }
 
 model CartSession {
@@ -337,6 +358,8 @@ model ArqueoDetalle {
   denominacion Float
   cantidad     Int
   subtotal     Float
+
+  @@index([cajaId])
 }
 
 model MovimientoCaja {
@@ -348,4 +371,6 @@ model MovimientoCaja {
   moneda   String   // 'C$' o '$'
   monto    Float
   creadoEn DateTime @default(now())
+
+  @@index([cajaId])
 }

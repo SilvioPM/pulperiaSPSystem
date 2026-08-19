@@ -1,12 +1,13 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { parseNumber } from '@/lib/number'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function PUT(request, { params }) {
   try {
     const { id: idStr } = await params
     const id = parseInt(idStr)
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 500, ['detalles'])
 
     const existente = await prisma.compra.findUnique({
       where: { id },

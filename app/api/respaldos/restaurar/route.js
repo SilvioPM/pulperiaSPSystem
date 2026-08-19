@@ -66,6 +66,17 @@ export async function POST(req) {
     if (!file) return NextResponse.json({ error: 'No se envió ningún archivo' }, { status: 400 })
     if (typeof file === 'string') return NextResponse.json({ error: 'Archivo inválido' }, { status: 400 })
 
+    // Validar tipo de archivo
+    if (!file.name.endsWith('.sql')) {
+      return NextResponse.json({ error: 'Solo se aceptan archivos .sql' }, { status: 400 })
+    }
+
+    // Validar tamaño (máx 100MB para respaldos)
+    const MAX_SIZE = 100 * 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json({ error: 'Archivo demasiado grande. Máximo 100 MB' }, { status: 400 })
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer())
     if (buffer.length === 0) return NextResponse.json({ error: 'El archivo está vacío' }, { status: 400 })
 

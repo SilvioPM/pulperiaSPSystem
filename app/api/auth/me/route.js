@@ -18,9 +18,10 @@ export async function GET(req) {
     const exp = payload.exp
     if (exp && (exp - now) < 3600) {
       const nuevoToken = await firmarToken(payload)
+      const proto = req.headers.get('x-forwarded-proto') || 'http'
       const cookieStore = await cookies()
       cookieStore.set(COOKIE_NAME, nuevoToken, {
-        httpOnly: true, secure: false, sameSite: 'lax',
+        httpOnly: true, secure: proto === 'https', sameSite: 'lax',
         path: '/', maxAge: 60 * 60 * 24,
       })
     }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function POST(req) {
   try {
@@ -10,15 +11,21 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Enviá un array de clientes' }, { status: 400 })
     }
 
+    // Límite de elementos
+    if (clientes.length > 5000) {
+      return NextResponse.json({ error: 'Demasiados clientes. Máximo 5000' }, { status: 400 })
+    }
+
     let creados = 0, actualizados = 0, errores = []
 
     for (const c of clientes) {
       if (!c.nombre) { errores.push({ fila: errores.length + 1, error: 'nombre requerido' }); continue }
       try {
-        const nombre = c.nombre.trim().replace(/^["']|["']$/g, '')
-        let telefono = (c.telefono || '').toString().trim().replace(/^["']|["']$/g, '') || null
-        let cedula = (c.cedula || '').toString().trim().replace(/^["']|["']$/g, '') || null
-        let direccion = (c.direccion || '').toString().trim().replace(/^["']|["']$/g, '') || null
+        const sanitizar = (v) => v ? String(v).trim().slice(0, 500) : ''
+        const nombre = sanitizar(c.nombre)
+        let telefono = sanitizar(c.telefono) || null
+        let cedula = sanitizar(c.cedula) || null
+        let direccion = sanitizar(c.direccion) || null
         const limiteCredito = parseFloat(c.limiteCredito) || 0
         const saldoInicial = parseFloat(c.saldoInicial) || 0
 

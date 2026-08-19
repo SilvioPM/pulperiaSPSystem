@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 // GET — Historial de movimientos
 export async function GET(req) {
@@ -33,7 +34,7 @@ export async function GET(req) {
 // POST — Agregar o quitar stock manualmente
 export async function POST(request) {
   try {
-    const body = await request.json()
+    const body = sanitizarEntrada(await request.json(), 300)
 
     // Actualizamos el stock del producto
     const producto = await prisma.producto.update({

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import Excel from 'exceljs'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function POST(request) {
   try {
@@ -9,6 +10,21 @@ export async function POST(request) {
 
     if (!archivo) {
       return NextResponse.json({ error: 'No se recibió archivo' }, { status: 400 })
+    }
+
+    // Validar tipo de archivo
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel' // .xls
+    ]
+    if (!allowedTypes.includes(archivo.type)) {
+      return NextResponse.json({ error: 'Tipo de archivo no permitido. Solo .xlsx y .xls' }, { status: 400 })
+    }
+
+    // Validar tamaño (máx 10MB)
+    const MAX_SIZE = 10 * 1024 * 1024
+    if (archivo.size > MAX_SIZE) {
+      return NextResponse.json({ error: 'Archivo demasiado grande. Máximo 10 MB' }, { status: 400 })
     }
 
     const buffer   = Buffer.from(await archivo.arrayBuffer())
@@ -21,11 +37,17 @@ export async function POST(request) {
     if (rowCount > 1) {
       const headers = []
       worksheet.getRow(1).eachCell((cell, col) => { headers[col] = cell.value })
-      for (let i = 2; i <= rowCount; i++) {
+      // Límite de filas para evitar DoS
+      const MAX_ROWS = 5000
+      const maxRow = Math.min(rowCount, MAX_ROWS + 1)
+      for (let i = 2; i <= maxRow; i++) {
         const row = worksheet.getRow(i)
         const obj = {}
         row.eachCell((cell, col) => { obj[headers[col]] = cell.value })
         filas.push(obj)
+      }
+      if (rowCount > MAX_ROWS + 1) {
+        console.warn(`Importación truncada a ${MAX_ROWS} filas (archivo tenía ${rowCount - 1})`)
       }
     }
 
@@ -33,7 +55,9 @@ export async function POST(request) {
 
     for (const fila of filas) {
       try {
-        const nombreCat = String(fila['Categoria'] || fila['Categoría'] || '').trim()
+        // Sanitizar strings de entrada
+        const sanitizar = (v) => v ? String(v).trim().slice(0, 500) : ''
+        const nombreCat = sanitizar(fila['Categoria'] || fila['Categoría'])
         let categoria   = await prisma.categoria.findFirst({
           where: { nombre: { equals: nombreCat } }
         })
@@ -51,19 +75,19 @@ export async function POST(request) {
         }
 
 const venta2Common = {
-  unidadVenta2: String(fila['UnidadVenta2'] || '').trim() || null,
+  unidadVenta2: sanitizar(fila['UnidadVenta2']) || null,
   precioVenta2: parseFloat(fila['PrecioVenta2'] || 0),
   costoVenta2:  parseFloat(fila['CostoVenta2'] || 0),
   factorVenta2: parseFloat(fila['FactorVenta2'] || 1),
 }
 const venta3Common = {
-  unidadVenta3: String(fila['UnidadVenta3'] || '').trim() || null,
+  unidadVenta3: sanitizar(fila['UnidadVenta3']) || null,
   precioVenta3: parseFloat(fila['PrecioVenta3'] || 0),
   costoVenta3:  parseFloat(fila['CostoVenta3'] || 0),
   factorVenta3: parseFloat(fila['FactorVenta3'] || 1),
 }
 const venta4Common = {
-  unidadVenta4: String(fila['UnidadVenta4'] || '').trim() || null,
+  unidadVenta4: sanitizar(fila['UnidadVenta4']) || null,
   precioVenta4: parseFloat(fila['PrecioVenta4'] || 0),
   costoVenta4:  parseFloat(fila['CostoVenta4'] || 0),
   factorVenta4: parseFloat(fila['FactorVenta4'] || 1),
@@ -74,7 +98,7 @@ const mayoristaCommon = {
 }
 const allUnitFields = ['Unidad', 'UnidadVenta2', 'UnidadVenta3', 'UnidadVenta4']
 for (const field of allUnitFields) {
-  const val = String(fila[field] || '').trim()
+  const val = sanitizar(fila[field])
   if (val) {
     await prisma.unidadMedida.upsert({
       where: { nombre: val },
@@ -86,8 +110,8 @@ for (const field of allUnitFields) {
 const fechaVenc = fila['FechaVencimiento'] ? new Date(fila['FechaVencimiento']) : null
 const stockImport = parseInt(fila['Stock'] || 0)
 
-const nombreProd = String(fila['Nombre'] || '').trim()
-const codigoProd = String(fila['Codigo'] || '').trim()
+const nombreProd = sanitizar(fila['Nombre'])
+const codigoProd = sanitizar(fila['Codigo'])
 const esGenerico = String(fila['EsGenerico'] || '').toUpperCase() === 'TRUE'
 
 let productoId = null
@@ -135,7 +159,7 @@ if (codigoProd) {
         costo:       parseFloat(fila['Costo']  || 0),
         stock:       stockImport,
         stockMinimo: parseInt(fila['StockMinimo'] || 5),
-        unidad:      String(fila['Unidad'] || 'unidad').trim(),
+        unidad:      sanitizar(fila['Unidad']) || 'unidad',
         categoriaId: categoria.id,
         esGenerico,
         ...venta2Common,
@@ -154,7 +178,7 @@ if (codigoProd) {
         costo:       parseFloat(fila['Costo']  || 0),
         stock:       stockImport,
         stockMinimo: parseInt(fila['StockMinimo'] || 5),
-        unidad:      String(fila['Unidad'] || 'unidad').trim(),
+        unidad:      sanitizar(fila['Unidad']) || 'unidad',
         categoriaId: categoria.id,
         esGenerico,
         ...venta2Common,
@@ -174,12 +198,12 @@ if (productoId && fechaVenc) {
     data: { fechaVencimiento: venc }
   })
 }
-const codigosAliasRaw = String(fila['CodigosAlias'] || fila['Codigo2'] || '').trim()
-const codigo3Raw = String(fila['Codigo3'] || '').trim()
+const codigosAliasRaw = sanitizar(fila['CodigosAlias'] || fila['Codigo2'])
+const codigo3Raw = sanitizar(fila['Codigo3'])
 if (productoId && (codigosAliasRaw || codigo3Raw)) {
   const aliasList = []
-  if (codigosAliasRaw) aliasList.push(...codigosAliasRaw.split(/[,;]+/).map(c => c.trim()).filter(Boolean))
-  if (codigo3Raw) aliasList.push(codigo3Raw.trim())
+  if (codigosAliasRaw) aliasList.push(...codigosAliasRaw.split(/[,;]+/).map(c => sanitizar(c)).filter(Boolean))
+  if (codigo3Raw) aliasList.push(sanitizar(codigo3Raw))
   if (aliasList.length > 0) {
     const existingAlias = await prisma.productoCodigo.findMany({
       where: { productoId },

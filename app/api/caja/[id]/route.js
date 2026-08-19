@@ -1,12 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { calcularCajaStats } from '@/lib/cajaStats'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function PUT(request, { params }) {
   try {
     const { id: idStr } = await params
     const id = parseInt(idStr)
-    const { arqueo, observacion } = await request.json()
+    const body = sanitizarEntrada(await request.json(), 300, ['arqueo'])
+    const { arqueo, observacion } = body
 
     const caja = await prisma.caja.findUnique({ where: { id } })
     if (!caja) return NextResponse.json({ error: 'Caja no encontrada' }, { status: 404 })

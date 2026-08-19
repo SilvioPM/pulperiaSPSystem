@@ -1,7 +1,38 @@
 import { NextResponse } from 'next/server'
 import { verificarToken, COOKIE_NAME } from './lib/auth'
 
-const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/me', '/api/auth/logout', '/api/licencia', '/api/logo']
+const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/me', '/api/auth/logout', '/api/licencia', '/api/logo', '/api/auth/verify-password']
+
+// Cache simple en memoria para estado de licencia (TTL 30s)
+const licenciaCache = new Map()
+
+async function verificarLicencia(req) {
+  const host = req.headers.get('host') || 'localhost:3000'
+  const protocol = req.headers.get('x-forwarded-proto') || 'http'
+  const baseUrl = `${protocol}://${host}`
+
+  const cached = licenciaCache.get(baseUrl)
+  if (cached && Date.now() - cached.ts < 30000) {
+    return cached.valida
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}/api/licencia`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      // Timeout implícito por fetch
+    })
+    if (res.ok) {
+      const data = await res.json()
+      licenciaCache.set(baseUrl, { valida: data.valida === true, ts: Date.now() })
+      return data.valida === true
+    }
+  } catch {
+    // Si falla la verificación, permitimos (fail-open) pero logueamos
+    console.warn('No se pudo verificar licencia, permitiendo acceso (fail-open)')
+  }
+  return true
+}
 
 // Mapa recurso → módulos permitidos (RBAC). Cada API la consumen las páginas de varios módulos.
 // esAdmin tiene acceso a todo.
@@ -24,6 +55,7 @@ const RUTAS_MODULOS = [
   { prefix: '/api/reportes', modulos: ['reportes', 'inicio'] },
   { prefix: '/api/config', modulos: ['configuracion'] },
   { prefix: '/api/usuarios', modulos: ['usuarios'] },
+  { prefix: '/api/auth/verify-password', modulos: ['usuarios', 'pos'] },
 ]
 
 // Recursos solo para administradores
@@ -78,11 +110,17 @@ export default async function middleware(req) {
     }
   }
 
-  // Rutas públicas
+  // Rutas públicas (sin JWT ni licencia)
   if (PUBLIC_ROUTES.some(r => pathname.startsWith(r))) return NextResponse.next()
 
   // /api/config: GET es público (recibos/impresión), el resto requiere módulo configuracion
   if (pathname.startsWith('/api/config') && req.method === 'GET') return NextResponse.next()
+
+  // Validar licencia ANTES que JWT (si no hay licencia válida, no deja entrar)
+  const licenciaValida = await verificarLicencia(req)
+  if (!licenciaValida) {
+    return NextResponse.json({ error: 'Licencia inválida o expirada', code: 'LICENCIA_INVALIDA' }, { status: 403 })
+  }
 
   // Validar JWT
   const cookie = req.cookies.get(COOKIE_NAME)

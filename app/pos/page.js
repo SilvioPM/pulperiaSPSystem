@@ -10,6 +10,48 @@ import ComboModal from '../components/ComboModal'
 import { useReactToPrint } from 'react-to-print'
 import { useToast } from '../hooks/useToast'
 
+// Funciones para cola offline (fuera del componente para uso en useEffect)
+function guardarEnColaOffline(venta) {
+  try {
+    const cola = JSON.parse(localStorage.getItem('colaVentasOffline') || '[]')
+    cola.push({ ...venta, timestamp: Date.now() })
+    localStorage.setItem('colaVentasOffline', JSON.stringify(cola.slice(-50)))
+  } catch {}
+}
+
+async function procesarColaOffline() {
+  try {
+    const cola = JSON.parse(localStorage.getItem('colaVentasOffline') || '[]')
+    if (cola.length === 0) return
+    const pendientes = []
+    for (const venta of cola) {
+      try {
+        const res = await fetch('/api/facturas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(venta)
+        })
+        if (!res.ok) throw new Error('Error en cola')
+      } catch {
+        pendientes.push(venta)
+      }
+    }
+    localStorage.setItem('colaVentasOffline', JSON.stringify(pendientes))
+  } catch {}
+}
+
+// Reintento con backoff exponencial
+async function fetchConReintento(url, options, reintentos = 3, delay = 1000) {
+  try {
+    const res = await fetch(url, options)
+    return res
+  } catch (e) {
+    if (reintentos <= 0) throw e
+    await new Promise(r => setTimeout(r, delay))
+    return fetchConReintento(url, options, reintentos - 1, delay * 2)
+  }
+}
+
 export default function POS() {
   const { user } = useAuth()
   const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
@@ -66,6 +108,19 @@ export default function POS() {
     const handler = e => setEsPhone(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // Procesar cola offline cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (typeof window !== 'undefined') {
+        const cola = JSON.parse(localStorage.getItem('colaVentasOffline') || '[]')
+        if (cola.length > 0) {
+          procesarColaOffline()
+        }
+      }
+    }, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const reciboRef = useRef(null)
@@ -413,11 +468,15 @@ export default function POS() {
       return
     }
 
+    // Generar clave de idempotencia para evitar duplicados en reintentos
+    const idempotencyKey = `pos-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+
     try {
-      const res = await fetch('/api/facturas', {
+      const res = await fetchConReintento('/api/facturas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          idempotencyKey,
           usuario: user?.username || user?.nombre || 'desconocido',
           subtotal,
           iva,
@@ -461,6 +520,10 @@ export default function POS() {
       })
       const factura = await res.json()
       if (!res.ok) throw new Error(factura.error || 'Error al crear la factura')
+      // Si la factura ya existía (idempotent), solo notificamos éxito sin duplicar
+      if (factura.idempotent) {
+        mostrar('Venta ya registrada (reintento)', 'exito')
+      }
       if (proformaActiva) {
         await fetch(`/api/proformas/${proformaActiva}`, {
           method: 'PUT',
@@ -479,7 +542,55 @@ export default function POS() {
       cargarProductos()
       setTimeout(imprimirTicket, 300)
     } catch (error) {
-      mostrar(error?.message || 'Error al procesar la venta', 'error')
+      // Si es error de red, guardar en cola offline para reintento automático
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        const ventaData = {
+          idempotencyKey,
+          usuario: user?.username || user?.nombre || 'desconocido',
+          subtotal,
+          iva,
+          descuento: desc,
+          total,
+          pagoCon: metodosPago.length > 1
+            ? metodosPago.reduce((s, p) => s + (p.metodo === 'dolares' ? parseFloat(p.monto || 0) * tasaCambio : (p.metodo === 'credito' ? 0 : parseFloat(p.monto || 0))), 0)
+            : (metodoPago === 'dolares' ? pagoConCordobas : (metodoPago === 'credito' ? 0 : parseFloat(pagoCon || total))),
+          pagoEnUsd: metodosPago.length > 1 ? metodosPago.filter(p => p.metodo === 'dolares').reduce((s, p) => s + parseFloat(p.monto || 0), 0) : (metodoPago === 'dolares' ? parseFloat(pagoCon || 0) : 0),
+          cambio: Math.max(0, (metodosPago.length > 1 ? metodosPago.reduce((s, p) => s + (p.metodo === 'dolares' ? parseFloat(p.monto || 0) * tasaCambio : (p.metodo === 'credito' ? 0 : parseFloat(p.monto || 0))), 0) : pagoConCordobas) - total),
+          clienteId: clienteSeleccionado?.id || null,
+          metodoPago: metodosPago.length > 1 ? 'mixto' : (esVentaCredito ? 'credito' : metodoPago),
+          esCredito: esVentaCredito,
+          fechaVencimiento: esVentaCredito ? fechaVencimiento : null,
+          detallesPago: metodosPago.filter(p => parseFloat(p.monto || 0) > 0),
+          detalles: carrito.flatMap(item => {
+            if (item._esCombo) {
+              return item._comboDetalles.map(d => ({
+                productoId: d.productoId,
+                cantidad: d.cantidad,
+                precio: d.precioUnitario,
+                costo: 0,
+                subtotal: d.subtotal,
+                unidadVenta: d.unidad,
+                factorConversion: 1,
+                comboId: item._comboId,
+              }))
+            }
+            return [{
+              productoId: item.id,
+              cantidad: item.cantidad,
+              precio: item.precio,
+              costo: item._pres === 'venta2' ? parseFloat(item.costoVenta2 || 0) || (item.costo || 0) * (item.factorConversion || 1) : item._pres === 'venta3' ? parseFloat(item.costoVenta3 || 0) || (item.costo || 0) * (item.factorConversion || 1) : item._pres === 'venta4' ? parseFloat(item.costoVenta4 || 0) || (item.costo || 0) * (item.factorConversion || 1) : (item.costo || 0),
+              subtotal: item.precio * item.cantidad,
+              unidadVenta: item.unidadVenta || item.unidad,
+              factorConversion: item.factorConversion || 1,
+              comboId: null,
+            }]
+          })
+        }
+        guardarEnColaOffline(ventaData)
+        mostrar('Sin conexión. Venta guardada para reintento automático.', 'alerta')
+      } else {
+        mostrar(error?.message || 'Error al procesar la venta', 'error')
+      }
     }
     setCargando(false)
   }

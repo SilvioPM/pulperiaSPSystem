@@ -10,16 +10,21 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Enviá un array de proveedores' }, { status: 400 })
     }
 
+    if (proveedores.length > 5000) {
+      return NextResponse.json({ error: 'Demasiados proveedores. Máximo 5000' }, { status: 400 })
+    }
+
     let creados = 0, actualizados = 0, errores = []
 
     for (const p of proveedores) {
       if (!p.nombre) { errores.push({ fila: errores.length + 1, error: 'nombre requerido' }); continue }
       try {
-        const nombre = p.nombre.trim().replace(/^["']|["']$/g, '')
-        let contacto = (p.contacto || '').toString().trim().replace(/^["']|["']$/g, '') || null
-        let telefono = (p.telefono || '').toString().trim().replace(/^["']|["']$/g, '') || null
-        let email = (p.email || '').toString().trim().replace(/^["']|["']$/g, '') || null
-        let direccion = (p.direccion || '').toString().trim().replace(/^["']|["']$/g, '') || null
+        const sanitizar = (v) => v ? String(v).trim().slice(0, 500) : ''
+        const nombre = sanitizar(p.nombre)
+        let contacto = sanitizar(p.contacto) || null
+        let telefono = sanitizar(p.telefono) || null
+        let email = sanitizar(p.email) || null
+        let direccion = sanitizar(p.direccion) || null
         const saldoInicialCxp = parseFloat(p.saldoInicialCxp) || 0
 
         const existente = await prisma.proveedor.findFirst({

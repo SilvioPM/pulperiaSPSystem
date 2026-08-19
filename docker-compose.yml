@@ -19,12 +19,14 @@ services:
     ports:
       - "${PUERTO:-3000}:3000"
     environment:
-      # IMPORTANTE: Los valores por defecto SOLO existen para compatibilidad con instalaciones
-      # ya existentes. Las instalaciones NUEVAS deben usar instalar.ps1, que genera secretos
-      # unicos en el .env (el .env tiene prioridad sobre estos valores por defecto).
+      # IMPORTANTE: Estos valores por defecto SOLO son para compatibilidad con instalaciones
+      # ya existentes que NO han corrido preparar-existente.ps1.
+      # Las instalaciones NUEVAS usan instalar.ps1 (genera secretos únicos en .env).
+      # EL .env TIENE PRIORIDAD sobre estos valores.
+      # PRODUCCIÓN: El .env DEBE existir con secretos únicos. Sin .env, el sistema no arranca seguro.
       DATABASE_URL: postgresql://spsystem:spsystem123@db:5432/spsystem
-      JWT_SECRET: ${JWT_SECRET:-686bdbca4b9522bbf637ff0ae8bdaa784e24cf965ea55592e8a28f6e596c88f3}
-      APP_LICENSE_SECRET: ${APP_LICENSE_SECRET:-spsystem-2024-secret-key-produccion}
+      JWT_SECRET: ${JWT_SECRET:-}
+      APP_LICENSE_SECRET: ${APP_LICENSE_SECRET:-}
       NODE_ENV: production
       SPSYSTEM_DATA_DIR: /app/data
       SPSYSTEM_BACKUP_DIR: /app/respaldos

@@ -37,16 +37,22 @@ export async function POST(req) {
     const body = sanitizarEntrada(await req.json(), 200)
     const { montoInicial, montoInicialUs, usuario } = body
 
-    // Verificar que no haya una caja abierta
-    const abierta = await prisma.caja.findFirst({ where: { estado: 'abierta' } })
-    if (abierta) return NextResponse.json({ error: 'Ya hay una caja abierta' }, { status: 400 })
+    // Abrir caja en transacción con lock para evitar carrera
+    const caja = await prisma.$transaction(async (tx) => {
+      // Verificar que no haya una caja abierta (dentro de la transacción con lock)
+      const abierta = await tx.caja.findFirst({ where: { estado: 'abierta' } })
+      if (abierta) throw new Error('Ya hay una caja abierta')
 
-    const caja = await prisma.caja.create({
-      data: { usuarioApertura: usuario, montoInicial: parseFloat(montoInicial || 0), montoInicialUs: parseFloat(montoInicialUs || 0) }
+      return await tx.caja.create({
+        data: { usuarioApertura: usuario, montoInicial: parseFloat(montoInicial || 0), montoInicialUs: parseFloat(montoInicialUs || 0) }
+      })
     })
 
     return NextResponse.json(caja, { status: 201 })
   } catch (e) {
+    if (e.message === 'Ya hay una caja abierta') {
+      return NextResponse.json({ error: e.message }, { status: 400 })
+    }
     console.error('Error al abrir caja:', e)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }

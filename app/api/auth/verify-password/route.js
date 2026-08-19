@@ -1,8 +1,15 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export async function POST(req) {
   try {
+    const ip = getClientIp(req)
+    const rl = rateLimit(ip, 5, 300000, 'verify-password')
+    if (!rl.allowed) {
+      return Response.json({ valido: false, error: `Demasiados intentos. Intente en ${rl.resetIn} segundos.` }, { status: 429 })
+    }
+
     const { username, password } = await req.json()
     if (!username || !password) {
       return Response.json({ valido: false, error: 'Usuario y contraseña requeridos' })

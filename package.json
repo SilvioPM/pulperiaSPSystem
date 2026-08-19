@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "backup": "node lib/backup-cron.mjs",
+    "purge": "node scripts/purge.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

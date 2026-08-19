@@ -2,6 +2,7 @@ import './globals.css'
 import { AuthProvider } from './context/AuthContext'
 import AppShell from './components/AppShell'
 import Script from 'next/script'
+import LicenseGate from './components/LicenseGate'
 
 export const metadata = {
   title: 'SPSystem',
@@ -24,9 +25,11 @@ export default function RootLayout({ children }) {
         <Script src="/limpiar-cache.js" strategy="afterInteractive" />
         <Script src="/sw-register.js" strategy="afterInteractive" />
         <AuthProvider>
-          <AppShell>
-            {children}
-          </AppShell>
+          <LicenseGate>
+            <AppShell>
+              {children}
+            </AppShell>
+          </LicenseGate>
         </AuthProvider>
       </body>
     </html>

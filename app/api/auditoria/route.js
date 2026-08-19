@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { sanitizarEntrada } from '@/lib/sanitizar'
 
 const prisma = new PrismaClient()
 
@@ -43,7 +44,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const body = await req.json()
+    const body = sanitizarEntrada(await req.json(), 500, ['detalle'])
     const registro = await prisma.auditoria.create({
       data: {
         usuario: body.usuario,

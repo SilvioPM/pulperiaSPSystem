@@ -1,12 +1,24 @@
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
 
 const CONFIG_PATH = path.join(__dirname, 'config.json')
 let config = { port: 5123, printer: { type: 'usb', interface: 'USB001' } }
 if (fs.existsSync(CONFIG_PATH)) {
   try { config = { ...config, ...JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) } } catch {}
 }
+
+// Token de autenticación compartido (se configura via PRINT_AGENT_TOKEN en el entorno)
+const AUTH_TOKEN = process.env.PRINT_AGENT_TOKEN || crypto.randomBytes(32).toString('hex')
+if (!process.env.PRINT_AGENT_TOKEN) {
+  console.warn('⚠️  PRINT_AGENT_TOKEN no configurado - usando token aleatorio temporal')
+  console.warn('   Configurá PRINT_AGENT_TOKEN en el entorno para producción')
+}
+
+// Orígenes permitidos para CORS (desde variable de entorno, separados por coma)
+const ALLOWED_ORIGINS = (process.env.PRINT_AGENT_ALLOWED_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000')
+  .split(',').map(o => o.trim()).filter(Boolean)
 
 function pad(text, len) {
   text = String(text || '')
@@ -39,7 +51,6 @@ function generarTicket(factura, configuracion) {
   if (factura.metodoPago) lines.push(pad('Pago: ' + factura.metodoPago))
   lines.push('-'.repeat(w))
 
-  lines.push(pad(factura.esCredito ? '** CREDITO **' : '', w))
   lines.push(pad('Producto', 20) + ' ' + pad('Cant', 6) + ' ' + pad('Precio', 7) + ' ' + pad('Sub', 7))
 
   if (factura.detalles) {
@@ -156,23 +167,60 @@ async function imprimir(texto) {
   }
 }
 
+function verificarAuth(req) {
+  const auth = req.headers.get('authorization')
+  if (!auth || !auth.startsWith('Bearer ')) return false
+  const token = auth.slice(7)
+  // Comparación en tiempo constante para evitar timing attacks
+  return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(AUTH_TOKEN))
+}
+
+function corsHeaders(origin) {
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+    'Vary': 'Origin',
+  }
+}
+
 const server = http.createServer(async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  const origin = req.headers.get('origin') || ''
+  const headers = corsHeaders(origin)
 
-  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end() }
+  // Manejo de preflight CORS
+  if (req.method === 'OPTIONS') {
+    Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v))
+    res.writeHead(204)
+    return res.end()
+  }
 
+  // Verificar autenticación en TODOS los endpoints (excepto OPTIONS)
+  if (!verificarAuth(req)) {
+    Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v))
+    res.writeHead(401, { 'Content-Type': 'application/json', ...headers })
+    return res.end(JSON.stringify({ ok: false, error: 'No autorizado - token requerido' }))
+  }
+
+  // Endpoints protegidos
   if (req.method === 'GET' && req.url === '/status') {
-    res.writeHead(200, { 'Content-Type': 'application/json' })
+    Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v))
+    res.writeHead(200, { 'Content-Type': 'application/json', ...headers })
     return res.end(JSON.stringify({ ok: true, config, running: true }))
   }
 
   if (req.method === 'GET' && req.url === '/detect') {
-    detectarImpresoras().then(impresoras => {
-      res.writeHead(200, { 'Content-Type': 'application/json' })
+    Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v))
+    try {
+      const impresoras = await detectarImpresoras()
+      res.writeHead(200, { 'Content-Type': 'application/json', ...headers })
       res.end(JSON.stringify({ ok: true, impresoras, configurada: config.printer.interface }))
-    })
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json', ...headers })
+      res.end(JSON.stringify({ ok: false, error: e.message }))
+    }
     return
   }
 
@@ -180,6 +228,7 @@ const server = http.createServer(async (req, res) => {
     let body = ''
     req.on('data', chunk => body += chunk)
     req.on('end', async () => {
+      Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v))
       try {
         const data = JSON.parse(body)
         let ticket
@@ -188,43 +237,33 @@ const server = http.createServer(async (req, res) => {
         } else if (data.factura) {
           ticket = generarTicket(data.factura, data.config || {})
         } else {
-          res.writeHead(400, { 'Content-Type': 'application/json' })
+          res.writeHead(400, { 'Content-Type': 'application/json', ...headers })
           return res.end(JSON.stringify({ ok: false, error: 'Enviá factura o texto' }))
         }
         const result = await imprimir(ticket)
-        res.writeHead(result.ok ? 200 : 500, { 'Content-Type': 'application/json' })
+        res.writeHead(result.ok ? 200 : 500, { 'Content-Type': 'application/json', ...headers })
         res.end(JSON.stringify(result))
       } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.writeHead(400, { 'Content-Type': 'application/json', ...headers })
         res.end(JSON.stringify({ ok: false, error: e.message }))
       }
     })
     return
   }
 
-  if (req.method === 'POST' && req.url === '/config') {
-    let body = ''
-    req.on('data', chunk => body += chunk)
-    req.on('end', () => {
-      try {
-        const newConfig = JSON.parse(body)
-        config = { ...config, ...newConfig }
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ ok: true, config }))
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ ok: false, error: e.message }))
-      }
-    })
-    return
-  }
+  // Endpoint /config REMOVIDO por seguridad (solo lectura via /status)
+  // Si se necesita cambiar config, editar config.json directamente en el servidor
 
-  res.writeHead(404); res.end()
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v))
+  res.writeHead(404)
+  res.end()
 })
 
 server.listen(config.port, '127.0.0.1', () => {
   console.log('SP System Print Agent corriendo en http://127.0.0.1:' + config.port)
   console.log('Impresora configurada: ' + JSON.stringify(config.printer))
-  console.log('Para probar: http://127.0.0.1:' + config.port + '/status')
+  console.log('Endpoints: /status, /detect, /print (requieren Authorization: Bearer <token>)')
+  console.log('Token actual: ' + AUTH_TOKEN)
+  console.log('Orígenes permitidos: ' + ALLOWED_ORIGINS.join(', '))
+  console.log('Para producción, configurá PRINT_AGENT_TOKEN y PRINT_AGENT_ALLOWED_ORIGINS en el entorno')
 })

@@ -96,9 +96,12 @@ export async function POST(req) {
     })
 
     const maxAge = recordar ? 'Max-Age=86400' : ''
+    // Detectar HTTPS via proxy header (x-forwarded-proto)
+    const proto = req.headers.get('x-forwarded-proto') || 'http'
+    const secureFlag = proto === 'https' ? 'Secure;' : ''
     res.headers.set(
       'Set-Cookie',
-      `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; ${maxAge}`
+      `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; ${secureFlag} ${maxAge}`
     )
 
     return res
