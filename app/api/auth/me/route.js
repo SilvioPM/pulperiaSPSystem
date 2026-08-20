@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma'
 import { verificarToken, firmarToken, COOKIE_NAME } from '@/lib/auth'
 
 export async function GET(req) {
@@ -15,8 +16,16 @@ export async function GET(req) {
     }
 
     const payload = await verificarToken(cookieValue)
-    if (!payload) {
+    if (!payload || !payload.ses) {
       return Response.json({ autenticado: false }, { status: 401 })
+    }
+
+    // Sesión única: si el token fue invalidado (logout remoto o nuevo login), rechazar
+    const usuario = await prisma.usuario.findFirst({
+      where: { sessionToken: payload.ses, activo: true }
+    })
+    if (!usuario) {
+      return Response.json({ autenticado: false, sesionCerrada: true }, { status: 401 })
     }
 
     // Si el token expira en menos de 1 hora, re-emitir uno nuevo

@@ -31,8 +31,10 @@ export async function PUT(request, { params }) {
     }
 
     const stats = await calcularCajaStats(caja)
-    const diferenciaCs = parseFloat((efectivoRealCs - caja.montoInicial - stats.ventasEfectivoCs - caja.ingresosExtra + caja.egresos).toFixed(2))
-    const diferenciaUs = parseFloat((efectivoRealUs - caja.montoInicialUs - stats.ventasEfectivoUs - caja.ingresosExtraUs + caja.egresosUs).toFixed(2))
+    const esperadoCs = parseFloat((caja.montoInicial + stats.ventasEfectivoCs + stats.abonosEfectivoCs + caja.ingresosExtra - caja.egresos).toFixed(2))
+    const esperadoUs = parseFloat((caja.montoInicialUs + stats.ventasEfectivoUs + stats.abonosEfectivoUs + caja.ingresosExtraUs - caja.egresosUs).toFixed(2))
+    const diferenciaCs = parseFloat((efectivoRealCs - esperadoCs).toFixed(2))
+    const diferenciaUs = parseFloat((efectivoRealUs - esperadoUs).toFixed(2))
 
     await prisma.$transaction([
       prisma.arqueoDetalle.deleteMany({ where: { cajaId: id } }),

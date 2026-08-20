@@ -60,9 +60,15 @@ export function AuthProvider({ children }) {
     const eventos = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click']
     eventos.forEach(e => window.addEventListener(e, reiniciarTimer))
     reiniciarTimer()
-    // Refrescar token cada 20 min
-    refreshTimer = setInterval(() => {
-      fetch('/api/auth/me').catch(() => {})
+    // Refrescar token cada 20 min + detectar cierre remoto de sesión
+    refreshTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (!res.ok) {
+          logout()
+          window.location.href = '/login'
+        }
+      } catch {}
     }, 20 * 60 * 1000)
     return () => {
       clearTimeout(timer)

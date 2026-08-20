@@ -269,16 +269,20 @@ export default function CajaPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {[
                   { label: 'Efectivo C$ (ventas)', val: caja.ventasEfectivoCs, moneda: 'C$' },
-                  { label: 'Efectivo USD', val: caja.ventasEfectivoUs, moneda: '$' },
-                  { label: 'Abonos de clientes', val: caja.abonosTotal || 0, moneda: 'C$' },
-                  { label: 'Tarjeta', val: caja.ventasTarjeta, moneda: 'C$' },
-                  { label: 'Transferencia', val: caja.ventasTransfer, moneda: 'C$' },
+                  { label: 'Efectivo USD (ventas)', val: caja.ventasEfectivoUs, moneda: '$' },
+                  { label: 'Abonos en efectivo C$', val: caja.abonosEfectivoCs || 0, moneda: 'C$' },
+                  { label: 'Abonos en efectivo USD', val: caja.abonosEfectivoUs || 0, moneda: '$' },
+                  { label: 'Tarjeta (al banco)', val: (caja.ventasTarjeta || 0) + (caja.abonosTarjeta || 0), moneda: 'C$', banco: true },
+                  { label: 'Transferencia (al banco)', val: (caja.ventasTransfer || 0) + (caja.abonosTransfer || 0), moneda: 'C$', banco: true },
                 ].map(m => (
                   <div key={m.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 14 }}>
                     <span style={{ color: '#475569' }}>{m.label}</span>
-                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{m.moneda} {m.val.toFixed(2)}</span>
+                    <span style={{ fontWeight: 600, color: m.banco ? '#7c3aed' : '#1e293b' }}>{m.moneda} {m.val.toFixed(2)}</span>
                   </div>
                   ))}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 12, color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 6, padding: '6px 10px' }}>
+                  <b>Importante:</b> Tarjeta y transferencia NO entran a la caja física — van a una cuenta de banco. Solo el efectivo se cuenta en el arqueo.
                 </div>
               </div>
             {/* Movimientos */}
@@ -401,12 +405,15 @@ export default function CajaPage() {
             </div>
 
             <div style={{ marginBottom: 16, background: '#f8fafc', borderRadius: 8, padding: 12, fontSize: 13 }}>
-              <h4 style={{ margin: '0 0 8px', fontWeight: 600, color: '#1e293b' }}>Esperado</h4>
+              <h4 style={{ margin: '0 0 8px', fontWeight: 600, color: '#1e293b' }}>Esperado en el cajón (solo efectivo)</h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                <span style={{ color: '#475569' }}>C$: Inicial {caja.montoInicial.toFixed(2)} + Efectivo {caja.ventasEfectivoCs.toFixed(2)} + Abonos {caja.abonosTotal?.toFixed(2) || '0.00'} + Ingresos {caja.ingresosExtra.toFixed(2)} - Egresos {caja.egresos.toFixed(2)}</span>
-                <span style={{ fontWeight: 600 }}>= C$ {(caja.montoInicial + caja.ventasEfectivoCs + (caja.abonosTotal || 0) + caja.ingresosExtra - caja.egresos).toFixed(2)}</span>
-                <span style={{ color: '#475569' }}>$: Inicial {caja.montoInicialUs?.toFixed(2) || '0.00'} + Ventas {caja.ventasEfectivoUs.toFixed(2)} {caja.ingresosExtraUs > 0 ? `+ Ingresos $${caja.ingresosExtraUs.toFixed(2)}` : ''} {caja.egresosUs > 0 ? `- Egresos $${caja.egresosUs.toFixed(2)}` : ''}</span>
-                <span style={{ fontWeight: 600 }}>= $ {((caja.montoInicialUs || 0) + caja.ventasEfectivoUs + (caja.ingresosExtraUs || 0) - (caja.egresosUs || 0)).toFixed(2)}</span>
+                <span style={{ color: '#475569' }}>C$: Inicial {caja.montoInicial.toFixed(2)} + Efectivo {caja.ventasEfectivoCs.toFixed(2)} + Abonos efectivo {(caja.abonosEfectivoCs || 0).toFixed(2)} + Ingresos {caja.ingresosExtra.toFixed(2)} - Egresos {caja.egresos.toFixed(2)}</span>
+                <span style={{ fontWeight: 600 }}>= C$ {(caja.montoInicial + caja.ventasEfectivoCs + (caja.abonosEfectivoCs || 0) + caja.ingresosExtra - caja.egresos).toFixed(2)}</span>
+                <span style={{ color: '#475569' }}>$: Inicial {caja.montoInicialUs?.toFixed(2) || '0.00'} + Efectivo {(caja.ventasEfectivoUs + (caja.abonosEfectivoUs || 0)).toFixed(2)} {caja.ingresosExtraUs > 0 ? `+ Ingresos $${caja.ingresosExtraUs.toFixed(2)}` : ''} {caja.egresosUs > 0 ? `- Egresos $${caja.egresosUs.toFixed(2)}` : ''}</span>
+                <span style={{ fontWeight: 600 }}>= $ {((caja.montoInicialUs || 0) + caja.ventasEfectivoUs + (caja.abonosEfectivoUs || 0) + (caja.ingresosExtraUs || 0) - (caja.egresosUs || 0)).toFixed(2)}</span>
+              </div>
+              <div style={{ marginTop: 8, fontSize: 12, color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 6, padding: '6px 10px' }}>
+                A depositar al banco: Tarjeta <b>C$ {((caja.ventasTarjeta || 0) + (caja.abonosTarjeta || 0)).toFixed(2)}</b> + Transferencia <b>C$ {((caja.ventasTransfer || 0) + (caja.abonosTransfer || 0)).toFixed(2)}</b>. Estas no se cuentan en el arqueo físico.
               </div>
             </div>
 
@@ -446,6 +453,8 @@ export default function CajaPage() {
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Inic. $</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Ventas C$</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Abonos C$</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Tarjeta</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Transf.</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Ing.Extra</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Egresos</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#475569' }}>Efectivo C$</th>
@@ -464,7 +473,9 @@ export default function CajaPage() {
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.montoInicial.toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>$ {h.montoInicialUs?.toFixed(2) || '0.00'}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {(h.ventasEfectivoCs || 0).toFixed(2)}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {(h.abonosTotal || 0).toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {(h.abonosEfectivoCs || 0).toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', color: '#7c3aed' }}>C$ {((h.ventasTarjeta || 0) + (h.abonosTarjeta || 0)).toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', color: '#7c3aed' }}>C$ {((h.ventasTransfer || 0) + (h.abonosTransfer || 0)).toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.ingresosExtra.toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: '#dc2626' }}>C$ {h.egresos.toFixed(2)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>C$ {h.efectivoRealCs?.toFixed(2) || '—'}</td>
@@ -521,7 +532,7 @@ export default function CajaPage() {
                       <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Desglose C$ (ingresado)</h4>
                       {[
                         { label: 'Ventas en efectivo', val: detalleCaja.ventasEfectivoCs || 0 },
-                        { label: 'Abonos de clientes', val: detalleCaja.abonosTotal || 0 },
+                        { label: 'Abonos en efectivo', val: detalleCaja.abonosEfectivoCs || 0 },
                         { label: 'Ingresos extra', val: detalleCaja.ingresosExtra },
                         { label: 'Egresos', val: -detalleCaja.egresos },
                         { label: 'Monto inicial', val: detalleCaja.montoInicial },
@@ -535,7 +546,7 @@ export default function CajaPage() {
                       ))}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, paddingTop: 6, marginTop: 4, borderTop: '2px solid #e2e8f0', fontWeight: 700, color: '#1e293b' }}>
                         <span>Esperado en caja</span>
-                        <span>C$ {(detalleCaja.montoInicial + (detalleCaja.ventasEfectivoCs || 0) + (detalleCaja.abonosTotal || 0) + detalleCaja.ingresosExtra - detalleCaja.egresos).toFixed(2)}</span>
+                        <span>C$ {(detalleCaja.montoInicial + (detalleCaja.ventasEfectivoCs || 0) + (detalleCaja.abonosEfectivoCs || 0) + detalleCaja.ingresosExtra - detalleCaja.egresos).toFixed(2)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, paddingTop: 4 }}>
                         <span style={{ color: '#475569' }}>Arqueo real</span>
@@ -547,9 +558,26 @@ export default function CajaPage() {
                       </div>
                     </div>
                     <div style={{ background: '#f8fafc', borderRadius: 8, padding: 12 }}>
+                      <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Banco y crédito (fuera del cajón)</h4>
+                      {[
+                        { label: 'Tarjeta (ventas + abonos)', val: (detalleCaja.ventasTarjeta || 0) + (detalleCaja.abonosTarjeta || 0) },
+                        { label: 'Transferencia (ventas + abonos)', val: (detalleCaja.ventasTransfer || 0) + (detalleCaja.abonosTransfer || 0) },
+                        { label: 'Crédito por cobrar', val: detalleCaja.ventasCredito || 0 },
+                      ].map(f => (
+                        <div key={f.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}>
+                          <span style={{ color: '#475569' }}>{f.label}</span>
+                          <span style={{ fontWeight: 600, color: '#7c3aed' }}>C$ {f.val.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div style={{ marginTop: 6, fontSize: 11, color: '#64748b' }}>
+                        Estos montos NO van al cajón: se depositan al banco o quedan por cobrar.
+                      </div>
+                    </div>
+                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: 12 }}>
                       <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e293b' }}>Desglose USD (ingresado)</h4>
                       {[
                         { label: 'Ventas en efectivo USD', val: detalleCaja.ventasEfectivoUs || 0 },
+                        { label: 'Abonos en efectivo USD', val: detalleCaja.abonosEfectivoUs || 0 },
                         { label: 'Ingresos extra USD', val: detalleCaja.ingresosExtraUs },
                         { label: 'Egresos USD', val: -detalleCaja.egresosUs },
                         { label: 'Monto inicial USD', val: detalleCaja.montoInicialUs || 0 },
@@ -563,7 +591,7 @@ export default function CajaPage() {
                       ))}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, paddingTop: 6, marginTop: 4, borderTop: '2px solid #e2e8f0', fontWeight: 700, color: '#1e293b' }}>
                         <span>Esperado en caja</span>
-                        <span>$ {((detalleCaja.montoInicialUs || 0) + (detalleCaja.ventasEfectivoUs || 0) + (detalleCaja.ingresosExtraUs || 0) - (detalleCaja.egresosUs || 0)).toFixed(2)}</span>
+                        <span>$ {((detalleCaja.montoInicialUs || 0) + (detalleCaja.ventasEfectivoUs || 0) + (detalleCaja.abonosEfectivoUs || 0) + (detalleCaja.ingresosExtraUs || 0) - (detalleCaja.egresosUs || 0)).toFixed(2)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, paddingTop: 4 }}>
                         <span style={{ color: '#475569' }}>Arqueo real</span>

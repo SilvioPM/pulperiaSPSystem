@@ -6,10 +6,10 @@ import { sanitizarEntrada } from '@/lib/sanitizar'
 export async function GET() {
   try {
     const usuarios = await prisma.usuario.findMany({
-      select: { id: true, username: true, nombre: true, esAdmin: true, rol: true, modulos: true, activo: true, creadoEn: true },
+      select: { id: true, username: true, nombre: true, esAdmin: true, rol: true, modulos: true, activo: true, creadoEn: true, sessionToken: true },
       orderBy: { creadoEn: 'asc' },
     })
-    return Response.json(usuarios.map(u => ({ ...u, modulos: JSON.parse(u.modulos || '[]') })))
+    return Response.json(usuarios.map(u => ({ ...u, modulos: JSON.parse(u.modulos || '[]'), sesionActiva: !!u.sessionToken, sessionToken: undefined })))
   } catch (error) {
     console.error('Error al obtener usuarios:', error)
     return Response.json({ error: 'Error interno del servidor' }, { status: 500 })
@@ -95,6 +95,11 @@ export async function PUT(req) {
 
     if (Object.keys(data).length === 0) {
       return Response.json({ error: 'No hay campos permitidos para actualizar' }, { status: 400 })
+    }
+
+    // Invalidar sesión si el usuario se desactiva o cambia su contraseña
+    if (campos.activo === false || campos.password) {
+      data.sessionToken = null
     }
 
     const usuario = await prisma.usuario.update({ where: { id }, data })

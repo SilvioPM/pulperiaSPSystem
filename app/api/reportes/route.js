@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { calcularCajaStats } from '@/lib/cajaStats'
+import { calcularCajaStats, calcularCajaStatsBatch } from '@/lib/cajaStats'
 
 function parseFechas(searchParams) {
   let desde = searchParams.get('desde')
@@ -33,6 +33,7 @@ export async function GET(req) {
     if (tipo === 'abonos') return abonosReporte(searchParams)
     if (tipo === 'arqueos') return arqueosReporte(searchParams)
     if (tipo === 'hoy') return hoyReporte()
+    if (tipo === 'ventas-mes') return ventasMesReporte()
 
     // ── Resumen original ─────────────────────────────────────────
     const { desde, hasta, where } = parseFechas(searchParams)
@@ -632,10 +633,8 @@ async function arqueosReporte(searchParams) {
     orderBy: { cerradaEn: 'asc' }
   })
 
-  const conStats = await Promise.all(cajas.map(async c => {
-    const stats = await calcularCajaStats(c)
-    return { ...c, ...stats }
-  }))
+  const historialStats = await calcularCajaStatsBatch(cajas)
+  const conStats = cajas.map((c, i) => ({ ...c, ...historialStats[i] }))
 
   const sum = (arr, key) => arr.reduce((s, c) => s + (c[key] || 0), 0)
 
@@ -753,4 +752,31 @@ async function hoyReporte() {
     : (hoy.ventas > 0 ? 100 : 0)
 
   return NextResponse.json({ hoy, ayer, comparacion, caja })
+}
+
+async function ventasMesReporte() {
+  const OFFSET_HORAS = 6 // Nicaragua UTC-6
+  const localNow = new Date(Date.now() - OFFSET_HORAS * 3600 * 1000)
+  const mesInicio = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), 1))
+  const hoyStart = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate()))
+  const ayerStart = new Date(hoyStart.getTime() - 24 * 3600 * 1000)
+  const mananaStart = new Date(hoyStart.getTime() + 24 * 3600 * 1000)
+
+  const [mes, hoy, ayer] = await Promise.all([
+    prisma.factura.aggregate({ where: { creadoEn: { gte: mesInicio }, estado: { not: 'anulada' } }, _sum: { total: true } }),
+    prisma.factura.aggregate({ where: { creadoEn: { gte: hoyStart, lt: mananaStart }, estado: { not: 'anulada' } }, _sum: { total: true } }),
+    prisma.factura.aggregate({ where: { creadoEn: { gte: ayerStart, lt: hoyStart }, estado: { not: 'anulada' } }, _sum: { total: true } })
+  ])
+
+  const ventasMes = mes._sum.total || 0
+  const ventasHoy = hoy._sum.total || 0
+  const ventasAyer = ayer._sum.total || 0
+  const pctCambio = ventasAyer > 0 ? (ventasHoy - ventasAyer) / ventasAyer * 100 : 0
+
+  return NextResponse.json({
+    ventasMes: parseFloat(ventasMes.toFixed(2)),
+    ventasHoy: parseFloat(ventasHoy.toFixed(2)),
+    ventasAyer: parseFloat(ventasAyer.toFixed(2)),
+    pctCambio: parseFloat(pctCambio.toFixed(2))
+  })
 }

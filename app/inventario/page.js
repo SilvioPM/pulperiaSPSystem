@@ -65,13 +65,13 @@ export default function Inventario() {
   }
 
   async function cargarProductos() {
-    const res  = await fetch('/api/productos?limit=10000')
+    const res  = await fetch('/api/productos?limit=1000')
     const data = await res.json()
     setProductos(data.data || data)
   }
 
   async function cargarVencer() {
-    const res  = await fetch(`/api/productos?vencer=${filtroVenc}&limit=10000`)
+    const res  = await fetch(`/api/productos?vencer=${filtroVenc}&limit=1000`)
     const data = await res.json()
     setProdsVencer(data.data || [])
   }

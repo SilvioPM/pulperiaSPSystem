@@ -13,7 +13,7 @@ export default function CuentasCobrar() {
   const [facturas, setFacturas]       = useState([])
   const [facturaSeleccionada, setFacturaSeleccionada] = useState(null)
   const [mostrarAbono, setMostrarAbono] = useState(false)
-  const [formAbono, setFormAbono]     = useState({ monto: '', nota: '' })
+  const [formAbono, setFormAbono]     = useState({ monto: '', nota: '', metodo: 'efectivo', moneda: 'C$' })
   const [guardando, setGuardando]     = useState(false)
   const [filtro, setFiltro]           = useState('pendientes')
   const [buscar, setBuscar]           = useState('')
@@ -34,7 +34,7 @@ export default function CuentasCobrar() {
   async function cargarFacturas() {
     try {
       const [resFacturas, resClientes] = await Promise.all([
-        fetch('/api/facturas?limit=10000'),
+        fetch('/api/facturas?estado=credito&limit=500'),
         fetch('/api/clientes')
       ])
       const dataFacturas = await resFacturas.json()
@@ -74,8 +74,8 @@ export default function CuentasCobrar() {
         ? `/api/clientes/${facturaSeleccionada.cliente.id}/abonar-inicial`
         : '/api/abonos'
       const body = esSaldoInicial
-        ? JSON.stringify({ monto, nota: formAbono.nota })
-        : JSON.stringify({ facturaId: facturaSeleccionada.id, monto, nota: formAbono.nota })
+        ? JSON.stringify({ monto, nota: formAbono.nota, metodo: formAbono.metodo || 'efectivo', moneda: formAbono.moneda || 'C$' })
+        : JSON.stringify({ facturaId: facturaSeleccionada.id, monto, nota: formAbono.nota, metodo: formAbono.metodo || 'efectivo', moneda: formAbono.moneda || 'C$' })
       const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
       const data = await res.json()
       if (!res.ok) {
@@ -94,7 +94,7 @@ export default function CuentasCobrar() {
           nota: formAbono.nota
         })
         setMostrarAbono(false)
-        setFormAbono({ monto: '', nota: '' })
+setFormAbono({ monto: '', nota: '', metodo: 'efectivo', moneda: 'C$' })
         setFacturaSeleccionada(null)
           cargarFacturas()
         ultimoAbonoRef.current = {
@@ -456,7 +456,34 @@ export default function CuentasCobrar() {
                 </button>
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                    Método de pago *
+                  </label>
+                  <select value={formAbono.metodo || 'efectivo'}
+                    onChange={e => setFormAbono({...formAbono, metodo: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', background: '#fff' }}>
+                    <option value="efectivo">Efectivo C$</option>
+                    <option value="dolares">Efectivo $</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="transferencia">Transferencia</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                    Moneda
+                  </label>
+                  <select value={formAbono.moneda || 'C$'}
+                    onChange={e => setFormAbono({...formAbono, moneda: e.target.value})}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', background: '#fff' }}>
+                    <option value="C$">C$</option>
+                    <option value="$">$</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
                   Nota (opcional)
                 </label>

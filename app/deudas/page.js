@@ -32,7 +32,7 @@ export default function Deudas() {
   async function cargarCompras() {
     try {
       const [resCompras, resProveedores] = await Promise.all([
-        fetch('/api/compras?limit=10000'),
+        fetch('/api/compras?estado=credito&limit=500'),
         fetch('/api/proveedores')
       ])
       const dataCompras = await resCompras.json()

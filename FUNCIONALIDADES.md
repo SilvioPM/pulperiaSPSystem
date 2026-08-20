@@ -36,20 +36,28 @@
 - Pantalla de login con campos de **usuario** y **contraseña**
 - Las credenciales distinguen entre mayúsculas y minúsculas
 - Contraseñas almacenadas con **bcrypt** (hash + salt)
-- Sesión manejada mediante **JWT** almacenado en cookie segura (`__session`)
+- Sesión manejada mediante **JWT** almacenado en cookie segura (`session`)
+- **Sesión única por usuario**: cada login genera un nuevo token de sesión almacenado en BD (`sessionToken`); el dispositivo anterior queda invalidado en segundos
 - Opción **"Recordarme"** — extiende la duración de la sesión
 - Después de **5 intentos fallidos**, el usuario se bloquea por **5 minutos**
-- **30 minutos de inactividad** → cierre de sesión automático (detecta eventos mouse/teclado/touch)
+- **5 minutos de inactividad** → cierre de sesión automático (detecta eventos mouse/teclado/touch)
+- El token se refresca automáticamente cada 20 minutos (se re-emite cuando falta < 1h para expirar)
 
 ### 1.2 Middleware de protección
 - Todas las rutas `/api/*` están protegidas por middleware
-- Rutas públicas: `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`, `/api/config`, `/api/licencia`, `/api/logo`
+- Rutas públicas: `/api/auth/login`, `/api/auth/me`, `/api/auth/sesion`, `/api/auth/logout`, `/api/config`, `/api/licencia`, `/api/logo`
 - Protección **CSRF** en métodos POST/PUT/DELETE: valida que `Origin` y `Referer` coincidan con el servidor
+- **Verificación de sesión activa**: tras validar el JWT, el middleware confirma con la BD que el token de sesión siga vigente (vía `/api/auth/sesion`, con caché de 30s). Si fue invalidado (logout remoto o nuevo login en otro dispositivo) → 401
 
 ### 1.3 Verificación de contraseña para acciones sensibles
 - Anular facturas requiere autorización por contraseña
 - Solo usuarios con rol admin/supervisor/encargado pueden autorizar
 - Cajero debe ingresar contraseña de un superior
+
+### 1.4 Logout remoto
+- El módulo **Usuarios** muestra la columna **Sesión** con el estado de cada usuario
+- Botón **"Cerrar sesión"** (solo admin) invalida el token de sesión del usuario en BD
+- El dispositivo afectado queda desconectado en máximo 30 segundos (caché del middleware) o 20 minutos (refresco del cliente)
 
 ---
 
@@ -442,7 +450,7 @@ El botón **⟳** en el POS permite alternar entre presentaciones. La función `
 | Total ingresado | Suma de todos los pagos (sin crédito) |
 | Efectivo C$ | Ventas en efectivo córdobas |
 | Efectivo USD | Ventas en efectivo dólares |
-| Abonos de clientes | Abonos registrados durante la sesión |
+| Abonos de clientes | Abonos registrados durante la sesión (efectivo / tarjeta / transferencia) |
 | Tarjeta | Ventas con tarjeta |
 | Transferencia | Ventas por transferencia |
 | Ingresos extra | Movimientos tipo entrada |
@@ -451,19 +459,20 @@ El botón **⟳** en el POS permite alternar entre presentaciones. La función `
 ### 10.4 Arqueo y cierre
 1. Hacer clic en **Cerrar Caja y hacer Arqueo**
 2. Desglose de billetes y monedas C$ (1000, 500, 200, 100, 50, 25, 20, 10, 5) y USD (100, 50, 20, 10, 5, 2, 1)
-3. Sistema calcula:
+3. **El arqueo físico concilia SOLO el efectivo del cajón** — tarjeta y transferencia no entran a la caja física:
    ```
-   Esperado C$ = Monto inicial + Ventas efectivo C$ + Abonos + Ingresos extra − Egresos (incluye gastos efectivo)
-   Esperado $ = Ventas efectivo USD
+   Esperado C$ = Monto inicial + Ventas efectivo C$ + Abonos efectivo C$ + Ingresos extra − Egresos (incluye gastos efectivo)
+   Esperado $ = Monto inicial $ + Ventas efectivo USD + Abonos efectivo USD
    ```
-4. Se compara con el **Efectivo real** del arqueo
-5. **Diferencia C$** y **Diferencia $** (puede ser positiva, negativa o cero)
-6. Observación opcional
-7. Al cerrar: no se pueden registrar más ventas hasta nueva apertura
+4. La pantalla muestra aparte la sección **"A depositar al banco"**: ventas + abonos de tarjeta y transferencia (no se comparan contra el efectivo real)
+5. Se compara el **Esperado** con el **Efectivo real** del arqueo
+6. **Diferencia C$** y **Diferencia $** (puede ser positiva, negativa o cero)
+7. Observación opcional
+8. Al cerrar: no se pueden registrar más ventas hasta nueva apertura
 
 ### 10.5 Historial de cierres
 - Tabla con todos los cierres anteriores
-- Muestra: fecha, quién abrió/cerró, inicial, vendido, ingresos extra, egresos, efectivo real, diferencias
+- Muestra: fecha, quién abrió/cerró, inicial, vendido, tarjeta, transferencia, abonos, ingresos extra, egresos, efectivo real, diferencias
 
 ---
 
@@ -626,7 +635,8 @@ Colores: verde si ganancia ≥ 0, rojo si pérdida
 
 ### 15.3 DGI — e-Factura Nicaragua
 - Campos: NRC, CAI, rango de facturación autorizado
-- Generador de XML para e-factura (integración con DGI requiere credenciales oficiales)
+- Generador de XML para e-factura
+- **Limitación**: la integración con la DGI requiere credenciales oficiales del contribuyente (firma digital y certificado). Hasta no contar con ellas, el sistema genera el XML localmente pero **no lo envía a la DGI**; la emisión oficial debe hacerse por la vía que disponga la DGI
 
 ### 15.4 Productos genéricos
 - Interruptor `permiteGenericos` (true/false)
@@ -756,7 +766,7 @@ Colores: verde si ganancia ≥ 0, rojo si pérdida
 ├── lib/                → 6 módulos de utilidades (auth, prisma, auditoría, DGI, backup)
 ├── prisma/
 │   ├── schema.prisma   → 23 modelos de datos
-│   ├── migrations/     → 5 migraciones SQL
+│   ├── migrations/     → 14 migraciones SQL (0000..0013)
 │   └── seed.js         → datos de prueba
 ├── print-agent/        → Servidor de impresión térmica (Node.js, puerto 5123)
 ├── scripts/            → generador de licencias
@@ -820,15 +830,17 @@ Facturas → POST /api/facturas/[id]/anular → Verificar contraseña → $trans
 ```
 
 ### 21.5 Seguridad
-- JWT en cookie `__session` con flag `httpOnly`
+- JWT en cookie `session` con flag `httpOnly`
 - CSRF: validación de origen en escritura
 - Passwords: bcrypt (salt rounds)
 - Bloqueo por intentos fallidos
-- Timeout de sesión por inactividad (30 min)
-- Licencia por hardware
+- Sesión única por usuario + logout remoto (token de sesión en BD)
+- Timeout de sesión por inactividad (5 min)
+- Licencia por hardware (bloqueo de páginas y APIs en el middleware)
+- RLS (Row Level Security) en PostgreSQL: 23 tablas protegidas a nivel de fila
 
 ---
 
-> **Última actualización:** Julio 2026 — v2.0: Códigos alias, borradores de compra, teclado virtual custom
+> **Última actualización:** Agosto 2026 — Arqueo conciliando solo efectivo (tarjeta/transferencia a banco), sesión única + logout remoto, migraciones 0012/0013
 > **Versión:** 0.1.0
 > **Licencia:** Propietaria — requiere archivo .lic válido

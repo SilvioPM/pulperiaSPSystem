@@ -8,6 +8,16 @@ export async function POST(request) {
     const body = sanitizarEntrada(await request.json(), 300)
     const facturaId = parseInt(body.facturaId)
     const monto = parseNumber(body.monto)
+    const metodo = body.metodo || 'efectivo'
+    const moneda = body.moneda || 'C$'
+
+    const METODOS_VALIDOS = ['efectivo', 'dolares', 'tarjeta', 'transferencia']
+    if (!METODOS_VALIDOS.includes(metodo)) {
+      return NextResponse.json({ error: 'Método de pago inválido' }, { status: 400 })
+    }
+    if (moneda !== 'C$' && moneda !== '$') {
+      return NextResponse.json({ error: 'Moneda inválida' }, { status: 400 })
+    }
 
     if (!facturaId || isNaN(monto) || monto <= 0) {
       return NextResponse.json({ error: 'Datos de abono inválidos' }, { status: 400 })
@@ -26,7 +36,7 @@ export async function POST(request) {
       }
 
       const abono = await tx.abono.create({
-        data: { facturaId, monto, nota: body.nota || null }
+        data: { facturaId, monto, metodo, moneda, nota: body.nota || null }
       })
 
       const nuevoSaldo = parseFloat((factura.saldoPendiente - monto).toFixed(2))
@@ -37,15 +47,16 @@ export async function POST(request) {
         data: { saldoPendiente: nuevoSaldo, estado: nuevoEstado }
       })
 
-      // Sumar a caja abierta (el abono es dinero real que entra)
+      // Sumar a caja abierta según el método: efectivo entra al cajón,
+      // tarjeta/transferencia van al banco (no afectan el arqueo físico)
       const cajaAbierta = await tx.caja.findFirst({ where: { estado: 'abierta' } })
       if (cajaAbierta) {
-        await tx.caja.update({
-          where: { id: cajaAbierta.id },
-          data: {
-            totalVendido: { increment: monto }
-          }
-        })
+        const updateCaja = { totalVendido: { increment: monto } }
+        if (metodo === 'dolares' || (metodo === 'efectivo' && moneda === '$')) updateCaja.abonosEfectivoUs = { increment: monto }
+        else if (metodo === 'efectivo') updateCaja.abonosEfectivoCs = { increment: monto }
+        else if (metodo === 'tarjeta') updateCaja.abonosTarjeta = { increment: monto }
+        else if (metodo === 'transferencia') updateCaja.abonosTransfer = { increment: monto }
+        await tx.caja.update({ where: { id: cajaAbierta.id }, data: updateCaja })
       }
 
       return { abono, nuevoSaldo, nuevoEstado }

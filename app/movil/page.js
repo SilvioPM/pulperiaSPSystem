@@ -75,8 +75,8 @@ export default function MovilPage() {
       ['ganancias', `/api/reportes?tipo=ganancias&desde=${desde}&hasta=${hasta}`],
       ['abonos', `/api/reportes?tipo=abonos&desde=${desde}&hasta=${hasta}`],
       ['morosos', '/api/reportes?tipo=morosos'],
-      ['gastos', `/api/gastos?desde=${desde}&hasta=${hasta}&limit=10000`],
-      ['compras', `/api/compras?desde=${desde}&hasta=${hasta}&limit=10000`],
+      ['gastos', `/api/gastos?desde=${desde}&hasta=${hasta}&limit=500`],
+      ['compras', `/api/compras?desde=${desde}&hasta=${hasta}&limit=500`],
     ]
     const resultados = await Promise.all(urls.map(async ([key, url]) => {
       try { const r = await fetch(url); return [key, r.ok ? await r.json() : null] } catch { return [key, null] }

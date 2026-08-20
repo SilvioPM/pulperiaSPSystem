@@ -75,6 +75,19 @@ export async function POST(req, { params }) {
       const caja = await tx.caja.findFirst({ where: { estado: 'abierta' } })
       if (caja) {
         const updateCaja = {}
+        let totalRevertir = 0
+
+        // Revertir abonos registrados a esta factura (se sumaron por método al cajón o al banco)
+        const abonosFactura = await tx.abono.findMany({ where: { facturaId: facturaAnular.id } })
+        for (const a of abonosFactura) {
+          const m = parseFloat(a.monto || 0)
+          if (a.metodo === 'dolares' || (a.metodo === 'efectivo' && a.moneda === '$')) updateCaja.abonosEfectivoUs = { decrement: m }
+          else if (a.metodo === 'efectivo') updateCaja.abonosEfectivoCs = { decrement: m }
+          else if (a.metodo === 'tarjeta') updateCaja.abonosTarjeta = { decrement: m }
+          else if (a.metodo === 'transferencia') updateCaja.abonosTransfer = { decrement: m }
+          totalRevertir += m
+        }
+
         const dp = facturaAnular.detallesPago ? JSON.parse(facturaAnular.detallesPago) : []
         if (dp.length > 0) {
           let totalPagado = 0
@@ -91,18 +104,19 @@ export async function POST(req, { params }) {
               else if (p.metodo === 'transferencia') updateCaja.ventasTransfer = { decrement: monto }
             }
           }
-          if (totalPagado > 0) updateCaja.totalVendido = { decrement: totalPagado }
+          totalRevertir += totalPagado
         } else {
           if (facturaAnular.metodoPago === 'credito') {
             updateCaja.ventasCredito = { decrement: facturaAnular.total }
           } else {
-            updateCaja.totalVendido = { decrement: facturaAnular.total }
+            totalRevertir += facturaAnular.total
             if (facturaAnular.metodoPago === 'efectivo') updateCaja.ventasEfectivoCs = { decrement: facturaAnular.total }
             else if (facturaAnular.metodoPago === 'dolares') updateCaja.ventasEfectivoUs = { decrement: facturaAnular.pagoEnUsd || facturaAnular.pagoCon || 0 }
             else if (facturaAnular.metodoPago === 'tarjeta') updateCaja.ventasTarjeta = { decrement: facturaAnular.total }
             else if (facturaAnular.metodoPago === 'transferencia') updateCaja.ventasTransfer = { decrement: facturaAnular.total }
           }
         }
+        if (totalRevertir > 0) updateCaja.totalVendido = { decrement: totalRevertir }
         if (Object.keys(updateCaja).length > 0) {
           await tx.caja.update({ where: { id: caja.id }, data: updateCaja })
         }

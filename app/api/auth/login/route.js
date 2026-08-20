@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { firmarToken, COOKIE_NAME } from '@/lib/auth'
+import { firmarToken, generarSesionToken, COOKIE_NAME } from '@/lib/auth'
 import { auditar } from '@/lib/auditar'
 
 const rateLimitMap = new Map()
@@ -84,7 +84,13 @@ export async function POST(req) {
       })
     }
 
-    const token = await firmarToken(usuario)
+    const sesToken = generarSesionToken()
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { sessionToken: sesToken }
+    })
+
+    const token = await firmarToken(usuario, sesToken)
 
     const res = Response.json({
       id: usuario.id,

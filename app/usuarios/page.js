@@ -87,6 +87,18 @@ export default function UsuariosPage() {
     }
   }
 
+  async function cerrarSesion(u) {
+    if (!confirm(`¿Cerrar la sesión de "${u.nombre}" en todos los dispositivos?`)) return
+    const res = await fetch(`/api/usuarios/${u.id}/sesion`, { method: 'DELETE' })
+    if (res.ok) {
+      auditar(user?.username || user?.nombre, 'cerrar-sesion', 'usuario', `Sesión de "${u.nombre}" cerrada remotamente`)
+      cargarUsuarios()
+    } else {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Error al cerrar sesión')
+    }
+  }
+
   if (!user || !user.esAdmin) {
     return <p style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>Acceso denegado. Solo administradores.</p>
   }
@@ -178,6 +190,7 @@ export default function UsuariosPage() {
             <th style={thStyle}>Rol</th>
             <th style={thStyle}>Módulos</th>
             <th style={thStyle}>Activo</th>
+            <th style={thStyle}>Sesión</th>
             <th style={thStyle}>Acción</th>
           </tr>
         </thead>
@@ -191,6 +204,16 @@ export default function UsuariosPage() {
                 {u.esAdmin ? 'Todos' : (u.modulos || []).join(', ')}
               </td>
               <td style={tdStyle}>{u.activo ? '✅' : '❌'}</td>
+              <td style={tdStyle}>
+                {u.sesionActiva ? (
+                  <button onClick={() => cerrarSesion(u)}
+                    style={{ padding: '4px 10px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                    Cerrar sesión
+                  </button>
+                ) : (
+                  <span style={{ color: '#9ca3af', fontSize: 13 }}>Sin sesión</span>
+                )}
+              </td>
               <td style={tdStyle}>
                 <button onClick={() => editar(u)}
                   style={{ padding: '4px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>

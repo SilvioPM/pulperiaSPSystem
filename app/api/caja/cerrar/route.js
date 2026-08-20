@@ -15,6 +15,11 @@ export async function POST(req) {
     const ventasEfectivoCs = stats.ventasEfectivoCs
     const ventasEfectivoUs = stats.ventasEfectivoUs
 
+    // Lo esperado en el cajón es SOLO efectivo (ventas + abonos en efectivo + inicial + ingresos - egresos).
+    // Tarjeta/transferencia no entran a la caja: van al banco.
+    const esperadoCs = parseFloat((caja.montoInicial + stats.ventasEfectivoCs + stats.abonosEfectivoCs + caja.ingresosExtra - caja.egresos).toFixed(2))
+    const esperadoUs = parseFloat((caja.montoInicialUs + stats.ventasEfectivoUs + stats.abonosEfectivoUs + caja.ingresosExtraUs - caja.egresosUs).toFixed(2))
+
     // Calcular totales del arqueo
     let efectivoRealCs = 0
     let efectivoRealUs = 0
@@ -30,8 +35,8 @@ export async function POST(req) {
       }
     }
 
-    const diferenciaCs = parseFloat((efectivoRealCs - caja.montoInicial - ventasEfectivoCs - caja.ingresosExtra + caja.egresos).toFixed(2))
-    const diferenciaUs = parseFloat((efectivoRealUs - caja.montoInicialUs - ventasEfectivoUs - caja.ingresosExtraUs + caja.egresosUs).toFixed(2))
+    const diferenciaCs = parseFloat((efectivoRealCs - esperadoCs).toFixed(2))
+    const diferenciaUs = parseFloat((efectivoRealUs - esperadoUs).toFixed(2))
 
     // Cerrar caja en transacción: arqueo + update atómicos
     const cerrada = await prisma.$transaction(async (tx) => {
@@ -58,12 +63,16 @@ export async function POST(req) {
           ventasTarjeta: stats.ventasTarjeta,
           ventasTransfer: stats.ventasTransfer,
           ventasCredito: stats.ventasCredito, // mantener crédito real, no forzar 0
+          abonosEfectivoCs: stats.abonosEfectivoCs,
+          abonosEfectivoUs: stats.abonosEfectivoUs,
+          abonosTarjeta: stats.abonosTarjeta,
+          abonosTransfer: stats.abonosTransfer,
           totalVendido: stats.totalVendido
         }
       })
     })
 
-    return NextResponse.json(cerrada)
+    return NextResponse.json({ ...cerrada, esperadoCs, esperadoUs })
   } catch (e) {
     console.error('Error al cerrar caja:', e)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

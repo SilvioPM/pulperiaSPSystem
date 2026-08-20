@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { calcularCajaStats } from '@/lib/cajaStats'
+import { calcularCajaStats, calcularCajaStatsBatch } from '@/lib/cajaStats'
 import { sanitizarEntrada } from '@/lib/sanitizar'
 
 export async function GET() {
@@ -21,10 +21,8 @@ export async function GET() {
       take: 30,
       include: { arqueo: true, movimientos: { orderBy: { creadoEn: 'desc' } } }
     })
-    const historialConStats = await Promise.all(historial.map(async h => {
-      const stats = await calcularCajaStats(h)
-      return { ...h, ...stats }
-    }))
+    const historialStats = await calcularCajaStatsBatch(historial)
+    const historialConStats = historial.map((h, i) => ({ ...h, ...historialStats[i] }))
     return NextResponse.json({ actual: actualConStats, historial: historialConStats })
   } catch (e) {
     console.error('Error al obtener caja:', e)

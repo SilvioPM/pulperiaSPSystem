@@ -155,6 +155,8 @@ model Abono {
   facturaId Int
   factura   Factura  @relation(fields: [facturaId], references: [id], onDelete: Restrict)
   monto     Float
+  metodo    String   @default("efectivo") // efectivo | dolares | tarjeta | transferencia
+  moneda    String   @default("C$")       // C$ | $
   nota      String?
   creadoEn  DateTime @default(now())
 
@@ -304,7 +306,10 @@ model Usuario {
   activo          Boolean   @default(true)
   intentosFallidos Int      @default(0)
   bloqueadoHasta  DateTime?
+  sessionToken    String?
   creadoEn        DateTime  @default(now())
+
+  @@index([sessionToken])
 }
 
 model Auditoria {
@@ -331,6 +336,10 @@ model Caja {
   ventasTarjeta   Float    @default(0)
   ventasTransfer  Float    @default(0)
   ventasCredito   Float    @default(0)
+  abonosEfectivoCs Float   @default(0)
+  abonosEfectivoUs Float   @default(0)
+  abonosTarjeta   Float    @default(0)
+  abonosTransfer  Float    @default(0)
   totalVendido    Float    @default(0)
   ingresosExtra   Float    @default(0)
   ingresosExtraUs Float    @default(0)

@@ -49,9 +49,9 @@ export default function Inicio() {
         const desde30 = new Date(hoy); desde30.setDate(desde30.getDate() - 30); const desde30Str = desde30.toISOString().slice(0, 10)
         const desde12m = new Date(hoy); desde12m.setMonth(desde12m.getMonth() - 12); const desde12mStr = desde12m.toISOString().slice(0, 10)
 
-        const [resConfig, resFactMes, resReportes, resCompras, resProds, resClientes, resCaja, resGanancias, resVencer] = await Promise.all([
+        const [resConfig, resVentasMes, resReportes, resCompras, resProds, resClientes, resCaja, resGanancias, resVencer] = await Promise.all([
           fetch('/api/config'),
-          fetch(`/api/facturas?desde=${desdeMes}&hasta=${hoyStr}&limit=9999`),
+          fetch('/api/reportes?tipo=ventas-mes'),
           fetch(`/api/reportes?desde=${desde30Str}&hasta=${hoyStr}`),
           fetch(`/api/compras?desde=${desdeMes}&hasta=${hoyStr}&limit=100`),
           fetch('/api/productos?limit=1'),
@@ -62,7 +62,7 @@ export default function Inicio() {
         ])
 
         const cfg = await resConfig.json()
-        const facturasMes = (await resFactMes.json()).data || []
+        const vMes = await resVentasMes.json()
         const r = await resReportes.json()
         const comprasData = await resCompras.json()
         const prodsRes = await resProds.json()
@@ -72,11 +72,10 @@ export default function Inicio() {
         const prodsVencer = (await resVencer.json()).data || []
 
         // Derived stats
-        const ventasMes = facturasMes.reduce((s, f) => s + (f.total || 0), 0)
-        const ventasHoy = facturasMes.filter(f => f.creadoEn?.slice(0, 10) === hoyStr).reduce((s, f) => s + (f.total || 0), 0)
-        const ayerStr = new Date(hoy); ayerStr.setDate(ayerStr.getDate() - 1); const ayerStr2 = ayerStr.toISOString().slice(0, 10)
-        const ventasAyer = facturasMes.filter(f => f.creadoEn?.slice(0, 10) === ayerStr2).reduce((s, f) => s + (f.total || 0), 0)
-        const pctCambio = ventasAyer > 0 ? ((ventasHoy - ventasAyer) / ventasAyer * 100) : 0
+        const ventasMes = vMes.ventasMes || 0
+        const ventasHoy = vMes.ventasHoy || 0
+        const ventasAyer = vMes.ventasAyer || 0
+        const pctCambio = vMes.pctCambio || 0
 
         const comprasMes = (comprasData.data || []).reduce((s, c) => s + (c.total || 0), 0)
         const totalProds = prodsRes.total || 0

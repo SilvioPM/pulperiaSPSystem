@@ -27,7 +27,7 @@ export default function Clientes() {
   async function cargarClientes(p) {
     setCargando(true)
     const s = buscando ? `&buscar=${encodeURIComponent(buscando)}` : ''
-    const res = await fetch(`/api/clientes?page=${p}&limit=10000${s}`)
+    const res = await fetch(`/api/clientes?page=${p}&limit=200${s}`)
     const data = await res.json()
     setClientes(data.data || data || [])
     setTotalClientes(data.total || 0)
@@ -69,7 +69,7 @@ export default function Clientes() {
   }
 
   async function verHistorial(cliente) {
-    const res  = await fetch('/api/facturas?limit=10000')
+    const res  = await fetch(`/api/facturas?clienteId=${cliente.id}&limit=500`)
     const data = await res.json()
     const facturasDel = (data.data || data || []).filter(f => f.clienteId === cliente.id)
     const deuda = facturasDel

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { obtenerEstadoLicencia, validarFirma } from '@/lib/licencia'
+import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   const estado = await obtenerEstadoLicencia()
@@ -43,8 +44,6 @@ export async function POST(req) {
       return NextResponse.json({ error: 'La licencia ya expiró' }, { status: 400 })
     }
 
-    const { PrismaClient } = await import('@prisma/client')
-    const prisma = new PrismaClient()
     await prisma.config.upsert({
       where: { clave: 'licenciaToken' },
       update: { valor: firma },

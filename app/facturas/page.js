@@ -49,7 +49,7 @@ export default function Facturas() {
 
   async function cargarFacturasHoyStats() {
     const hoy = new Date().toISOString().split('T')[0]
-    const res = await fetch(`/api/facturas?desde=${hoy}&hasta=${hoy}&page=1&limit=9999`)
+    const res = await fetch(`/api/facturas?desde=${hoy}&hasta=${hoy}&page=1&limit=1000`)
     const data = await res.json()
     setFacturasHoy(data.data || data || [])
   }

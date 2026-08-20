@@ -57,6 +57,9 @@ export default function POS() {
   const { visible: tecladoVisible, keyboardHeight: tecladoAlturaRaw } = useTecladoVirtual()
   const tecladoAltura = tecladoVisible && tecladoAlturaRaw === 0 ? 240 : tecladoAlturaRaw
   const [productos, setProductos]     = useState([])
+  const [productosTotal, setProductosTotal] = useState(0)
+  const [productosPagina, setProductosPagina] = useState(1)
+  const [cargandoProductos, setCargandoProductos] = useState(false)
   const [categorias, setCategorias]   = useState([])
   const [carrito, setCarrito]         = useState([])
   const inputRefs = useRef({})
@@ -152,7 +155,7 @@ export default function POS() {
 
   const buscarProducto = useCallback(async (codigo) => {
     try {
-      const res = await fetch(`/api/productos?buscar=${encodeURIComponent(codigo)}&limit=10000`)
+      const res = await fetch(`/api/productos?buscar=${encodeURIComponent(codigo)}&limit=50`)
       const data = await res.json()
       const prods = data.data || data || []
       const prod = prods.find(p =>
@@ -219,14 +222,20 @@ export default function POS() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  async function cargarProductos() {
-    let url = '/api/productos?limit=10000&'
+  async function cargarProductos(pagina = 1, append = false) {
+    setCargandoProductos(true)
+    const LIMITE = 200
+    let url = `/api/productos?page=${pagina}&limit=${LIMITE}&`
     if (buscar)              url += `buscar=${buscar}&`
     if (categoriaActiva)     url += `categoriaId=${categoriaActiva}&`
     if (!buscar && !categoriaActiva) url += `sort=ventas&`
     const res = await fetch(url)
     const data = await res.json()
-    setProductos(data.data || data || [])
+    const lista = data.data || data || []
+    setProductos(prev => append ? [...prev, ...lista] : lista)
+    setProductosTotal(data.total || lista.length)
+    setProductosPagina(pagina)
+    setCargandoProductos(false)
   }
 
   async function cargarCategorias() {
@@ -426,7 +435,7 @@ export default function POS() {
     }
     const esVentaCredito = esCredito || metodoPago === 'credito'
     if (esVentaCredito && clienteSeleccionado?.limiteCredito > 0) {
-      const res = await fetch(`/api/facturas?clienteId=${clienteSeleccionado.id}&estado=credito&page=1&limit=9999`)
+      const res = await fetch(`/api/facturas?clienteId=${clienteSeleccionado.id}&estado=credito&page=1&limit=500`)
       const data = await res.json()
       const facturas = data.data || data || []
       const pendiente = facturas.reduce((s, f) => s + (f.saldoPendiente || 0), 0)
@@ -803,6 +812,21 @@ export default function POS() {
               )
             })
           )}
+          {productos.length < productosTotal && (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '8px 0 4px' }}>
+              <button
+                onClick={() => cargarProductos(productosPagina + 1, true)}
+                disabled={cargandoProductos}
+                className="touch-active"
+                style={{
+                  padding: '10px 20px', borderRadius: '10px', border: '1px solid #e2e8f0',
+                  background: 'white', color: 'var(--texto)', fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+                }}
+              >
+                {cargandoProductos ? 'Cargando…' : `Cargar más (${productos.length} de ${productosTotal})`}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1042,7 +1066,7 @@ export default function POS() {
                   <div key={c.id} onClick={async () => {
                     setClienteSeleccionado(c); setMostrarClientes(false); setBuscarCliente('')
                     try {
-                      const r = await fetch(`/api/facturas?clienteId=${c.id}&estado=credito&page=1&limit=10000`)
+                      const r = await fetch(`/api/facturas?clienteId=${c.id}&estado=credito&page=1&limit=500`)
                       const d = await r.json()
                       const facturas = d.data || d || []
                       const totalPendiente = facturas.reduce((s, f) => s + (f.saldoPendiente || 0), 0)

@@ -31,7 +31,7 @@ export default function Gastos() {
     h.setMonth(h.getMonth() + 1)
     h.setDate(0)
     const hasta = filtroMes + '-' + String(h.getDate()).padStart(2, '0')
-    const res = await fetch(`/api/gastos?desde=${desde}&hasta=${hasta}&limit=9999`)
+    const res = await fetch(`/api/gastos?desde=${desde}&hasta=${hasta}&limit=1000`)
     const data = await res.json()
     setGastos(data.data || [])
     setTotalGastos((data.data || []).reduce((s, g) => s + g.monto, 0))

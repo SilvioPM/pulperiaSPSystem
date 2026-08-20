@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { verificarToken, COOKIE_NAME } from './lib/auth'
 
-const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/me', '/api/auth/logout', '/api/licencia', '/api/logo', '/api/auth/verify-password']
+const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/me', '/api/auth/sesion', '/api/auth/logout', '/api/licencia', '/api/logo', '/api/auth/verify-password']
 
 // Cache simple en memoria para estado de licencia (TTL 30s)
 const licenciaCache = new Map()
+
+// Cache simple en memoria para validez de sesión (TTL 30s)
+const sesionCache = new Map()
 
 async function verificarLicencia(req) {
   const host = req.headers.get('host') || 'localhost:3000'
@@ -32,6 +35,36 @@ async function verificarLicencia(req) {
     console.warn('No se pudo verificar licencia, permitiendo acceso (fail-open)')
   }
   return true
+}
+
+// Verifica que el token de sesión del JWT siga activo en la BD (logout remoto / sesión única).
+// Internamente llama a /api/auth/sesion (público) y cachea 30s por token.
+async function verificarSesion(req, payload) {
+  if (!payload.ses) return false
+
+  const cached = sesionCache.get(payload.ses)
+  if (cached && Date.now() - cached.ts < 30000) {
+    return cached.valida
+  }
+
+  try {
+    const host = req.headers.get('host') || 'localhost:3000'
+    const protocol = req.headers.get('x-forwarded-proto') || 'http'
+    const res = await fetch(`${protocol}://${host}/api/auth/sesion`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': req.headers.get('cookie') || '',
+      },
+    })
+    const valida = res.ok
+    sesionCache.set(payload.ses, { valida, ts: Date.now() })
+    return valida
+  } catch {
+    // Si falla la verificación, permitimos (fail-open) pero logueamos
+    console.warn('No se pudo verificar sesión, permitiendo acceso (fail-open)')
+    return true
+  }
 }
 
 // Mapa recurso → módulos permitidos (RBAC). Cada API la consumen las páginas de varios módulos.
@@ -140,6 +173,12 @@ export default async function middleware(req) {
   const payload = await verificarToken(cookie.value)
   if (!payload) {
     return NextResponse.json({ error: 'Sesión inválida o expirada' }, { status: 401 })
+  }
+
+  // Sesión única: validar que el token de sesión siga activo en la BD (logout remoto)
+  const sesionValida = await verificarSesion(req, payload)
+  if (!sesionValida) {
+    return NextResponse.json({ error: 'Sesión cerrada en otro dispositivo' }, { status: 401 })
   }
 
   // RBAC: validar permiso del módulo para este recurso
