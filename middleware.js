@@ -64,7 +64,17 @@ const RUTAS_ADMIN = ['/api/auditoria', '/api/respaldos']
 export default async function middleware(req) {
   const { pathname } = req.nextUrl
 
-  if (!pathname.startsWith('/api/')) return NextResponse.next()
+  // Páginas: bloquear por licencia (sin JWT; login y páginas de licencia son públicas)
+  if (!pathname.startsWith('/api/')) {
+    if (pathname === '/login' || pathname === '/licencia' || pathname.startsWith('/licencia-bloqueada')) {
+      return NextResponse.next()
+    }
+    const licenciaValida = await verificarLicencia(req)
+    if (!licenciaValida) {
+      return NextResponse.redirect(new URL('/licencia-bloqueada', req.url))
+    }
+    return NextResponse.next()
+  }
 
   if (req.method === 'OPTIONS') {
     return new NextResponse(null, {
@@ -149,5 +159,5 @@ export default async function middleware(req) {
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*', '/((?!_next|.*\\..*).*)'],
 }

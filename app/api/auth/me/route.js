@@ -1,14 +1,20 @@
 import { verificarToken, firmarToken, COOKIE_NAME } from '@/lib/auth'
-import { cookies } from 'next/headers'
 
 export async function GET(req) {
   try {
-    const cookie = req.cookies.get(COOKIE_NAME)
-    if (!cookie?.value) {
+    // Leer cookie del header manualmente (next/headers cookies() no funciona en route handlers en este entorno)
+    const cookieHeader = req.headers.get('cookie') || ''
+    const cookies = cookieHeader.split(';').reduce((acc, c) => {
+      const [k, v] = c.trim().split('=')
+      if (k && v) acc[k] = v
+      return acc
+    }, {})
+    const cookieValue = cookies[COOKIE_NAME]
+    if (!cookieValue) {
       return Response.json({ autenticado: false }, { status: 401 })
     }
 
-    const payload = await verificarToken(cookie.value)
+    const payload = await verificarToken(cookieValue)
     if (!payload) {
       return Response.json({ autenticado: false }, { status: 401 })
     }
@@ -19,11 +25,17 @@ export async function GET(req) {
     if (exp && (exp - now) < 3600) {
       const nuevoToken = await firmarToken(payload)
       const proto = req.headers.get('x-forwarded-proto') || 'http'
-      const cookieStore = await cookies()
-      cookieStore.set(COOKIE_NAME, nuevoToken, {
-        httpOnly: true, secure: proto === 'https', sameSite: 'lax',
-        path: '/', maxAge: 60 * 60 * 24,
-      })
+      const headers = new Headers()
+      headers.set('Set-Cookie', `${COOKIE_NAME}=${nuevoToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${proto === 'https' ? '; Secure' : ''}`)
+      return Response.json({
+        autenticado: true,
+        id: payload.id,
+        username: payload.username,
+        nombre: payload.nombre,
+        rol: payload.rol,
+        esAdmin: payload.esAdmin,
+        modulos: payload.modulos || [],
+      }, { headers })
     }
 
     return Response.json({
