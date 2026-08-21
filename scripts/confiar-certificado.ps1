@@ -8,13 +8,16 @@
 
 $ErrorActionPreference = 'Stop'
 
+# Trabajar siempre desde la raíz del proyecto (la ventana elevada arranca en System32)
+Set-Location -LiteralPath (Split-Path -Parent (Split-Path -Parent $PSCommandPath))
+
 # --- Auto-elevación (una sola vez) ---
 $esAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $esAdmin) {
     Start-Process powershell -Verb RunAs -ArgumentList @(
         '-ExecutionPolicy', 'Bypass', '-NoExit',
         '-File', "`"$PSCommandPath`""
-    )
+    ) -WorkingDirectory (Split-Path -Parent $PSCommandPath)
     exit
 }
 
