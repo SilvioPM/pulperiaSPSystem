@@ -52,13 +52,22 @@ Verificá que ambos contenedores estén corriendo:
 docker compose ps
 ```
 
-Debe mostrar dos servicios: `db` y `app`, ambos con estado `Up`.
+Debe mostrar tres servicios: `db`, `app` y `caddy` (proxy HTTPS), todos con estado `Up`.
 
 ## Paso 4: Acceder al sistema
 
-- **URL:** http://localhost:3000
+- **URL:** https://localhost (desde esta PC) o https://<IP-de-esta-PC> (desde otras PCs de la red)
 - **Usuario:** admin
 - **Contraseña:** admin123
+
+> **Nota:** Todo el tráfico va por HTTPS. La primera vez el navegador mostrará una
+> advertencia de certificado porque el sistema usa su propia autoridad certificadora.
+> Para eliminar la advertencia (en esta PC o en las demás PCs de la red), ejecutá:
+> ```powershell
+> powershell -ExecutionPolicy Bypass -File scripts\confiar-certificado.ps1
+> ```
+> (requiere Docker corriendo; en otras PCs copiá el archivo `root.crt` del contenedor
+> e instalalo con `certutil -addstore -f Root root.crt`).
 
 ## Paso 5: Configurar licencia
 
@@ -119,7 +128,11 @@ docker compose restart app
 ```
 
 **Error de pg_dump al descargar respaldo**
-Asegurate de estar accediendo desde http://localhost:3000 mientras los contenedores Docker están corriendo.
+Asegurate de estar accediendo desde https://localhost mientras los contenedores Docker están corriendo.
+
+**Advertencia de certificado en el navegador**
+Es normal la primera vez (certificado propio del sistema). Instalá la CA con
+`scripts\confiar-certificado.ps1` o aceptá la advertencia manualmente.
 
 **Reconstruir desde cero**
 ```bash

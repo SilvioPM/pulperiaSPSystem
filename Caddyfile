@@ -1,0 +1,26 @@
+# SPSystem — Proxy HTTPS (Caddy)
+# Todo el tráfico entra por HTTPS (443). HTTP (80) redirige a HTTPS.
+#
+# tls internal + on_demand: Caddy genera su propia CA interna y emite
+# certificados al vuelo para cualquier nombre/IP con el que se acceda
+# (localhost, la IP de la PC o el nombre del equipo).
+# Para que el navegador no muestre advertencia, instalá la CA con
+# scripts/confiar-certificado.ps1.
+
+{
+	on_demand_tls {
+		ask http://app:3000/api/licencia
+	}
+}
+
+:80 {
+	redir https://{host}{uri} permanent
+}
+
+:443 {
+	tls internal {
+		on_demand
+	}
+	encode gzip
+	reverse_proxy app:3000
+}

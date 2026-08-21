@@ -41,7 +41,7 @@ async function ejecutarPsql(tmpFile) {
     throw new Error(
       'psql no está instalado en Windows. Ejecutá la restauración desde el contenedor Docker:\n' +
       '  docker compose up -d --build\n' +
-      '  Y restaurá desde http://localhost:3000/respaldos'
+      '  Y restaurá desde https://localhost/respaldos'
     )
   }
 

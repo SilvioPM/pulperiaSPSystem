@@ -70,7 +70,7 @@
 | **Admin** | 🔴 Total | Todos los módulos, configuración, usuarios, licencia, respaldos |
 | **Supervisor** | 🟠 Alto | Productos, compras, facturas, anular, reportes. Sin usuarios ni configuración |
 | **Encargado** | 🟡 Medio-alto | Similar a supervisor: productos, facturas, caja |
-| **Cajero** | 🟢 Bajo | Solo POS y ver stock. No puede crear/editar/eliminar productos ni anular |
+| **Cajero** | 🟢 Bajo | Solo POS y ver stock. Vende, cobra abonos, maneja su caja e imprime tickets; el resto de escrituras (productos, clientes, compras, gastos, etc.) se rechazan en el servidor con 403 |
 
 ### 2.2 Módulos por rol
 Cada rol tiene acceso a un subconjunto de 16 módulos. El admin puede personalizar qué módulos ve cada usuario no-admin. Los módulos son:
@@ -830,7 +830,8 @@ Facturas → POST /api/facturas/[id]/anular → Verificar contraseña → $trans
 ```
 
 ### 21.5 Seguridad
-- JWT en cookie `session` con flag `httpOnly`
+- **HTTPS obligatorio** (proxy Caddy con TLS; HTTP redirige a HTTPS). Certificado propio: instalá la CA con `scripts/confiar-certificado.ps1`
+- JWT en cookie `session` con flag `httpOnly` (+`Secure` cuando va por HTTPS)
 - CSRF: validación de origen en escritura
 - Passwords: bcrypt (salt rounds)
 - Bloqueo por intentos fallidos
@@ -838,9 +839,11 @@ Facturas → POST /api/facturas/[id]/anular → Verificar contraseña → $trans
 - Timeout de sesión por inactividad (5 min)
 - Licencia por hardware (bloqueo de páginas y APIs en el middleware)
 - RLS (Row Level Security) en PostgreSQL: 23 tablas protegidas a nivel de fila
+- **Rol cajero validado en servidor:** además del chequeo de módulos, el middleware rechaza con 403 cualquier POST/PUT/DELETE de un cajero fuera de las operaciones permitidas (vender, anular con contraseña, abonos, abrir/cerrar caja y movimientos, estacionar venta, imprimir). Crear/editar/eliminar productos, categorías, clientes (edición), proveedores, compras, gastos, proformas e inventario queda reservado a supervisor/encargado/admin.
+- Contraseñas: sin longitud mínima exigida por el sistema (cualquier contraseña no vacía es válida); se recomienda al cliente usar al menos 4 caracteres
 
 ---
 
-> **Última actualización:** Agosto 2026 — Arqueo conciliando solo efectivo (tarjeta/transferencia a banco), sesión única + logout remoto, migraciones 0012/0013
+> **Última actualización:** Agosto 2026 — Arqueo solo efectivo, sesión única + logout remoto, rol cajero validado en servidor, HTTPS obligatorio (Caddy), migraciones 0012/0013
 > **Versión:** 0.1.0
 > **Licencia:** Propietaria — requiere archivo .lic válido

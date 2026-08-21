@@ -9,25 +9,27 @@ const licenciaCache = new Map()
 // Cache simple en memoria para validez de sesión (TTL 30s)
 const sesionCache = new Map()
 
-async function verificarLicencia(req) {
-  const host = req.headers.get('host') || 'localhost:3000'
-  const protocol = req.headers.get('x-forwarded-proto') || 'http'
-  const baseUrl = `${protocol}://${host}`
+// Base URL interna para llamadas del middleware a la propia API.
+// El middleware corre DENTRO del contenedor de la app, así que apunta a su
+// propio servidor HTTP y no al host público (que puede ser HTTPS vía Caddy,
+// inaccesible desde adentro del contenedor).
+const URL_INTERNA = 'http://127.0.0.1:3000'
 
-  const cached = licenciaCache.get(baseUrl)
+async function verificarLicencia(req) {
+  const cached = licenciaCache.get('estado')
   if (cached && Date.now() - cached.ts < 30000) {
     return cached.valida
   }
 
   try {
-    const res = await fetch(`${baseUrl}/api/licencia`, {
+    const res = await fetch(`${URL_INTERNA}/api/licencia`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       // Timeout implícito por fetch
     })
     if (res.ok) {
       const data = await res.json()
-      licenciaCache.set(baseUrl, { valida: data.valida === true, ts: Date.now() })
+      licenciaCache.set('estado', { valida: data.valida === true, ts: Date.now() })
       return data.valida === true
     }
   } catch {
@@ -48,9 +50,7 @@ async function verificarSesion(req, payload) {
   }
 
   try {
-    const host = req.headers.get('host') || 'localhost:3000'
-    const protocol = req.headers.get('x-forwarded-proto') || 'http'
-    const res = await fetch(`${protocol}://${host}/api/auth/sesion`, {
+    const res = await fetch(`${URL_INTERNA}/api/auth/sesion`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -93,6 +93,24 @@ const RUTAS_MODULOS = [
 
 // Recursos solo para administradores
 const RUTAS_ADMIN = ['/api/auditoria', '/api/respaldos']
+
+// Escrituras operacionales que un cajero SÍ puede hacer (vender, cobrar, caja, tickets).
+// Todo lo demás en POST/PUT/DELETE exige rol supervisor/encargado/admin (o esAdmin).
+// p = ruta exacta | s = sufijo de subruta (cualquier id entre p y s)
+const ESCRITURA_CAJERO = [
+  { m: 'POST', p: '/api/facturas' },
+  { m: 'POST', p: '/api/facturas/', s: '/anular' },        // requiere contraseña de supervisor en el handler
+  { m: 'POST', p: '/api/abonos' },
+  { m: 'POST', p: '/api/abonos-compra' },
+  { m: 'POST', p: '/api/clientes' },                       // crear cliente rápido desde POS
+  { m: 'POST', p: '/api/clientes/', s: '/abonar-inicial' },
+  { m: 'POST', p: '/api/caja' },                           // apertura de caja
+  { m: 'POST', p: '/api/caja/cerrar' },                    // arqueo y cierre
+  { m: 'POST', p: '/api/caja/movimientos' },               // entradas/salidas de caja
+  { m: 'POST', p: '/api/cart-sessions' },                  // estacionar venta
+  { m: 'DELETE', p: '/api/cart-sessions' },                // retirar venta estacionada
+  { m: 'POST', p: '/api/imprimir' },
+]
 
 export default async function middleware(req) {
   const { pathname } = req.nextUrl
@@ -191,6 +209,20 @@ export default async function middleware(req) {
     const permitido = ruta.modulos.some(m => modulosUser.includes(m))
     if (!permitido) {
       return NextResponse.json({ error: 'Sin permiso para este recurso' }, { status: 403 })
+    }
+  }
+
+  // Rol de escritura: cajero = solo lectura (salvo operaciones permitidas).
+  // Antes esto solo se ocultaba en la UI; ahora también se valida en el servidor.
+  if (!payload.esAdmin && payload.rol === 'cajero' && ['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    const permitida = ESCRITURA_CAJERO.some(r => {
+      if (r.m !== req.method) return false
+      if (r.p === pathname) return true
+      if (r.s && pathname.startsWith(r.p) && pathname.endsWith(r.s)) return true
+      return false
+    })
+    if (!permitida) {
+      return NextResponse.json({ error: 'Sin permiso para esta acción (rol cajero = solo lectura)' }, { status: 403 })
     }
   }
 

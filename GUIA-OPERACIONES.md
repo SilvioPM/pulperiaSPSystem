@@ -40,7 +40,7 @@ Lo que hace:
 > registro de clientes. Sin él NO se puede emitir la licencia de esa máquina.
 
 ### Paso 3 — Pedir el Machine-ID
-- El cliente entra al sistema en `http://localhost:3000` con el usuario admin.
+- El cliente entra al sistema en `https://localhost` (o `https://<IP-de-la-PC>`) con el usuario admin.
 - Abre el módulo **Licencia** y envía el **Machine-ID** que aparece ahí.
 
 ### Paso 4 — Emitir la licencia (en la máquina del proveedor)

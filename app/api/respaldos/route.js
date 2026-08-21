@@ -45,7 +45,7 @@ async function ejecutarPgDump(tmpFile) {
     throw new Error(
       'pg_dump no está instalado en Windows. Ejecutá dentro del contenedor Docker:\n' +
       '  docker compose up -d --build\n' +
-      '  Y descargá el respaldo desde http://localhost:3000/respaldos\n\n' +
+      '  Y descargá el respaldo desde https://localhost/respaldos\n\n' +
       'O instalá PostgreSQL client tools en Windows para desarrollo local.'
     )
   }

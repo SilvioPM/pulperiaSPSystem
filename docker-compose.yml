@@ -16,8 +16,7 @@ services:
 
   app:
     build: .
-    ports:
-      - "${PUERTO:-3000}:3000"
+    # Sin puertos expuestos: todo el tráfico entra por HTTPS (servicio caddy).
     environment:
       # IMPORTANTE: Estos valores por defecto SOLO son para compatibilidad con instalaciones
       # ya existentes que NO han corrido preparar-existente.ps1.
@@ -41,6 +40,21 @@ services:
       - "app=spsystem"
       - "version=1.0"
 
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - app
+    restart: always
+    labels:
+      - "app=spsystem-proxy"
+
 volumes:
   pgdata:
   appdata:
+  caddydata:

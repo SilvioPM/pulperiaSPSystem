@@ -517,8 +517,7 @@ services:
       POSTGRES_PASSWORD: spsystem123
   app:
     build: .
-    ports:
-      - "3000:3000"
+    # Sin puertos expuestos: el tráfico entra por HTTPS vía Caddy
     environment:
       DATABASE_URL: postgresql://spsystem:spsystem123@db:5432/spsystem
       JWT_SECRET: ${JWT_SECRET}
@@ -526,6 +525,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - app
 ```
 
 ### Comandos

@@ -60,21 +60,26 @@ if ($LASTEXITCODE -ne 0) {
   exit 1
 }
 
-# -- 6. Esperar a que la app responda --
+# -- 6. Esperar a que la app responda (ahora por HTTPS vía Caddy) --
 Log "Esperando que la aplicacion se inicie..."
 $ready = $false
 for ($i = 1; $i -le 60; $i++) {
   Start-Sleep -Seconds 2
   try {
-    $r = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 3
+    $r = Invoke-WebRequest -Uri "https://localhost" -UseBasicParsing -TimeoutSec 3 -SkipCertificateCheck
     if ($r.StatusCode -eq 200) {
       $ready = $true
       break
     }
-  } catch {}
+  } catch {
+    try {
+      $r = Invoke-WebRequest -Uri "http://localhost" -UseBasicParsing -TimeoutSec 3 -MaximumRedirection 5
+      if ($r.StatusCode -eq 200) { $ready = $true; break }
+    } catch {}
+  }
 }
 if ($ready) {
-  Log "APLICACION LISTA en http://localhost:3000"
+  Log "APLICACION LISTA en https://localhost (instale la CA con scripts\confiar-certificado.ps1 para evitar la advertencia del navegador)"
 } else {
   Log "ADVERTENCIA: La app no respondio despues de 2 minutos. Revise los logs con: docker compose logs -f app"
 }
